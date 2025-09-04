@@ -63,7 +63,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
         List[Union[str, float]]
             Field value
         """
-        if material_name in self.country_codes:
+        if volume_index in self.country_codes:
             return 1.
         else:
             return 0.
@@ -95,12 +95,12 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
         """
         output = []
 
-        for material_name in material_names:
-            if material_name in self.country_codes:
+        for vol_id in volume_indexes:
+            if vol_id in self.country_codes:
                 val = 0.
 
                 for column in self.df.columns:
-                    if column.startswith(material_name.lower()) and column.endswith(field):
+                    if column.startswith(vol_id.lower()) and column.endswith(field):
                         val += self.df[column].sum()
                 output.append(val)
             else:
@@ -134,9 +134,9 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
         """
         output = None
 
-        if material_name in self.country_codes:
+        if volume_index in self.country_codes:
             for column in self.df.columns:
-                if column.startswith(material_name.lower()) and column.endswith(field):
+                if column.startswith(volume_index.lower()) and column.endswith(field):
                     if output is None:
                         output = self.df[column].copy()
                     else:
@@ -146,7 +146,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
             output = self.df["Time"].copy()*0.
             output.replace(0., np.NaN)
 
-        output.rename(f"{material_name}_{field}")
+        output.rename(f"{volume_index}_{field}")
 
         return output
 

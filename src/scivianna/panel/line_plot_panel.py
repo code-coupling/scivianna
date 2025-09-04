@@ -1,9 +1,10 @@
-from typing import Dict
+from typing import Dict, Tuple
 import panel as pn
 import os
 import pandas as pd
 from scivianna.components.overlay_component import Overlay
 
+from scivianna.enums import UpdateEvent
 from scivianna.plotter_1d.bokeh_1d_plotter import BokehPlotter1D
 from scivianna.slave import ComputeSlave
 
@@ -25,7 +26,16 @@ class LineVisualisationPanel:
     """ Panel name
     """
     plotter: BokehPlotter1D
+    """ 1D plotter displaying and updating the graph
+    """
+    update_event:UpdateEvent = UpdateEvent.RECOMPUTE
+    """ On what event does the panel recompute itself
+    """
 
+    position:Tuple[float, float, float] = None
+    """Position where request the plot"""
+    volume_id:str = None
+    """Volume ID where request the plot"""
 
     def __init__(self, 
                     slave:ComputeSlave,
@@ -70,7 +80,7 @@ class LineVisualisationPanel:
         self.field_color_selector.param.watch(recompute_cb, "value")
 
         self.plotter = BokehPlotter1D()
-        self.plotter.plot(self.field_color_selector.value[0], self.slave.get_1D_value(None, None, "FR", self.field_color_selector.value[0]))
+        self.plotter.plot(self.field_color_selector.value[0], self.slave.get_1D_value(self.position, self.volume_id, "FR", self.field_color_selector.value[0]))
         self.plotter.set_visible(self.field_color_selector.value)
 
         fig_pane = self.plotter.make_panel()
@@ -131,7 +141,7 @@ class LineVisualisationPanel:
 
             self.series.clear()
             for key in self.field_color_selector.value:
-                self.series[key] = self.slave.get_1D_value(None, None, "FR", key)
+                self.series[key] = self.slave.get_1D_value(self.position, self.volume_id, None, key)
 
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
@@ -173,3 +183,17 @@ class LineVisualisationPanel:
         self,
     ):
         return self.slave
+
+    def recompute_at(self, position:Tuple[float, float, float], volume_id:str):
+        """Triggers a panel recomputation at the provided location. Called by layout update event.
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Location to provide to the slave
+        volume_id : str
+            Volume id to provide to the slave
+        """
+        self.position = position
+        self.volume_id = volume_id
+        self.recompute()

@@ -4,6 +4,7 @@ from typing import Callable, Dict, List, Tuple, Type, Union
 
 from bokeh.plotting import curdoc
 
+from scivianna.enums import UpdateEvent
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.panel.plot_panel import ComputeSlave, VisualizationPanel
 from scivianna.utils.interface_tools import (
@@ -29,7 +30,7 @@ class GenericLayout:
     available_interfaces: Dict[Union[str, GenericInterfaceEnum], Type[GenericInterface]]
     """ Available interface classes to switch from one to another
     """
-    load_available_interfaces:Callable = load_available_interfaces
+    load_available_interfaces:Callable = None
     """ Function loading available interfaces. Can be overwriten to add additional interfaces.
     """
 
@@ -47,13 +48,10 @@ class GenericLayout:
     ):
         self.visualisation_panels = visualisation_panels
         
-        print(self.load_available_interfaces)
-        try:
+        if self.load_available_interfaces is None:
+            self.available_interfaces = load_available_interfaces()
+        else:
             self.available_interfaces = self.load_available_interfaces()
-        except TypeError:
-            self.available_interfaces = self.load_available_interfaces.__func__()
-
-        print(self.available_interfaces)
 
         for interface in additional_interfaces:
             if not issubclass(additional_interfaces[interface], GenericInterface):
@@ -230,6 +228,14 @@ class GenericLayout:
         self.change_current_frame(None)
 
         self.panels_to_recompute: List[str] = []
+
+        for panel in self.visualisation_panels.values():
+            if isinstance(panel, VisualizationPanel):
+                panel.provide_on_clic_callback(self.on_clic_callback)
+                panel.provide_on_mouse_move_callback(self.mouse_move_callback)
+
+        self.last_hover_id = None
+        """Last hovered cell to trigger change if applicable"""
 
     @pn.io.hold()
     def change_code_interface(self, event):
@@ -444,3 +450,34 @@ class GenericLayout:
             return pn.Row(self.run_button, *[e.bounds_row for e in self.visualisation_panels.values()])
         else:
             return pn.Row(*[e.bounds_row for e in self.visualisation_panels.values()])
+        
+    def on_clic_callback(self, position:Tuple[float, float, float], volume_id:str):
+        """Function calling panels update on mouse clic in a 2D panel
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Clic location
+        volume_id : str
+            Clic volume ID
+        """
+        for panel in self.visualisation_panels.values():
+            if panel.update_event == UpdateEvent.CLIC:
+                panel.recompute_at(position, volume_id)
+        
+    def mouse_move_callback(self, position:Tuple[float, float, float], volume_id:str):
+        """Function calling panels update on mouse move in a 2D panel
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Mouse hovered location
+        volume_id : str
+            Move hovered volume id
+        """
+        for panel in self.visualisation_panels.values():
+            if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE:
+                panel.recompute_at(position, volume_id)
+            if panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE and volume_id != self.last_hover_id:
+                self.last_hover_id = volume_id
+                panel.recompute_at(position, volume_id)

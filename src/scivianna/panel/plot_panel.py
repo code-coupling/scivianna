@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Tuple, Union
+from typing import Callable, Dict, List, Any, Tuple, Union
 import numpy as np
 import panel as pn
 import os
@@ -8,7 +8,7 @@ from scivianna.interface.generic_interface import Geometry2D
 from scivianna.interface.option_element import OptionElement
 from scivianna.components.overlay_component import Overlay
 from scivianna.components.server_file_browser import ServerFileBrowser
-from scivianna.enums import GeometryType, VisualizationMode
+from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.slave import ComputeSlave
 
 from scivianna.utils.polygonize_tools import PolygonElement, PolygonSorter
@@ -54,9 +54,9 @@ class VisualizationPanel:
     current_polygons: Dict[str, Any]
     """ Displayed polygons and their properties.
     """
-    # source_coordinates:ColumnDataSource
-    # """ ColumnDataSource object that stores the figure coordinates.
-    # """
+    update_event:UpdateEvent = UpdateEvent.RECOMPUTE
+    """ On what event does the panel recompute itself
+    """
 
     def __init__(self, slave: ComputeSlave, name=""):
         """Visualization panel constructor
@@ -918,3 +918,38 @@ class VisualizationPanel:
             Panel slave
         """
         return self.slave
+
+    def provide_on_mouse_move_callback(self, callback:Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.plotter.provide_on_mouse_move_callback(callback)
+
+    def provide_on_clic_callback(self, callback:Callable):
+        """Stores a function to call everytime the user clics on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.plotter.provide_on_clic_callback(callback)
+
+        
+    def recompute_at(self, position:Tuple[float, float, float], volume_id:str):
+        """Triggers a panel recomputation at the provided location. Called by layout update event.
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Location to provide to the slave
+        volume_id : str
+            Volume id to provide to the slave
+        """
+        pass

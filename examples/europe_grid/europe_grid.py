@@ -12,7 +12,7 @@ from scivianna.slave import ComputeSlave
 from scivianna.panel.plot_panel import VisualizationPanel
 from scivianna.interface import csv_result
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
-from scivianna.enums import GeometryType, VisualizationMode
+from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 
 from country_time_series import CountryTimeSeriesInterface
 
@@ -165,6 +165,7 @@ class EuropeGridInterface(Geometry2D):
             print("Skipping polygon computation.")
             return self.polygons, False
 
+        print(list(self.polygons_per_country.keys()))
         list_of_polygons = [
             PolygonElement(
                 exterior_polygon=PolygonCoords(
@@ -176,7 +177,7 @@ class EuropeGridInterface(Geometry2D):
                         PolygonCoords(h.xy[0], h.xy[1]) 
                         for h in p.interiors
                     ],
-                volume_id=str(country),
+                volume_id=self.country_id[country],
             )
             for country in self.polygons_per_country
             for p in self.polygons_per_country[country]
@@ -206,7 +207,7 @@ class EuropeGridInterface(Geometry2D):
         """
         if value_label == MATERIAL:
             dict_compo = {
-                vol: self.country_list[int(vol)] for vol in volumes
+                vol: self.country_list[list(self.country_id.values).index(vol)] for vol in volumes
             }
             return dict_compo
 
@@ -219,13 +220,13 @@ class EuropeGridInterface(Geometry2D):
 
         if value_label == "Europe":
             dict_compo = {
-                vol: self.europe[int(vol)] for vol in volumes
+                vol: self.europe[list(self.country_id.values).index(vol)] for vol in volumes
             }
             return dict_compo
 
         for res in self.results.values():
             if value_label in res.get_fields():
-                results = res.get_values([], volumes, [self.country_id[int(vol)] for vol in volumes], value_label)
+                results = res.get_values([], volumes, [self.country_id[list(self.country_id.values).index(vol)] for vol in volumes], value_label)
                 return {volumes[i]: results[i] for i in range(len(volumes))}
 
         raise NotImplementedError(
@@ -300,6 +301,7 @@ if __name__ == "__main__":
 
         map_panel = VisualizationPanel(slave, name="Map")
         line_panel = LineVisualisationPanel(slave_result, name="Plot")
+        line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
 
         split_panel = SplitLayout(
                                                 SplitItem(map_panel, line_panel, SplitDirection.VERTICAL),

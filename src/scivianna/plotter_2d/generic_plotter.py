@@ -1,4 +1,4 @@
-from typing import IO, List, Tuple
+from typing import IO, Callable, List, Tuple
 import panel as pn
 
 from scivianna.utils.polygonize_tools import PolygonElement
@@ -6,6 +6,12 @@ from scivianna.utils.polygonize_tools import PolygonElement
 
 class Plotter2D:
     """Generic 2D geometry plotter interface"""
+    
+    on_mouse_move_callback = None
+    """Function to call when the mouse is moved on the geometry"""
+    on_clic_callback = None
+    """Function to call when the mouse is clicked on the geometry"""
+
 
     def display_borders(self, display: bool):
         """Display or hides the figure borders and axis
@@ -120,3 +126,25 @@ class Plotter2D:
             Disable if True, enable if False
         """
         raise NotImplementedError
+
+    def provide_on_mouse_move_callback(self, callback:Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.on_mouse_move_callback = callback
+
+    def provide_on_clic_callback(self, callback:Callable):
+        """Stores a function to call everytime the user clics on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.on_clic_callback = callback

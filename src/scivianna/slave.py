@@ -8,7 +8,7 @@ from typing import Any, List, Dict, Tuple, Type
 
 from scivianna.utils.color_tools import interpolate_cmap_at_values
 
-from scivianna.interface.generic_interface import GenericInterface, IcocoInterface
+from scivianna.interface.generic_interface import GenericInterface, Geometry2D, IcocoInterface
 from scivianna.interface.option_element import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import VisualizationMode
@@ -51,6 +51,8 @@ class SlaveCommand:
     """Sets the current time"""
     GET_COLORING_MODE = "get_label_coloring_mode"
     """Returns the coloring mode of a field"""
+    GET_VALUE_DICT = "get_value_dict"
+    """Returns the values of a field at cells"""
 
 
 def get_colors_list(
@@ -297,7 +299,7 @@ def worker(
 
             elif task == SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE:
                 if not isinstance(code_, IcocoInterface):
-                    raise KeyError(
+                    raise TypeError(
                         f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
                     )
                 field_name = data
@@ -308,7 +310,7 @@ def worker(
 
             elif task == SlaveCommand.SET_INPUT_MED_DOUBLEFIELD:
                 if not isinstance(code_, IcocoInterface):
-                    raise KeyError(
+                    raise TypeError(
                         f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
                     )
                 field_name, field = data
@@ -318,7 +320,7 @@ def worker(
             elif task == SlaveCommand.SET_TIME:
                 time_ = data[0]
                 if not isinstance(code_, IcocoInterface):
-                    raise KeyError(
+                    raise TypeError(
                         f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
                     )
                 set_return = code_.setTime(time_)
@@ -327,7 +329,7 @@ def worker(
             elif task == SlaveCommand.SET_INPUT_DOUBLE_VALUE:
                 name, val = data
                 if not isinstance(code_, IcocoInterface):
-                    raise KeyError(
+                    raise TypeError(
                         f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
                     )
                 set_return = code_.setInputDoubleValue(name, val)
@@ -336,6 +338,14 @@ def worker(
             elif task == SlaveCommand.GET_COLORING_MODE:
                 field_name = data
                 set_return = code_.get_label_coloring_mode(field_name)
+                q_returns.put(set_return)
+
+            elif task == SlaveCommand.GET_VALUE_DICT:
+                if not isinstance(code_, Geometry2D):
+                    raise TypeError(
+                        f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
+                    )
+                set_return = code_.get_value_dict(*data)
                 q_returns.put(set_return)
 
 
@@ -637,6 +647,23 @@ class ComputeSlave:
             Current time
         """
         self.q_tasks.put([SlaveCommand.SET_TIME, [time_]])
+
+        return self.q_returns.get()
+
+    def get_value_dict(self, field_name: str) -> VisualizationMode:
+        """Returns the coloring mode of the plot
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the displayed field
+
+        Returns
+        -------
+        VisualizationMode
+            Coloring mode
+        """
+        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, field_name])
 
         return self.q_returns.get()
 

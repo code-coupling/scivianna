@@ -1,9 +1,12 @@
-from typing import IO, List, Tuple, Union
+import functools
+from typing import IO, Callable, List, Tuple, Union
+import bokeh.events
 import panel as pn
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
 from scivianna.panel.styles import customize_axis
+import bokeh
 from bokeh.colors import RGB
 from bokeh.plotting import figure as Figure
 from bokeh.plotting import save, output_file
@@ -13,6 +16,7 @@ from bokeh.models import (
     CustomJSHover,
     LinearColorMapper,
     ColorBar,
+    TapTool,
 )
 # from bokeh.models import CustomJS
 from bokeh import events
@@ -131,7 +135,7 @@ class Bokeh2DPlotter(Plotter2D):
             ("Value", "@compo_names"),
         ]
 
-        MyHover = HoverTool(
+        hover_tool = HoverTool(
             tooltips=TOOLTIPS,
             formatters={
                 "$x": CustomJSHover(
@@ -163,30 +167,7 @@ class Bokeh2DPlotter(Plotter2D):
         customize_axis(self.figure.xaxis)
         customize_axis(self.figure.yaxis, vertical=True)
 
-        #   Some failure to get the hover to the mouse and not to the volume
-        #   We still have an offset of the cursor as the coordinates are relative to the figure origin.
-        # callback = CustomJS(
-        #     args={"p": self.figure, "mouse": self.source_mouse},
-        #     code="""
-        #     var tooltips = document.getElementsByClassName("bk-Tooltip");
-
-        #     //canvas = @plot_model.get('canvas');
-        #     //console.log(canvas)
-        #     //console.log(mouse.data["sy"][0]+" "+canvas.vx_to_sx(mouse.data["sy"][0]));
-        #     for (var i = 0; i < tooltips.length; i++) {
-        #         tooltips[i].style.top = (mouse.data["sy"][0]).toFixed(1)+"px" ;
-        #         tooltips[i].style.left = (mouse.data["sx"][0]).toFixed(1)+"px" ;
-        #         //tooltips[i].style.position = "relative" ;
-        #         //tooltips[i].style.top = (100 * mouse.data["sy"][0] / mouse.data["snap_sy"][0]).toFixed(1)+"%" ;
-        #         //tooltips[i].style.left = (100 * mouse.data["sx"][0] / mouse.data["snap_sx"][0]).toFixed(1)+"%" ;
-        #     }
-        #     //console.log(mouse.data);
-        #     """,
-        # )
-
-        # MyHover.callback = fig_size_callback
-
-        self.figure.add_tools(MyHover)
+        self.figure.add_tools(hover_tool)
 
         self.color_mapper = LinearColorMapper(
             palette=self.__get_color_mapper_from_string("BuRd"), low=0.0, high=1.0
@@ -463,7 +444,7 @@ class Bokeh2DPlotter(Plotter2D):
         self.figure.width_policy = "max"
         self.figure.height_policy = "max"
 
-    def _polygons_to_coords(self, polygons: List[PolygonElement]):
+    def _polygons_to_coords(self, polygons: List[PolygonElement]) -> Tuple[List[List[Tuple[List[float]]]], List[List[Tuple[List[float]]]]]:
         xs_dict = [
             [
                 {
@@ -492,3 +473,39 @@ class Bokeh2DPlotter(Plotter2D):
         ]
 
         return xs, ys
+
+    def send_event(self, callback):
+        callback(position=(
+                            self.source_mouse.data["x"][0], 
+                            self.source_mouse.data["y"][0], 
+                            self.source_mouse.data["z"][0]
+                        ), 
+                volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
+
+
+    def provide_on_mouse_move_callback(self, callback:Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        super().provide_on_mouse_move_callback(callback)
+
+        self.figure.on_event(bokeh.events.MouseMove, functools.partial(self.send_event, callback))
+
+    def provide_on_clic_callback(self, callback:Callable):
+        """Stores a function to call everytime the user clics on the plot. 
+        Functions arguments are location, volume_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        super().provide_on_clic_callback(callback)
+
+        self.figure.on_event(bokeh.events.Tap, functools.partial(self.send_event, callback))
+        self.figure.add_tools(TapTool())
