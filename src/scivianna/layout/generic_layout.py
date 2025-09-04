@@ -277,6 +277,9 @@ class GenericLayout:
             self.visualisation_panels[current_frame].fig_overlay.button_3 = self._make_button_icon()
             self.visualisation_panels[current_frame].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=current_frame))
 
+            self.visualisation_panels[current_frame].provide_on_clic_callback(self.on_clic_callback)
+            self.visualisation_panels[current_frame].provide_on_mouse_move_callback(self.mouse_move_callback)
+            
             self.visualisation_panels[current_frame].bounds_row[0].param.watch(
                 functools.partial(self.set_to_frame, frame_name=current_frame), "value"
             )

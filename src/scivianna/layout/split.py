@@ -320,7 +320,10 @@ class SplitLayout(GenericLayout):
 
         new_frame.fig_overlay.button_3 = self._make_button_icon()
         new_frame.fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=new_frame.name))
+        
         self.visualisation_panels[new_frame.name] = new_frame
+        self.visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
+        self.visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)
 
         parent_split, split_index = self.current_split_item(
             current_frame, self.split_item

@@ -283,6 +283,8 @@ class GridStackLayout(GenericLayout):
             new_visualisation_panels[new_frame.name].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=new_frame.name))
             new_visualisation_panels[new_frame.name].bounds_row[0].param.watch(functools.partial(self.set_to_frame, frame_name=new_frame.name), "value")
 
+            new_visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
+            new_visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)
 
             if horizontal:
                 self.bounds_x[new_frame.name] = (old_x_min, old_x_max)
@@ -304,6 +306,8 @@ class GridStackLayout(GenericLayout):
                 new_visualisation_panels[panel_name].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=panel_name))
                 new_visualisation_panels[panel_name].bounds_row[0].param.watch(functools.partial(self.set_to_frame, frame_name=panel_name), "value")
 
+                new_visualisation_panels[panel_name].provide_on_clic_callback(self.on_clic_callback)
+                new_visualisation_panels[panel_name].provide_on_mouse_move_callback(self.mouse_move_callback)
 
             self.visualisation_panels = new_visualisation_panels
 
