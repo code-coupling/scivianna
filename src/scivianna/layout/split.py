@@ -251,7 +251,11 @@ class SplitLayout(GenericLayout):
 
         """
         visualisation_panels : Dict[str, VisualizationPanel] = {}
-        if isinstance(split_item, SplitItem):
+        
+        if isinstance(split_item, VisualizationPanel):
+            visualisation_panels[split_item.name] = split_item
+        
+        elif isinstance(split_item, SplitItem):
             if isinstance(split_item.panel_1, SplitItem):
                 visualisation_panels = {**visualisation_panels, **self.get_panels_dict(split_item.panel_1)}
             else:
@@ -260,7 +264,7 @@ class SplitLayout(GenericLayout):
                 visualisation_panels = {**visualisation_panels, **self.get_panels_dict(split_item.panel_2)}
             else:
                 visualisation_panels[split_item.panel_2.name] = split_item.panel_2
-
+                
         return visualisation_panels
 
     

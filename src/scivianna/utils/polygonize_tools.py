@@ -96,7 +96,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
     polygon_element_list:List[PolygonElement] = []
 
     transform1 = Affine.translation(x0 - (x1-x0)/len(x) / 2, y0 - (y1-y0)/len(y) / 2) * Affine.scale((x1-x0)/len(x), (y1-y0)/len(y))
-    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(arr.astype(np.float32), transform=transform1))
+    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(arr.astype(np.int32), transform=transform1))
 
     s:Polygon
     for s, val in shape_gen:

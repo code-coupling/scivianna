@@ -165,7 +165,6 @@ class EuropeGridInterface(Geometry2D):
             print("Skipping polygon computation.")
             return self.polygons, False
 
-        print(list(self.polygons_per_country.keys()))
         list_of_polygons = [
             PolygonElement(
                 exterior_polygon=PolygonCoords(
