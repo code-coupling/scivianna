@@ -481,6 +481,7 @@ class GenericLayout:
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
                 panel.recompute_at(position, volume_id)
-            if panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event) and volume_id != self.last_hover_id:
+
+            if volume_id != self.last_hover_id and (panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)) :
                 self.last_hover_id = volume_id
                 panel.recompute_at(position, volume_id)
