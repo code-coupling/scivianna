@@ -54,7 +54,7 @@ class VisualizationPanel:
     current_polygons: Dict[str, Any]
     """ Displayed polygons and their properties.
     """
-    update_event:UpdateEvent = UpdateEvent.RECOMPUTE
+    update_event:Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
     """ On what event does the panel recompute itself
     """
 
@@ -481,7 +481,7 @@ class VisualizationPanel:
             self.__range_to_update = True
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-            if self.update_event == UpdateEvent.RANGE_CHANGE:
+            if self.update_event == UpdateEvent.RANGE_CHANGE or (isinstance(self.update_event, list) and UpdateEvent.RANGE_CHANGE in self.update_event):
                 self.marked_to_recompute = True
 
         # Attach the CB to the event

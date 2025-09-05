@@ -465,7 +465,7 @@ class GenericLayout:
             Clic volume ID
         """
         for panel in self.visualisation_panels.values():
-            if panel.update_event == UpdateEvent.CLIC:
+            if panel.update_event == UpdateEvent.CLIC or (isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event):
                 panel.recompute_at(position, volume_id)
         
     def mouse_move_callback(self, position:Tuple[float, float, float], volume_id:str):
@@ -479,8 +479,8 @@ class GenericLayout:
             Move hovered volume id
         """
         for panel in self.visualisation_panels.values():
-            if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE:
+            if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
                 panel.recompute_at(position, volume_id)
-            if panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE and volume_id != self.last_hover_id:
+            if panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event) and volume_id != self.last_hover_id:
                 self.last_hover_id = volume_id
                 panel.recompute_at(position, volume_id)

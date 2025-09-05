@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple, Union
 import panel as pn
 import os
 import pandas as pd
@@ -28,7 +28,7 @@ class LineVisualisationPanel:
     plotter: BokehPlotter1D
     """ 1D plotter displaying and updating the graph
     """
-    update_event:UpdateEvent = UpdateEvent.RECOMPUTE
+    update_event:Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
     """ On what event does the panel recompute itself
     """
 
