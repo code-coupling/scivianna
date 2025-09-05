@@ -475,12 +475,15 @@ class Bokeh2DPlotter(Plotter2D):
         return xs, ys
 
     def send_event(self, callback):
-        callback(position=(
-                            self.source_mouse.data["x"][0], 
-                            self.source_mouse.data["y"][0], 
-                            self.source_mouse.data["z"][0]
-                        ), 
-                volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
+        # If the mouse is hovered while a range update triggered update is done, the self.source_polygons.data length is updated faster than the data coming from the mouse.
+        #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
+        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[VOLUME_NAMES]):
+            callback(position=(
+                                self.source_mouse.data["x"][0], 
+                                self.source_mouse.data["y"][0], 
+                                self.source_mouse.data["z"][0]
+                            ), 
+                    volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
 
 
     def provide_on_mouse_move_callback(self, callback:Callable):
@@ -523,6 +526,7 @@ class Bokeh2DPlotter(Plotter2D):
             Normal vector coordinate
         """
         w_vector = np.cross(np.array(u), np.array(v))
+        
         new_data = self.source_coordinates.data.copy()
         new_data["u0"] = [u[0]]
         new_data["u1"] = [u[1]]
