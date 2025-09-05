@@ -311,3 +311,4 @@ if __name__ == "__main__":
         return split_panel
 
     _serve_panel(get_panel_function=get_panel, title="Europe grid")
+    

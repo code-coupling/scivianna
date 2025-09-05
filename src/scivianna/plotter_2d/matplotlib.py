@@ -255,3 +255,17 @@ class Matplotlib2DPlotter(Plotter2D):
         self.figure.suptitle(title)
         self.figure.tight_layout()
         self.figure.savefig(file_name, dpi=1500)
+
+    def set_axes(self, u:Tuple[float, float, float], v:Tuple[float, float, float], w:float):
+        """Stores the u v axes of the current plot
+
+        Parameters
+        ----------
+        u : Tuple[float, float, float]
+            Horizontal axis direction vector
+        v : Tuple[float, float, float]
+            Vertical axis direction vector
+        w : float
+            Normal vector coordinate
+        """
+        pass

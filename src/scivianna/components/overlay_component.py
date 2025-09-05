@@ -18,6 +18,8 @@ class Overlay(ReactiveHTML):
     """Third button (displayed below the button_2)"""
     title = Child()
     """Figure title (displayed on the top left of the figure)"""
+    message = Child()
+    """Figure message (displayed on the bottom left of the figure)"""
 
     distance_from_right:param.String = param.String("10px")
     """Distance between the button and the right of the figure (increased when the axis are displayed)"""
@@ -44,6 +46,9 @@ class Overlay(ReactiveHTML):
                         </div>
                         <div id="title-container" style="position: absolute; top: 10px; left: ${distance_from_left};">
                             ${title}
+                        </div>
+                        <div id="message-container" style="position: absolute; bottom: 10px; left: ${distance_from_left};">
+                            ${message}
                         </div>
                     </div>
                 """
@@ -81,6 +86,24 @@ class Overlay(ReactiveHTML):
         if pn.state.curdoc is not None:
             pn.state.curdoc.add_timeout_callback(self._show_buttons, 300)
 
+    def show_temporary_message(self, text:str, timeout:int):
+        """Runs a timeout event asking to display the buttons if the mouse is still in the frame after a given time. The time out prevents flikering the app when crossing through several panels.
+
+        Parameters
+        ----------
+        text : str
+            Message to display
+        timeout : int
+            Time after which the message disappears in ms
+        """
+        if self.message is not None:
+            self.message.object = text
+        
+            self.message.visible = True
+
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_timeout_callback(self._hide_message, timeout)
+
     @pn.io.hold()
     async def _show_buttons(self, ):
         """Show all element on top of the figure if the mouse is in the frame
@@ -94,6 +117,10 @@ class Overlay(ReactiveHTML):
                 self.button_3.visible = True
             if self.title is not None:
                 self.title.visible = True
+
+    async def _hide_message(self, ):
+        if self.message is not None:
+            self.message.visible = False
 
 
 if __name__ == "__main__":

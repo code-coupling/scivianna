@@ -87,6 +87,7 @@ class LineVisualisationPanel:
 
         self.fig_overlay = Overlay(
             figure=fig_pane,
+            message = pn.pane.Markdown(""),
             margin=0,
             width_policy="max",
             height_policy="max",
@@ -194,6 +195,7 @@ class LineVisualisationPanel:
         volume_id : str
             Volume id to provide to the slave
         """
+        self.fig_overlay.show_temporary_message(f"Updating for position {position} and cell {volume_id}", 1000)
         self.position = position
         self.volume_id = volume_id
         self.recompute()

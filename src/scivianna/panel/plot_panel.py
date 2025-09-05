@@ -172,6 +172,7 @@ class VisualizationPanel:
         )
 
         self.plotter = Bokeh2DPlotter()
+        self.plotter.set_axes((1, 0, 0), (0, 1, 0), z)
         self.plotter.plot_2d_frame(polygons, volume_compo_list, volume_color_list)
 
         if (
@@ -201,6 +202,7 @@ class VisualizationPanel:
             figure=fig_pane,
             button_1=self.color_map_selector,
             button_2=hide_show_button,
+            message = pn.pane.Markdown(""),
             margin=0,
             width_policy="max",
             height_policy="max",
@@ -266,7 +268,7 @@ class VisualizationPanel:
             width=100,
             align="center",
         )
-        self.z_inp = pn.widgets.FloatInput(
+        self.w_inp = pn.widgets.FloatInput(
             name="w", value=z, start=-1e6, end=1e6, step=0.1, width=100, align="center"
         )
         self.step_inp = pn.widgets.IntInput(
@@ -509,7 +511,7 @@ class VisualizationPanel:
                 w.param.watch(recompute_cb, "value")
 
         if self.geometry_type == GeometryType._2D:
-            self.z_inp.visible = False
+            self.w_inp.visible = False
             self.axes_card.visible = False
         if not self.rasterized:
             self.step_inp.visible = False
@@ -519,7 +521,7 @@ class VisualizationPanel:
             self.y0_inp,
             self.x1_inp,
             self.y1_inp,
-            self.z_inp,
+            self.w_inp,
             self.step_inp,
             *options_widgets,
             self.recompute_btn,
@@ -529,6 +531,9 @@ class VisualizationPanel:
         self.main_frame = self.fig_overlay
 
         self.periodic_recompute_added = False
+        """Coupling periodic update"""
+        self.marked_to_recompute = False
+        """Recompute requested by a coordinates/field change on API side"""
 
     @pn.io.hold()
     def async_update_data(
@@ -547,10 +552,6 @@ class VisualizationPanel:
                     ),
                 )
                 self.plotter.set_color_map(self.color_map_selector.value_name)
-
-            # Commented as apparently not used
-            # if "source_coordinates" in self.__new_data:
-            #     self.source_coordinates.update(data = self.__new_data["source_coordinates"])
 
             if "source_polygons" in self.__new_data:
                 self.current_polygons = self.__new_data["source_polygons"]
@@ -604,13 +605,33 @@ class VisualizationPanel:
                 self.x1_inp.value = self.__new_data["x1"]
             if "y1" in self.__new_data:
                 self.y1_inp.value = self.__new_data["y1"]
+                
+            if "w" in self.__new_data:
+                self.w_inp.value = self.__new_data["w"]
+
+            u, v = self.get_uv()
+            self.plotter.set_axes(u, v, self.w_inp.value)
 
             self.__range_to_update = False
 
             # this is necessary only in a notebook context where sometimes we have to force Panel/Bokeh to push an update to the browser
             pn.io.push_notebook(self.fig_overlay)
 
+        if "field_name" in self.__new_data:
+            self.marked_to_recompute=False
+            if self.__new_data["field_name"] in self.field_color_selector.options:
+                self.field_color_selector.value = [self.__new_data["field_name"]]
+
+                self.async_update_data()
+        else:
+            # If marked to recompute, a safe change was applied on a plot parameter, a recompute is requested async
+            if self.marked_to_recompute:
+                self.recompute()
+                self.marked_to_recompute=False
+                self.async_update_data()
+
         self.__new_data = {}
+
 
     def compute_fn(
         self,
@@ -708,6 +729,29 @@ class VisualizationPanel:
         else:
             return None, None, None
 
+    def get_uv(self,) -> Tuple[np.ndarray, np.ndarray]:
+        """Gets the normal direction vectors from the FloatInput objects.
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            Vectors U, V
+        """
+        u0 = self.u0_inp.value
+        u1 = self.u1_inp.value
+        u2 = self.u2_inp.value
+        v0 = self.v0_inp.value
+        v1 = self.v1_inp.value
+        v2 = self.v2_inp.value
+
+        u = np.array([u0, u1, u2])
+        v = np.array([v0, v1, v2])
+
+        u = u / np.linalg.norm(u)
+        v = v / np.linalg.norm(v)
+
+        return u, v
+
     def recompute(
         self,
     ):
@@ -737,36 +781,13 @@ class VisualizationPanel:
             res_x = int(steps * res_x / res_y)
             res_y = steps
 
-        print(f"{self.name} - Recomputing for range : ({x0}, {y0}), ({x1}, {y1})")
-
-        def get_uv() -> Tuple[np.ndarray, np.ndarray]:
-            """Gets the normal direction vectors from the FloatInput objects.
-
-            Returns
-            -------
-            Tuple[np.ndarray, np.ndarray]
-                Vectors U, V
-            """
-            u0 = self.u0_inp.value
-            u1 = self.u1_inp.value
-            u2 = self.u2_inp.value
-            v0 = self.v0_inp.value
-            v1 = self.v1_inp.value
-            v2 = self.v2_inp.value
-
-            u = np.array([u0, u1, u2])
-            v = np.array([v0, v1, v2])
-
-            u = u / np.linalg.norm(u)
-            v = v / np.linalg.norm(v)
-
-            return u, v
-
         # num_levels = num_levels_inp.value
-        u, v = get_uv()
+        u, v = self.get_uv()
+
+        print(f"{self.name} - Recomputing for axes {u}, {v}, at range : ({x0}, {y0}), ({x1}, {y1}), ({self.w_inp.value}), with field {self.field_color_selector.value[0]}")
 
         polygons, volume_compo_list, volume_color_list = self.compute_fn(
-            u, v, x0, y0, x1, y1, self.z_inp.value, res_x=res_x, res_y=res_y
+            u, v, x0, y0, x1, y1, self.w_inp.value, res_x=res_x, res_y=res_y
         )
 
         if polygons is not None:
@@ -775,23 +796,6 @@ class VisualizationPanel:
                 st = time.time()
 
             self.__new_data = {
-                # Commented as apparently not used
-                # "source_coordinates" : {
-                #                             "u_min" : [x0],
-                #                             "v_min" : [y0],
-                #                             "dw" : [x1 - x0],
-                #                             "dh" : [y1 - y0],
-                #                             "u0" : [u[0]],
-                #                             "u1" : [u[1]],
-                #                             "u2" : [u[2]],
-                #                             "v0" : [v[0]],
-                #                             "v1" : [v[1]],
-                #                             "v2" : [v[2]],
-                #                             "w0" : [w[0]],
-                #                             "w1" : [w[1]],
-                #                             "w2" : [w[2]],
-                #                             "w" : [z0],
-                #                         },
                 "source_polygons": {
                     POLYGONS: polygons,
                     COLORS: volume_color_list,
@@ -849,7 +853,6 @@ class VisualizationPanel:
         new_visualiser.copy_index = new_index
 
         new_visualiser.plotter.source_polygons.data = self.plotter.source_polygons.data.copy()
-        # new_visualiser.source_coordinates.data = self.source_coordinates.data.copy()
 
         return new_visualiser
 
@@ -952,4 +955,103 @@ class VisualizationPanel:
         volume_id : str
             Volume id to provide to the slave
         """
-        pass
+        u, v = self.get_uv()
+
+        w = np.cross(u, v)
+        w_val = np.dot(position, w)
+
+        if w_val != self.w_inp.value:
+            self.fig_overlay.show_temporary_message(f"w updating to {w_val}", 1000)
+            self.__new_data["w"] = w_val
+            self.__data_to_update = True
+            self.__range_to_update = True
+
+            self.marked_to_recompute = True
+            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+    def set_coordinates(self, 
+                            u:Tuple[float, float, float] = None,
+                            v:Tuple[float, float, float] = None,
+                            u_min:float = None,
+                            u_max:float = None,
+                            v_min:float = None,
+                            v_max:float = None,
+                            w:float = None,):
+        """Updates the plot coordinates
+
+        Parameters
+        ----------
+        u : Tuple[float, float, float], optional
+            Horizontal axis direction vector, by default None
+        v : Tuple[float, float, float], optional
+            Vertical axis direction vector, by default None
+        u_min : float, optional
+            Horizontal axis minimum coordinate, by default None
+        u_max : float, optional
+            Horizontal axis maximum coordinate, by default None
+        v_min : float, optional
+            Vertical axis minimum coordinate, by default None
+        v_max : float, optional
+            Vertical axis maximum coordinate, by default None
+        w : float, optional
+            Normal axis location, by default None
+        """
+        self.__data_to_update = True
+        self.__range_to_update = True
+        
+        if u is not None:
+            if not type(u) in [tuple, list, np.ndarray]:
+                raise TypeError(f"u must have one of the following types: [tuple, list, np.ndarray], found {type(u)}")
+            if not len(u) == 3:
+                raise ValueError(f"u must be of length 3, found {len(u)}")
+            self.__new_data["u0"] = u[0]
+            self.__new_data["u1"] = u[1]
+            self.__new_data["u2"] = u[2]
+
+        if v is not None:
+            if not type(v) in [tuple, list, np.ndarray]:
+                raise TypeError(f"v must have one of the following types: [tuple, list, np.ndarray], found {type(v)}")
+            if not len(v) == 3:
+                raise ValueError(f"v must be of length 3, found {len(v)}")
+            self.__new_data["v0"] = v[0]
+            self.__new_data["v1"] = v[1]
+            self.__new_data["v2"] = v[2]
+            
+        if u_min is not None:
+            if not type(u_min) in [float, int]:
+                raise TypeError(f"u_min must be a number, found type {type(u_min)}")
+            self.__new_data["x0"] = u_min
+        if v_min is not None:
+            if not type(v_min) in [float, int]:
+                raise TypeError(f"v_min must be a number, found type {type(v_min)}")
+            self.__new_data["y0"] = v_min
+        if u_max is not None:
+            if not type(u_max) in [float, int]:
+                raise TypeError(f"u_max must be a number, found type {type(u_max)}")
+            self.__new_data["x1"] = u_max
+        if v_max is not None:
+            if not type(v_max) in [float, int]:
+                raise TypeError(f"v_max must be a number, found type {type(v_max)}")
+            self.__new_data["y1"] = v_max
+            
+        if w is not None:
+            if not type(w) in [float, int]:
+                raise TypeError(f"w must be a number, found type {type(w)}")
+            self.__new_data["w"] = w
+
+        self.marked_to_recompute = True
+        pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+    def set_field(self, field_name:str):
+        """Updates the plotted field
+
+        Parameters
+        ----------
+        field_name : str
+            New field to display
+        """
+        if not field_name in self.field_color_selector.options:
+            raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
+        
+        self.__new_data["field_name"] = field_name
+        pn.state.curdoc.add_next_tick_callback(self.async_update_data)

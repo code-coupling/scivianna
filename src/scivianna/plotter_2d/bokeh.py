@@ -508,4 +508,31 @@ class Bokeh2DPlotter(Plotter2D):
         super().provide_on_clic_callback(callback)
 
         self.figure.on_event(bokeh.events.Tap, functools.partial(self.send_event, callback))
-        self.figure.add_tools(TapTool())
+        # self.figure.add_tools(TapTool())
+
+    def set_axes(self, u:Tuple[float, float, float], v:Tuple[float, float, float], w:float):
+        """Stores the u v axes of the current plot
+
+        Parameters
+        ----------
+        u : Tuple[float, float, float]
+            Horizontal axis direction vector
+        v : Tuple[float, float, float]
+            Vertical axis direction vector
+        w : float
+            Normal vector coordinate
+        """
+        w_vector = np.cross(np.array(u), np.array(v))
+        new_data = self.source_coordinates.data.copy()
+        new_data["u0"] = [u[0]]
+        new_data["u1"] = [u[1]]
+        new_data["u2"] = [u[2]]
+        new_data["v0"] = [v[0]]
+        new_data["v1"] = [v[1]]
+        new_data["v2"] = [v[2]]
+        new_data["w0"] = [w_vector[0]]
+        new_data["w1"] = [w_vector[1]]
+        new_data["w2"] = [w_vector[2]]
+        new_data["w"]  = [w]
+
+        self.source_coordinates.update(data = new_data)

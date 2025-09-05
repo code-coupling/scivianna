@@ -148,3 +148,17 @@ class Plotter2D:
             Function to call.
         """
         self.on_clic_callback = callback
+
+    def set_axes(self, u:Tuple[float, float, float], v:Tuple[float, float, float], w:float):
+        """Stores the u v axes of the current plot
+
+        Parameters
+        ----------
+        u : Tuple[float, float, float]
+            Horizontal axis direction vector
+        v : Tuple[float, float, float]
+            Vertical axis direction vector
+        w : float
+            Normal vector coordinate
+        """
+        raise NotImplementedError()
