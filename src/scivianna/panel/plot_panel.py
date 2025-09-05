@@ -481,6 +481,9 @@ class VisualizationPanel:
             self.__range_to_update = True
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
+            if self.update_event == UpdateEvent.RANGE_CHANGE:
+                self.marked_to_recompute = True
+
         # Attach the CB to the event
         self.plotter._set_callback_on_range_update(ranges_cb)
 

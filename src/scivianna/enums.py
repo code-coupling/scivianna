@@ -55,3 +55,6 @@ class UpdateEvent(Enum):
     PERIODIC = 4
     """ The plot is preiodically updated, applicable in real-time code coupling simulations
     """
+    RANGE_CHANGE = 5
+    """ The plot is updated when the (u, v) ranges change
+    """
