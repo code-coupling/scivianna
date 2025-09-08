@@ -1043,7 +1043,8 @@ class VisualizationPanel:
             self.__new_data["w"] = w
 
         self.marked_to_recompute = True
-        pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+        if pn.state.curdoc is not None:
+            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
     def set_field(self, field_name:str):
         """Updates the plotted field
@@ -1057,4 +1058,5 @@ class VisualizationPanel:
             raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
         
         self.__new_data["field_name"] = field_name
-        pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+        if pn.state.curdoc is not None:
+            pn.state.curdoc.add_next_tick_callback(self.async_update_data)

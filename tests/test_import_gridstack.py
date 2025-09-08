@@ -46,19 +46,7 @@ def get_panel():
 
 def get_template():
     panel = get_panel()
-    return pn.template.BootstrapTemplate(
-        main=[
-            pn.Column(
-                panel.bounds_row,
-                panel.main_frame,
-                height_policy="max",
-                width_policy="max",
-                margin=0,
-            )
-        ],
-        sidebar=[panel.side_bar],
-        title="Gridstack demo",
-    )
+    return _make_template(panel)
 
 
 def test_import_gridstack():

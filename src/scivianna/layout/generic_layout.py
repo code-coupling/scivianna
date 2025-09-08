@@ -407,7 +407,8 @@ class GenericLayout:
         self,
     ):
         """Periodically called function that requests calling async_update_data at the end of current tick."""
-        pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+        if pn.state.curdoc is not None:
+            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
     @pn.io.hold()
     async def async_update_data(

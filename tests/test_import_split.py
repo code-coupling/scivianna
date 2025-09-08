@@ -9,7 +9,7 @@ from scivianna.notebook_tools import get_med_panel, _make_template
 
 
 
-def get_panel(_) -> SplitLayout:
+def get_panel() -> SplitLayout:
 
     med_1 = get_med_panel(geo=None, title="MEDCoupling visualizer XY")
     med_2 = get_med_panel(geo=None, title="MEDCoupling visualizer XZ")
