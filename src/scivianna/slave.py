@@ -92,12 +92,16 @@ def get_colors_list(
     """
     if profile_time:
         start_time = time.time()
+
+    if not isinstance(code_interface, Geometry2D):
+        raise TypeError("get_color_list can only be called with a Geometry2D code interface.")
+        
     # We list the volumes found, to assign a color per volume
     list_volume_found = np.unique([p.volume_id for p in polygon_list])
 
     coloring_mode = code_interface.get_label_coloring_mode(coloring_label)
 
-    dict_compos_found = code_interface.get_value_dict(
+    dict_value_per_volume = code_interface.get_value_dict(
         coloring_label, list_volume_found, options
     )
 
@@ -109,10 +113,10 @@ def get_colors_list(
         """
         A random color is given for each string value.
         """
-        map_to = np.array([hash(c)%255 for c in np.unique(list(dict_compos_found.keys()))]) / 255
-        # map_to = np.random.choice(255, len(dict_compos_found)) / 255 #    Removed as changin color at each refresh
+        sorted_values = np.sort(np.unique(list(dict_value_per_volume.values())))
+        map_to = np.array([hash(c)%255 for c in sorted_values]) / 255
 
-        compo_list = np.array([dict_compos_found[v] for v in list_volume_found])
+        compo_list = np.array([dict_value_per_volume[v] for v in list_volume_found])
 
         _, inv = np.unique(compo_list, return_inverse=True)
 
@@ -126,7 +130,7 @@ def get_colors_list(
         """
         The color is got from a color map set in the range (-max, max)
         """
-        dict_values = np.array([float(e) for e in dict_compos_found.values()])
+        dict_values = np.array([float(e) for e in dict_value_per_volume.values()])
         no_nan_values = dict_values[~np.isnan(dict_values)]
         if profile_time:
             print(f"extracting no nan {time.time() - start_time}")
@@ -191,7 +195,7 @@ def get_colors_list(
             f"Visualization mode {coloring_mode} not implemented."
         )
 
-    return list_volume_found, dict_compos_found, dict_volume_color
+    return list_volume_found, dict_value_per_volume, dict_volume_color
 
 
 def worker(
