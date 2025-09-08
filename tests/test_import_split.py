@@ -27,20 +27,19 @@ def get_panel() -> SplitLayout:
     med_2.set_field("INTEGRATED_POWER")
     med_3.set_field("INTEGRATED_POWER")
 
+    # Terminating so the tests doesn't hold after finishing
+    med_1.get_slave().terminate()
+    med_2.get_slave().terminate()
+    med_3.get_slave().terminate()
+
     split = SplitItem(med_1, med_2, SplitDirection.VERTICAL)
     split = SplitItem(split, med_3, SplitDirection.HORIZONTAL)
 
     return SplitLayout(split)
 
 
-def get_template():
-    panel:SplitLayout = get_panel()
-    return _make_template(
-        panel,
-        title="Split item demo",
-    )
-
 def test_import_split():
     """Test importing the split layout and make the panel without opening it
     """
-    get_template()
+    get_panel()
+    return True

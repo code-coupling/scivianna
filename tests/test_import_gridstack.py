@@ -42,6 +42,10 @@ def get_panel():
             "MEDCoupling visualizer 2": (5, 10),
         }
 
+    # Terminating so the tests doesn't hold after finishing
+    for panel in visualisation_panels.values():
+        panel.get_slave().terminate()
+
     return GridStackLayout(visualisation_panels, bounds_y, bounds_x)
 
 def get_template():
@@ -53,3 +57,4 @@ def test_import_gridstack():
     """Test importing the gridstack layout and make the panel without opening it
     """
     get_template()
+    return True
