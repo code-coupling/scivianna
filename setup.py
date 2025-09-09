@@ -2,18 +2,25 @@
 
 from setuptools import find_packages, setup
 
-# To publish :
-# python3 -m pip install --upgrade build twine
-# python3 -m build
-# python3 -m twine upload --repository pypi dist/*
+import pathlib
 
-#  make wheel:
-# python setup.py bdist_wheel
+here = pathlib.Path(__file__).parent.resolve()
+
+
+# Get the long description from the README file
+def get_long_description():
+    """Extract README content"""
+    return (here / "readme.md").read_text(encoding="utf-8")
+
+def get_version():
+    """Extract the package's version number from the ``VERSION`` file."""
+    return (here / "utils" / "VERSION").read_text(encoding="utf-8").strip()
 
 setup(
     name="scivianna",
-    version="0.1.0",
-    description="Visualize Tripoli 4/5 and Apollo3 geometries.",
+    version=get_version(),
+    description="Python generic module to visualize simulation geometries and results.",
+    long_description=get_long_description(),
     author="CEA",
     maintainer="Thibault Moulignier",
     author_email="Thibault.Moulignier@cea.fr",
