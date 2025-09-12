@@ -4,11 +4,11 @@ import multiprocessing as mp
 
 import time
 import pandas as pd
-from typing import Any, List, Dict, Tuple, Type
+from typing import Any, List, Dict, Tuple, Type, Union
 
 from scivianna.utils.color_tools import interpolate_cmap_at_values
 
-from scivianna.interface.generic_interface import GenericInterface, Geometry2D, IcocoInterface
+from scivianna.interface.generic_interface import GenericInterface, Geometry2D, IcocoInterface, ValueAtLocation, Value1DAtLocation
 from scivianna.interface.option_element import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import VisualizationMode
@@ -237,6 +237,10 @@ def worker(
                 q_returns.put(input_list)
 
             elif task == SlaveCommand.COMPUTE_1D:
+                if not isinstance(code_, Value1DAtLocation):
+                    raise TypeError(
+                        f"The requested panel is not associated to an Value1DAtLocation, found class {type(code_)}."
+                    )
                 input_list = code_.get_1D_value(*data)
                 q_returns.put(input_list)
 
@@ -259,6 +263,10 @@ def worker(
                     options,
                 ) = data
 
+                if not isinstance(code_, Geometry2D):
+                    raise TypeError(
+                        f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
+                    )
                 polygon_list, polygons_updated = code_.compute_2D_data(
                     u,
                     v,
@@ -465,7 +473,7 @@ class ComputeSlave:
         volume_index: str,
         material_name: str,
         field: str,
-    ) -> pd.Series:
+    ) -> Union[pd.Series, List[pd.Series]]:
         """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
 
         Parameters
@@ -481,7 +489,7 @@ class ComputeSlave:
 
         Returns
         -------
-        pd.Series
+        Union[pd.Series, List[pd.Series]]
             Field value
         """
         self.q_tasks.put(

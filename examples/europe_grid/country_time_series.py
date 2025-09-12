@@ -113,7 +113,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
         volume_index: str,
         material_name: str,
         field: str,
-    ) -> Union[str, float]:
+    ) -> Union[pd.Series, List[pd.Series]]:
         """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
 
         Parameters
@@ -129,7 +129,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
 
         Returns
         -------
-        Union[str, float]
+        Union[pd.Series, List[pd.Series]]
             Field value
         """
         output = None
@@ -148,7 +148,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
 
         output.rename(f"{volume_index}_{field}")
 
-        return output
+        return pd.Series(output)
 
     def get_fields(self) -> List[str]:
         """Returns the fields names providable.

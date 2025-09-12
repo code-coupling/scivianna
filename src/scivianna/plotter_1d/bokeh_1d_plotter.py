@@ -4,7 +4,7 @@ from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure
 from bokeh.models.renderers import GlyphRenderer
 from bokeh.models.annotations import Legend, LegendItem
-from bokeh.palettes import Spectral11 as palette
+from bokeh.palettes import Viridis11 as palette
 from bokeh.models import HoverTool
 
 import numpy as np
@@ -71,7 +71,7 @@ class BokehPlotter1D(Plotter1D):
         if len(serie.values) == 2 and list(serie.values) == ["min", "max"]:
             serie = pd.Series(list(self.get_y_bounds()), index=serie.index, name=serie.name)
         if len(serie.index) == 2 and list(serie.index) == ["min", "max"]:
-            serie = pd.Series(serie.value, index=list(self.get_x_bounds()), name=serie.name)
+            serie = pd.Series(serie.values, index=list(self.get_x_bounds()), name=serie.name)
 
         self.source_data_dict[name] = ColumnDataSource(
                                             {
@@ -106,7 +106,7 @@ class BokehPlotter1D(Plotter1D):
         if len(serie.values) == 2 and list(serie.values) == ["min", "max"]:
             serie = pd.Series(list(self.get_y_bounds()), index=serie.index, name=serie.name)
         if len(serie.index) == 2 and list(serie.index) == ["min", "max"]:
-            serie = pd.Series(serie.value, index=list(self.get_x_bounds()), name=serie.name)
+            serie = pd.Series(serie.values, index=list(self.get_x_bounds()), name=serie.name)
 
         if name in self.source_data_dict:
             self.source_data_dict[name].update(data={
@@ -131,7 +131,9 @@ class BokehPlotter1D(Plotter1D):
         for glyph_name in self.line_dict:
             self.line_dict[glyph_name].visible = glyph_name in names
             if glyph_name in names:
-                self.line_dict[glyph_name].glyph.line_color = palette[names.index(glyph_name)%len(palette)]
+                self.line_dict[glyph_name].glyph.line_color = palette[
+                    (0 if len(names)== 1 else int((names.index(glyph_name)/(len(names)-1))*(len(palette)-1)))
+                ]
 
         l:Legend
         li:LegendItem
@@ -142,10 +144,10 @@ class BokehPlotter1D(Plotter1D):
                 else:
                     li.visible = False
 
-        self.hover.update(renderers = [self.line_dict[glyph_name] for glyph_name in names])
+        self.hover.update(renderers = [self.line_dict[glyph_name] 
+                                        for glyph_name in names 
+                                        if glyph_name in self.line_dict])
         self.visible = names
-
-        print(self.line_dict.keys())
 
     def _disable_interactions(self, val: bool):
         """Enable/disable the plot interactions

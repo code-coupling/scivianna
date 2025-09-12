@@ -79,8 +79,11 @@ class LineVisualisationPanel:
         )
         self.field_color_selector.param.watch(recompute_cb, "value")
 
+        self.__new_data = {}
+
         self.plotter = BokehPlotter1D()
-        self.plotter.plot(self.field_color_selector.value[0], self.slave.get_1D_value(self.position, self.volume_id, "FR", self.field_color_selector.value[0]))
+        self.__get_series(self.field_color_selector.value[0])
+        self.async_update_data()
         self.plotter.set_visible(self.field_color_selector.value)
 
         fig_pane = self.plotter.make_panel()
@@ -107,7 +110,6 @@ class LineVisualisationPanel:
         self.main_frame = self.fig_overlay
 
         self.periodic_recompute_added = False
-        self.__new_data = {}
 
     @pn.io.hold()
     def async_update_data(
@@ -117,7 +119,6 @@ class LineVisualisationPanel:
         
         if "field_names" in self.__new_data:
             self.__data_to_update=False
-            print("Setting fields to ", self.__new_data["field_names"])
             
             self.field_color_selector.value = self.__new_data["field_names"]
             self.__new_data = {}
@@ -152,10 +153,26 @@ class LineVisualisationPanel:
 
             self.series.clear()
             for key in self.field_color_selector.value:
-                self.series[key] = self.slave.get_1D_value(self.position, self.volume_id, None, key)
+                self.__get_series(key)
 
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+    def __get_series(self, key:str):
+        """Get the serie or series associated to the given key
+
+        Parameters
+        ----------
+        key : str
+            Field to request to the slave
+        """
+        series = self.slave.get_1D_value(self.position, self.volume_id, None, key)
+
+        if isinstance(series, list):
+            for serie in series:
+                self.series[serie.name] = serie
+        else:
+            self.series[series.name] = series
 
     def duplicate(self, keep_name: bool = False) -> "LineVisualisationPanel":
         """Get a copy of the panel. A panel of the same type is generated, the current display too, but a new slave process is created.

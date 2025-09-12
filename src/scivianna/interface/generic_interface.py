@@ -248,7 +248,7 @@ class Value1DAtLocation(GenericInterface):
         volume_index: str,
         material_name: str,
         field: str,
-    ) -> List[Union[str, float]]:
+    ) -> Union[pd.Series, List[pd.Series]]:
         """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
 
         Parameters
@@ -264,7 +264,7 @@ class Value1DAtLocation(GenericInterface):
 
         Returns
         -------
-        Union[str, float]
+        Union[pd.Series, List[pd.Series]]
             Field value
         """
         raise NotImplementedError()
