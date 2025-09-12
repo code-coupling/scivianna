@@ -816,8 +816,8 @@ class VisualizationPanel:
                 and self.slave.get_label_coloring_mode(self.field_color_selector.value[0]) == VisualizationMode.FROM_VALUE
             ):
                 self.__new_data["color_mapper"] = {
-                    "new_low": np.array(volume_compo_list).astype(float).min(),
-                    "new_high": np.array(volume_compo_list).astype(float).max(),
+                    "new_low": np.nanmin(np.array(volume_compo_list).astype(float)),
+                    "new_high": np.nanmax(np.array(volume_compo_list).astype(float)),
                 }
                 self.__new_data["hide_colorbar"] = False
             else:
