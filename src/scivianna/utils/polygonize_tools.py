@@ -24,12 +24,47 @@ class PolygonCoords:
             Y coordinates of the polygon vertices
         """
         
-        self.x_coords:Union[List[float], np.ndarray] = x_coords
+        self.x_coords:np.ndarray = np.array(x_coords)
         """ X coordinate of each vertex of a polygon
         """
-        self.y_coords:Union[List[float], np.ndarray] = y_coords
+        self.y_coords:np.ndarray = np.array(y_coords)
         """ Y coordinate of each vertex of a polygon
         """
+        
+    def translate(self, dx:float, dy:float):
+        """Translates the PolygonCoords by (dx, dy)
+
+        Parameters
+        ----------
+        dx : float
+            Horizontal offset
+        dy : float
+            Vertical offset
+        """
+        self.x_coords += dx
+        self.y_coords += dy
+
+    def rotate(self, origin:Tuple[float, float], angle:float):
+        """Rotate the PolygonElement by the angle around the origin
+
+        Parameters
+        ----------
+        origin : Tuple[float, float]
+            Rotation origin
+        angle : float
+            Angle (in radians)
+        """
+        dx = self.x_coords - origin[0]
+        dy = self.y_coords - origin[1]
+
+        rotation_matrix = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
+
+        diff = np.array([dx, dy])
+
+        new_d = np.matmul(diff.T, rotation_matrix)
+        
+        self.x_coords = new_d[:, 0]+origin[0]
+        self.y_coords = new_d[:, 1]+origin[1]
 
 class PolygonElement:
     """Object containing the exterior polygon and the holes of a polygonal object
@@ -62,6 +97,34 @@ class PolygonElement:
         self.compo:str = ""
         """ Composition in the polygon
         """
+
+    def translate(self, dx:float, dy:float):
+        """Translates the PolygonElement by (dx, dy)
+
+        Parameters
+        ----------
+        dx : float
+            Horizontal offset
+        dy : float
+            Vertical offset
+        """
+        self.exterior_polygon.translate(dx, dy)
+        for poly in self.holes:
+            poly.translate(dx, dy)
+
+    def rotate(self, origin:Tuple[float, float], angle:float):
+        """Rotate the PolygonElement by the angle around the origin
+
+        Parameters
+        ----------
+        origin : Tuple[float, float]
+            Rotation origin
+        angle : float
+            Angle (in radians)
+        """
+        self.exterior_polygon.rotate(origin, angle)
+        for poly in self.holes:
+            poly.rotate(origin, angle)
 
 def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray], 
                                     y:Union[List[float], np.ndarray], 
@@ -96,7 +159,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
     polygon_element_list:List[PolygonElement] = []
 
     transform1 = Affine.translation(x0 - (x1-x0)/len(x) / 2, y0 - (y1-y0)/len(y) / 2) * Affine.scale((x1-x0)/len(x), (y1-y0)/len(y))
-    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(arr.astype(np.int32), transform=transform1))
+    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(arr.astype(np.float32), transform=transform1))
 
     s:Polygon
     for s, val in shape_gen:
