@@ -348,6 +348,7 @@ class GridStackProblem(Problem):
         self.time += self._dt
         self._dt = None
 
+        self.gridstack.time = self.time
         if self._up_skipped == self._up_rate:
             self._up_skipped = 0
         else:

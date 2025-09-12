@@ -225,7 +225,7 @@ class GridStackLayout(GenericLayout):
         self.side_bar.objects = [self.layout_param_card,
             *self.panel_param_cards.values()]
             
-        self.bounds_row.objects = self.get_bounds_row().objects
+        self.bounds_row = self.get_bounds_row()
     
 
     def disable_figures_pan(self):

@@ -1,5 +1,6 @@
 import functools
 import panel as pn
+import panel_material_ui as pmui
 from typing import Callable, Dict, List, Tuple, Type, Union
 
 from bokeh.plotting import curdoc
@@ -170,6 +171,7 @@ class GenericLayout:
         #   Adding a play button at the beginning of the side bar
         #   It will trigger a periodic task to update the plot in case of code coupling simulation
         self.periodic_recompute_added = False
+        self.time = 0.
         if add_run_button:
             self.run_button = pn.widgets.ButtonIcon(
                 icon="player-play",
@@ -179,6 +181,16 @@ class GenericLayout:
                 align="center",
             )
             self.run_button.on_click(request_recompute)
+            
+            self.time_slider = pmui.DiscreteSlider(
+                                                    options=[0.], 
+                                                    value=0., 
+                                                    sizing_mode = "stretch_width",
+                                                    show_value=False,
+                                                    size="small",
+                                                    margin=0,
+                                                    marks=True
+                                                )
 
             self.curdoc = curdoc()
 
@@ -188,6 +200,7 @@ class GenericLayout:
             pn.state.curdoc = self.curdoc
         else:
             self.run_button = None
+            self.time_slider = None
 
         self.layout_param_card = pn.Card(
             self.frame_selector,
@@ -421,6 +434,9 @@ class GenericLayout:
         self.panels_to_recompute.clear()
         if self.periodic_recompute_added:
             self.add_periodic_update()
+            
+        self.time_slider.options = self.time_slider.options + [self.time]
+        self.time_slider.value = self.time
 
     def mark_to_recompute(self, panels_to_recompute):
         self.panels_to_recompute = panels_to_recompute
@@ -451,7 +467,13 @@ class GenericLayout:
         """
         
         if self.run_button is not None:
-            return pn.Row(self.run_button, *[e.bounds_row for e in self.visualisation_panels.values()])
+            return pn.Column(
+                    pn.Row(self.run_button, 
+                                *[e.bounds_row for e in self.visualisation_panels.values()],
+                                margin=0),
+                    self.time_slider,
+                    margin=0
+            )
         else:
             return pn.Row(*[e.bounds_row for e in self.visualisation_panels.values()])
         

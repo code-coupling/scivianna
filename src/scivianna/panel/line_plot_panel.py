@@ -168,11 +168,12 @@ class LineVisualisationPanel:
         """
         series = self.slave.get_1D_value(self.position, self.volume_id, None, key)
 
-        if isinstance(series, list):
-            for serie in series:
-                self.series[serie.name] = serie
-        else:
-            self.series[series.name] = series
+        if series is not None:
+            if isinstance(series, list):
+                for serie in series:
+                    self.series[serie.name] = serie
+            else:
+                self.series[series.name] = series
 
     def duplicate(self, keep_name: bool = False) -> "LineVisualisationPanel":
         """Get a copy of the panel. A panel of the same type is generated, the current display too, but a new slave process is created.
