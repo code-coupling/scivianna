@@ -107,13 +107,23 @@ class LineVisualisationPanel:
         self.main_frame = self.fig_overlay
 
         self.periodic_recompute_added = False
+        self.__new_data = {}
 
     @pn.io.hold()
     def async_update_data(
         self,
     ):
         """Update the figures and buttons based on what was added in self.__new_data. This function is called between two servers ticks to prevent multi-users collisions."""
-        if self.__data_to_update:
+        
+        if "field_names" in self.__new_data:
+            self.__data_to_update=False
+            print("Setting fields to ", self.__new_data["field_names"])
+            
+            self.field_color_selector.value = self.__new_data["field_names"]
+            self.__new_data = {}
+            self.async_update_data()
+
+        elif self.__data_to_update:
             for key in self.series:
                 if self.series[key] is not None:
                     # Can be None if the async happens at the same time as the next recompute
@@ -176,8 +186,6 @@ class LineVisualisationPanel:
         new_visualiser = LineVisualisationPanel(new_name)
         new_visualiser.copy_index = new_index
 
-        new_visualiser.source_data.data = self.source_data.data.copy()
-
         return new_visualiser
 
     def get_slave(
@@ -199,3 +207,21 @@ class LineVisualisationPanel:
         self.position = position
         self.volume_id = volume_id
         self.recompute()
+        
+    def set_field(self, field_names:List[str]):
+        """Updates the plotted fields
+
+        Parameters
+        ----------
+        field_name : List[str]
+            Fields to display
+        """
+        for field_name in field_names:
+            if not field_name in self.field_color_selector.options:
+                raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
+        
+        self.__new_data["field_names"] = field_names
+
+        self.__data_to_update = True
+        if pn.state.curdoc is not None:
+            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
