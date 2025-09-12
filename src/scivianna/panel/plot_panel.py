@@ -5,7 +5,7 @@ import os
 import functools
 
 from scivianna.interface.generic_interface import Geometry2D
-from scivianna.interface.option_element import OptionElement
+from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
 from scivianna.components.overlay_component import Overlay
 from scivianna.components.server_file_browser import ServerFileBrowser
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
@@ -765,6 +765,10 @@ class VisualizationPanel:
         event : Any
             Event to make the function linkable to a button
         """
+        if len(self.field_color_selector.value) == 0:
+            # We can't process the calculation if no field is selected
+            return
+        
         self.recompute_btn.disabled = True
         if profile_time:
             st = time.time()
@@ -877,14 +881,14 @@ class VisualizationPanel:
         ValueError
             The requested option type is not implemented.
         """
-        if option.option_type == bool:
+        if isinstance(option, BoolOption):
             return pn.widgets.Checkbox(
                 name=option.name,
                 value=option.default,
                 align="center",
                 styles={"font-size": "16px"},
             )  # , description=option.description)
-        elif option.option_type == float:
+        elif isinstance(option, FloatOption):
             return pn.widgets.FloatInput(
                 name=option.name,
                 value=option.default,
@@ -892,7 +896,7 @@ class VisualizationPanel:
                 align="center",
                 width=100,
             )
-        elif option.option_type == int:
+        elif isinstance(option, IntOption):
             return pn.widgets.IntInput(
                 name=option.name,
                 value=option.default,
@@ -900,10 +904,19 @@ class VisualizationPanel:
                 align="center",
                 width=100,
             )
-        elif option.option_type == str:
+        elif isinstance(option, StringOption):
             return pn.widgets.TextInput(
                 name=option.name,
                 value=option.default,
+                description=option.description,
+                align="center",
+                width=100,
+            )
+        elif isinstance(option, SelectOption):
+            return pn.widgets.Select(
+                name=option.name,
+                value=option.default,
+                options=option.options,
                 description=option.description,
                 align="center",
                 width=100,

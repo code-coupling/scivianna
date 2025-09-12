@@ -1,8 +1,24 @@
-from typing import Any, NamedTuple
+from typing import Any, List
+from dataclasses import dataclass
 
-
-class OptionElement(NamedTuple):
+@dataclass
+class OptionElement:
     name: str
-    option_type: type
     default: Any
     description: str
+
+class FloatOption(OptionElement):
+    pass
+
+class BoolOption(OptionElement):
+    pass
+
+class IntOption(OptionElement):
+    pass
+
+class StringOption(OptionElement):
+    pass
+
+@dataclass
+class SelectOption(OptionElement):
+    options:List[str]
