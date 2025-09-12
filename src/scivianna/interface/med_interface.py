@@ -4,7 +4,8 @@ import numpy as np
 import multiprocessing as mp
 
 from scivianna.interface.generic_interface import Geometry2D, IcocoInterface
-from scivianna.interface.option_element import OptionElement
+from scivianna.interface.option_element import IntOption
+from scivianna.slave import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement, PolygonCoords
 from scivianna.enums import GeometryType, VisualizationMode
 
@@ -388,8 +389,8 @@ class MEDInterface(Geometry2D, IcocoInterface):
             List of option objects.
         """
         return [
-            OptionElement("Iteration", int, -1, "Med field iteration."),
-            OptionElement("Order", int, -1, "MED field order."),
+            IntOption("Iteration", -1, "Med field iteration."),
+            IntOption("Order", -1, "MED field order."),
         ]
 
 
