@@ -215,7 +215,8 @@ class MEDInterface(Geometry2D, IcocoInterface):
                 vertices_coords[cell_id][1] for cell_id in mesh.getNodeIdsOfCell(cell)
             ]
             z_vals = [
-                vertices_coords[cell_id][2] for cell_id in mesh.getNodeIdsOfCell(cell)
+                vertices_coords[cell_id][2] if mesh_dimension == 3 else 0.0
+                for cell_id in mesh.getNodeIdsOfCell(cell)
             ]
 
             coords = np.array([x_vals, y_vals, z_vals])
