@@ -88,12 +88,21 @@ class MEDInterface(Geometry2D, IcocoInterface):
             self.fields_iterations = {}
 
             for field in self.fieldnames:
+                components = medcoupling.GetComponentsNamesOfField(file_path, field)
+
                 iterations = medcoupling.GetFieldIterations(
                     medcoupling.ON_CELLS, file_path, self.meshnames[0], field
                 )
 
-                for iteration in iterations:
-                    self.fields_iterations[field] = [tuple(iteration)]
+                for component in components:
+                    for iteration in iterations:
+                        self.fields_iterations[
+                            (
+                                "@".join([field, component[0]])
+                                if component[0] != ""
+                                else field
+                            )
+                        ] = [tuple(iteration)]
 
             self.mesh = medcoupling.ReadMeshFromFile(file_path, 0)
 
@@ -284,10 +293,10 @@ class MEDInterface(Geometry2D, IcocoInterface):
         if value_label == MESH:
             return {str(v): np.NaN for v in volumes}
 
-        field = None
+        field_np_array = None
 
         if value_label in self.fields:
-            field = self.fields[value_label]
+            field_np_array = self.fields[value_label]
         else:
             print(f"Reading MEDCouplingFieldDouble in {self.file_path}")
             # print("Checking", value_label, "in", self.fields_iterations, field in self.fields_iterations.keys())
@@ -300,23 +309,34 @@ class MEDInterface(Geometry2D, IcocoInterface):
                 }
                 # if "Iteration" in options and "Order" in options and (options["Iteration"], options["Order"]) in self.fields_iterations[value_label]:
                 if True:
+                    field_name = value_label.split("@")[0]
                     field: medcoupling.MEDCouplingFieldDouble = medcoupling.ReadField(
                         medcoupling.ON_CELLS,
                         self.file_path,
                         self.meshnames[0],
                         0,
-                        value_label,
+                        field_name,
                         options["Iteration"],
                         options["Order"],
                     )
+                    field_array: medcoupling.DataArrayDouble = field.getArray()
+                    field_np_array: np.ndarray = field_array.toNumPyArray()
 
-            if field is not None:
-                self.fields[value_label] = field
+                    if "@" in value_label:
+                        components: List[str] = field_array.getInfoOnComponents()
+                        field_np_array = field_np_array[
+                            :, components.index(value_label.split("@")[1])
+                        ]
+                    else:
+                        field_np_array = field_np_array
 
-        if field is not None:
-            field_array = field.getArray().toNumPyArray()
+            if field_np_array is not None:
+                self.fields[value_label] = field_np_array
+
+        if field_np_array is not None:
             indexes = np.array(list(self.cell_dict.values())).astype(int)
-            values = field_array[indexes[np.array(volumes).astype(int)]]
+            values = field_np_array[indexes[np.array(volumes).astype(int)]]
+
             value_dict = dict(zip(np.array(volumes).astype(str), values))
 
             if profile_time:
