@@ -35,7 +35,7 @@ setup(
             "panel/*.py",
             "plotter_1d/*.py",
             "plotter_2d/*.py",
-            "utils/*.py",
+            "utils/*",
             "*.sh",
         ]
     },
