@@ -12,7 +12,7 @@ unalias -a
 
 readonly current_script_dir="$( cd "$( dirname "${0}" )" &> /dev/null && pwd )"
 readonly project_root_dir="$(dirname ${current_script_dir})"
-readonly version_file=${project_root_dir}/utils/VERSION
+readonly version_file=${project_root_dir}/src/scivianna/VERSION
 
 ########################
 # Main

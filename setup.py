@@ -10,11 +10,11 @@ here = pathlib.Path(__file__).parent.resolve()
 # Get the long description from the README file
 def get_long_description():
     """Extract README content"""
-    return (here / "readme.md").read_text(encoding="utf-8")
+    return (here / "src" / "scivianna" / "readme.md").read_text(encoding="utf-8")
 
 def get_version():
     """Extract the package's version number from the ``VERSION`` file."""
-    return (here / "utils" / "VERSION").read_text(encoding="utf-8").strip()
+    return (here / "src" / "scivianna" / "VERSION").read_text(encoding="utf-8").strip()
 
 setup(
     name="scivianna",
@@ -37,6 +37,8 @@ setup(
             "plotter_2d/*.py",
             "utils/*",
             "*.sh",
+            "VERSION",
+            "readme.md"
         ]
     },
     keywords="visualization",
