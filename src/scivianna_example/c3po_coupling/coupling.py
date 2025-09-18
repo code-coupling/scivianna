@@ -5,7 +5,7 @@ import c3po
 
 import scivianna
 from scivianna_example.c3po_coupling.fake_driver import DecreasingFieldProblem
-import scivianna_example.c3po_coupling.visualizer
+import scivianna_example.c3po_coupling.visualizer as visualizer
 
 def get_panel(_):
     # Building of objects driving codes

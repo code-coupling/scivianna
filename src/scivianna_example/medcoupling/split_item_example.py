@@ -13,7 +13,6 @@ def get_panel(_) -> SplitLayout:
     med_2 = get_med_panel(geo=None, title="MEDCoupling visualizer XZ")
     med_3 = get_med_panel(geo=None, title="MEDCoupling visualizer YZ")
 
-    print("SETTING")
     med_1.set_field("INTEGRATED_POWER")
     med_2.set_field("INTEGRATED_POWER")
     med_3.set_field("INTEGRATED_POWER")

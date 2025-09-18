@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, NonNegativeFloat, PositiveFloat, mod
 import numpy as np
 import medcoupling as mc
 
-import scivianna_example.c3po_coupling.med_utils
+import scivianna_example.c3po_coupling.med_utils as med_utils
 
 
 class VisuPanel(BaseModel):
