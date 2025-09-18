@@ -41,10 +41,11 @@ setup(
             "readme.md"
         ],
         "scivianna_example": [
-            "examples/c3po_coupling/*.py",
-            "examples/europe_grid/*.py",
-            "examples/medcoupling/*.py",
-            "examples/*/README.md"
+            "c3po_coupling/*",
+            "europe_grid/*",
+            "medcoupling/*",
+            "*/README.md",
+            "*.py"
         ]
     },
     keywords="visualization",
