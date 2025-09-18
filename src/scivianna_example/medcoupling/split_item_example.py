@@ -7,7 +7,7 @@ from scivianna.layout.split import (
 )
 from scivianna.notebook_tools import get_med_panel, _serve_panel
 
-def get_panel(_) -> SplitLayout:
+def get_panel(_, return_slaves = False) -> SplitLayout:
 
     med_1 = get_med_panel(geo=None, title="MEDCoupling visualizer XY")
     med_2 = get_med_panel(geo=None, title="MEDCoupling visualizer XZ")
@@ -28,7 +28,10 @@ def get_panel(_) -> SplitLayout:
     split = SplitItem(med_1, med_2, SplitDirection.VERTICAL)
     split = SplitItem(split, med_3, SplitDirection.HORIZONTAL)
 
-    return SplitLayout(split)
+    if return_slaves:
+        return SplitLayout(split), [med_1.get_slave(), med_2.get_slave(), med_3.get_slave()]
+    else:   
+        return SplitLayout(split)
 
 if __name__ == "__main__":
     _serve_panel(get_panel_function=get_panel)

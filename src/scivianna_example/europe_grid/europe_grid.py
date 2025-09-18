@@ -285,7 +285,7 @@ class EuropeGridInterface(Geometry2D):
             (CSV, "CSV result file."),
         ]
 
-def make_europe_panel(_):
+def make_europe_panel(_, return_slaves = False):
     slave = ComputeSlave(EuropeGridInterface)
     # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
     slave.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
@@ -302,7 +302,10 @@ def make_europe_panel(_):
                                             additional_interfaces = {"EuropeGrid":EuropeGridInterface, "TimeSeries":CountryTimeSeriesInterface},
                                         )
 
-    return split_panel
+    if return_slaves:
+        return split_panel, [slave, slave_result]
+    else:
+        return split_panel
 
 if __name__ == "__main__":
     from scivianna.notebook_tools import _serve_panel

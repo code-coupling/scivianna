@@ -12,15 +12,20 @@ from pathlib import Path
 import panel_material_ui as pmui
 
 
-def make_demo(servable=False):
-    europe_panel = europe_example(None)
+def make_demo(return_slaves = False) -> pmui.Page:
+    if return_slaves:
+        europe_panel, slaves_europe = europe_example(None, return_slaves)
+        medcoupling_panel, slaves_medcoupling = medcoupling_example(None, return_slaves)
+    else:
+        europe_panel = europe_example(None)
+        medcoupling_panel = medcoupling_example(None)
+
     with open(Path(europe_grid.__file__).parent / "description.md", "r") as f:
         europe_with_description = pmui.Row(
             europe_panel.main_frame, 
             pmui.Typography(f.read(), width=300)
         )
 
-    medcoupling_panel = medcoupling_example(None)
     with open(Path(split_item_example.__file__).parent / "description.md", "r") as f:
         medcoupling_with_description = pmui.Row(
             medcoupling_panel.main_frame, 
@@ -50,12 +55,12 @@ def make_demo(servable=False):
         sidebar_open=False,
         title="Scivianna demonstrator"
     )
-    
-    if servable:
-        page.servable()
+
+    if return_slaves:
+        return page, slaves_medcoupling+slaves_europe
     else:
-        page.show()
+        return page
 
 
 if __name__ == "__main__":
-    make_demo()
+    make_demo().show()
