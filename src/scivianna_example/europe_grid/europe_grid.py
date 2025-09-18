@@ -13,8 +13,10 @@ from scivianna.panel.plot_panel import VisualizationPanel
 from scivianna.interface import csv_result
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
+from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
+from scivianna.panel.line_plot_panel import LineVisualisationPanel
 
-from country_time_series import CountryTimeSeriesInterface
+from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface
 
 country_cat = {
     "European Union (EU)": ["BE", "EL", "LT", "PT", "BG", "ES", "LU", "RO", "CZ", "FR", "HU", "SI", "DK", "HR", "MT", "SK", "DE", "IT", "NL", "FI", "EE", "CY", "AT", "SE", "IE", "LV", "PL"],
@@ -37,7 +39,7 @@ class EuropeGridInterface(Geometry2D):
 
     def __init__(
         self,
-        geometry_path: str = 'europe.geojson',
+        geometry_path: str = str(Path(__file__).parent / 'europe.geojson'),
         results:Dict[str, GenericInterface] = {},
     ):
         """Antares interface constructor."""
@@ -283,31 +285,27 @@ class EuropeGridInterface(Geometry2D):
             (CSV, "CSV result file."),
         ]
 
+def make_europe_panel(_):
+    slave = ComputeSlave(EuropeGridInterface)
+    # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
+    slave.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
+
+    slave_result = ComputeSlave(CountryTimeSeriesInterface)
+    slave_result.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
+
+    map_panel = VisualizationPanel(slave, name="Map")
+    line_panel = LineVisualisationPanel(slave_result, name="Plot")
+    line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
+
+    split_panel = SplitLayout(
+                                            SplitItem(map_panel, line_panel, SplitDirection.VERTICAL),
+                                            additional_interfaces = {"EuropeGrid":EuropeGridInterface, "TimeSeries":CountryTimeSeriesInterface},
+                                        )
+
+    return split_panel
 
 if __name__ == "__main__":
     from scivianna.notebook_tools import _serve_panel
-    from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
-    from scivianna.panel.line_plot_panel import LineVisualisationPanel
 
-
-    def get_panel(_):
-        slave = ComputeSlave(EuropeGridInterface)
-        # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
-        slave.read_file("time_series.csv", "TimeSeries")
-
-        slave_result = ComputeSlave(CountryTimeSeriesInterface)
-        slave_result.read_file("time_series.csv", "TimeSeries")
-
-        map_panel = VisualizationPanel(slave, name="Map")
-        line_panel = LineVisualisationPanel(slave_result, name="Plot")
-        line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
-
-        split_panel = SplitLayout(
-                                                SplitItem(map_panel, line_panel, SplitDirection.VERTICAL),
-                                                additional_interfaces = {"EuropeGrid":EuropeGridInterface, "TimeSeries":CountryTimeSeriesInterface},
-                                            )
-
-        return split_panel
-
-    _serve_panel(get_panel_function=get_panel, title="Europe grid")
+    _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")
     

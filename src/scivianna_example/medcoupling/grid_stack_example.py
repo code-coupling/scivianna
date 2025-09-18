@@ -88,7 +88,7 @@ if __name__ == "__main__":
 else:
     panel = get_panel()
     #   Providing servable panel, file executed with a command : "python -m panel serve my_file.py"
-    panel.side_bar.servable(area="sidebar")
+    panel.side_bar.servable(target="sidebar")
 
     pn.Column(
         panel.bounds_row,
@@ -96,4 +96,4 @@ else:
         height_policy="max",
         width_policy="max",
         margin=0,
-    ).servable(area="main")
+    ).servable(target="main")

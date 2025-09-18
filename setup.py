@@ -39,6 +39,12 @@ setup(
             "*.sh",
             "VERSION",
             "readme.md"
+        ],
+        "scivianna_example": [
+            "examples/c3po_coupling/*.py",
+            "examples/europe_grid/*.py",
+            "examples/medcoupling/*.py",
+            "examples/*/README.md"
         ]
     },
     keywords="visualization",
@@ -56,9 +62,8 @@ setup(
         "geopandas"
     ],
     extras_require={
-        # 'docs-requirements-txt': [
-        #     'sphinx',
-        #     'sphinx_rtd_theme',
-        # ]
+        # "example": [
+        #     "scivianna_example",
+        # ],
     },
 )
