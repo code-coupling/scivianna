@@ -6,11 +6,20 @@ import time
 import pandas as pd
 from typing import Any, List, Dict, Tuple, Type, Union
 
+from scivianna.data import Data2D
 from scivianna.utils.color_tools import interpolate_cmap_at_values
 
-from scivianna.interface.generic_interface import GenericInterface, Geometry2D, IcocoInterface, ValueAtLocation, Value1DAtLocation
+from scivianna.interface.generic_interface import (
+    GenericInterface,
+    Geometry2D, 
+    Geometry2DPolygon, 
+    Geometry2DGrid, 
+    IcocoInterface, 
+    ValueAtLocation, 
+    Value1DAtLocation
+    )
 from scivianna.interface.option_element import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement
+from scivianna.utils.polygonize_tools import PolygonElement, PolygonSorter
 from scivianna.enums import VisualizationMode
 
 from typing import TYPE_CHECKING
@@ -56,7 +65,7 @@ class SlaveCommand:
 
 
 def get_colors_list(
-    polygon_list: List[PolygonElement],
+    list_volume_found: List[Union[int, str]],
     code_interface: GenericInterface,
     coloring_label: str,
     color_map: str,
@@ -67,8 +76,8 @@ def get_colors_list(
 
     Parameters
     ----------
-    polygon_list : List[PolygonElement]
-        List of polygon elements
+    polygon_list : List[Union[int, str]]
+        List of cell names
     code_interface : GenericInterface
         Code interface to request the field values
     coloring_label : str
@@ -96,9 +105,6 @@ def get_colors_list(
     if not isinstance(code_interface, Geometry2D):
         raise TypeError("get_color_list can only be called with a Geometry2D code interface.")
         
-    # We list the volumes found, to assign a color per volume
-    list_volume_found = np.unique([p.volume_id for p in polygon_list])
-
     coloring_mode = code_interface.get_label_coloring_mode(coloring_label)
 
     dict_value_per_volume = code_interface.get_value_dict(
@@ -116,9 +122,9 @@ def get_colors_list(
         sorted_values = np.sort(np.unique(list(dict_value_per_volume.values())))
         map_to = np.array([hash(c)%255 for c in sorted_values]) / 255
 
-        compo_list = np.array([dict_value_per_volume[v] for v in list_volume_found])
+        value_list = np.array([dict_value_per_volume[v] for v in list_volume_found])
 
-        _, inv = np.unique(compo_list, return_inverse=True)
+        _, inv = np.unique(value_list, return_inverse=True)
 
         dict_volume_color = interpolate_cmap_at_values(
             color_map, map_to[inv].astype(float), list_volume_found
@@ -132,6 +138,7 @@ def get_colors_list(
         """
         dict_values = np.array([float(e) for e in dict_value_per_volume.values()])
         no_nan_values = dict_values[~np.isnan(dict_values)]
+
         if profile_time:
             print(f"extracting no nan {time.time() - start_time}")
             start_time = time.time()
@@ -195,7 +202,7 @@ def get_colors_list(
             f"Visualization mode {coloring_mode} not implemented."
         )
 
-    return list_volume_found, dict_value_per_volume, dict_volume_color
+    return dict_value_per_volume, dict_volume_color
 
 
 def worker(
@@ -215,6 +222,10 @@ def worker(
         GenericInterface to instanciate.
     """
     code_: GenericInterface = code_interface()
+
+    uses_polygons = isinstance(code_, Geometry2DPolygon)
+    if uses_polygons:
+        polygon_sorter = PolygonSorter()
 
     while True:
         if not q_tasks.empty():
@@ -267,7 +278,7 @@ def worker(
                     raise TypeError(
                         f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
                     )
-                polygon_list, polygons_updated = code_.compute_2D_data(
+                data, polygons_updated = code_.compute_2D_data(
                     u,
                     v,
                     u_min,
@@ -285,26 +296,48 @@ def worker(
                     print(f"Code compute 2D time : {time.time() - st}")
                     st = time.time()
 
-                list_volume_found, dict_compos_found, dict_volume_color = (
-                    get_colors_list(
-                        polygon_list,
-                        code_,
-                        coloring_label,
-                        color_map,
-                        center_colormap_on_zero,
-                        options,
-                    )
+                dict_values_found, dict_volume_color = get_colors_list(
+                    data.cell_ids,
+                    code_,
+                    coloring_label,
+                    color_map,
+                    center_colormap_on_zero,
+                    options,
                 )
 
+                data.cell_values = [dict_values_found[v_id] for v_id in data.cell_ids]
+                data.cell_colors = [dict_volume_color[v_id] for v_id in data.cell_ids]
+                
+
+                if uses_polygons:
+                    if polygons_updated:
+                        polygon_list, value_list, color_list = polygon_sorter.sort_polygon_list(
+                            data.get_polygons(),
+                            dict_values_found,
+                            dict_volume_color,
+                            sort=polygons_updated,
+                        )
+                        data.polygons = polygon_list
+
+                    else:
+                        value_list = polygon_sorter.sort_list(
+                            data.cell_values
+                        )
+                        color_list = polygon_sorter.sort_list(
+                            data.cell_colors
+                        )
+                    
+                    data.cell_values = value_list
+                    data.cell_colors = color_list
+
+                    
                 if profile_time:
                     print(f"Color list building time : {time.time() - st}")
                     st = time.time()
 
                 q_returns.put(
                     [
-                        polygon_list,
-                        dict_compos_found,
-                        dict_volume_color,
+                        data,
                         polygons_updated,
                     ]
                 )
@@ -523,9 +556,7 @@ class ComputeSlave:
         center_colormap_on_zero: bool,
         options: Dict[str, Any],
     ) -> Tuple[
-        List[PolygonElement],
-        Dict[int | str, str],
-        Dict[int | str, Tuple[int, int, int]],
+        Data2D, bool
     ]:
         """Get the geometry from the interface
 
@@ -560,7 +591,7 @@ class ComputeSlave:
 
         Returns
         -------
-        Tuple[List[PolygonElement], Dict[int | str, str], Dict[int | str, Tuple[int, int, int]]]
+        Tuple[Data2D, bool]
             List of PolygonElements, list of materials, volume - color map
         """
         self.q_tasks.put(

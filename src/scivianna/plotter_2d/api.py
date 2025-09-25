@@ -7,7 +7,7 @@ from scivianna.slave import ComputeSlave
 
 from typing import Dict, Tuple, Any
 
-from scivianna.plotter_2d.matplotlib import Matplotlib2DPlotter
+from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 from scivianna.utils.color_tools import get_edges_colors
 from scivianna.utils.polygonize_tools import PolygonSorter
 from scivianna.enums import VisualizationMode
@@ -85,7 +85,7 @@ def plot_frame_in_axes(
         Dictionnary of options provided when creating the legend
     """
 
-    computed_data = slave.compute_2D_data(
+    data, _ = slave.compute_2D_data(
         u=u,
         v=v,
         u_min=u_min,
@@ -102,15 +102,24 @@ def plot_frame_in_axes(
     )
 
     pw = PolygonSorter()
-    data = pw.sort_polygon_list(*computed_data)
-    plotter = Matplotlib2DPlotter()
+    polygon_list, compo_list, volume_color_list = pw.sort_polygon_list(
+        data.get_polygons(),
+        dict(zip(data.cell_ids, data.cell_values)),
+        dict(zip(data.cell_ids, data.cell_colors)),
+    )
+    data.polygons = polygon_list
+    data.cell_values = compo_list
+    data.cell_colors = volume_color_list
+
+    plotter = Matplotlib2DPolygonPlotter()
 
     # Replacing provided colors
     if (
         slave.get_label_coloring_mode(coloring_label) == VisualizationMode.FROM_STRING
         and coloring_label in custom_colors
     ):
-        polygons, compo_list, volume_color_list = data
+        compo_list = data.cell_values
+        volume_color_list = data.cell_colors
 
         compos = np.unique(compo_list)
 
@@ -131,10 +140,12 @@ def plot_frame_in_axes(
                     compo_array == compo, color_array, volume_color_list
                 )
 
-        data = polygons, compo_list, volume_color_list
+        data.cell_values = compo_list
+        data.cell_colors = volume_color_list
 
     if display_colorbar:
-        _, compo_list, volume_color_list = data
+        compo_list = data.cell_values
+        volume_color_list = data.cell_colors
         if (
             slave.get_label_coloring_mode(coloring_label)
             == VisualizationMode.FROM_VALUE
@@ -187,7 +198,7 @@ def plot_frame_in_axes(
                 f"Can't display the colorbar of a field whose visualisation mode is not FROM_VALUE or FROM_STRING, found {slave.get_label_coloring_mode(coloring_label)}"
             )
 
-    plotter.plot_2d_frame_in_axes(*data, axes=axes)
+    plotter.plot_2d_frame_in_axes(data, axes=axes)
 
 
 def plot_frame(

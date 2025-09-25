@@ -2,6 +2,7 @@ import functools
 from typing import IO, Callable, List, Tuple, Union
 import bokeh.events
 import panel as pn
+from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
@@ -30,7 +31,7 @@ from scivianna.utils.color_tools import beautiful_color_maps
 import os
 
 
-class Bokeh2DPlotter(Plotter2D):
+class Bokeh2DPolygonPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
 
     def __init__(
@@ -245,31 +246,24 @@ class Bokeh2DPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_names : Dict[Union[int, str], str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        xs, ys = self._polygons_to_coords(data.get_polygons())
 
         self.source_polygons.data = {
             XS: xs,
             YS: ys,
-            VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
-            COLORS: colors,
-            EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
+            VOLUME_NAMES: data.cell_ids,
+            COMPO_NAMES: data.cell_values,
+            COLORS: data.cell_colors,
+            EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
         }
 
         self.figure.multi_polygons(
@@ -287,49 +281,41 @@ class Bokeh2DPlotter(Plotter2D):
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        xs, ys = self._polygons_to_coords(data.get_polygons())
 
         self.source_polygons.update(
             data={
                 XS: xs,
                 YS: ys,
-                VOLUME_NAMES: volume_list,
-                COMPO_NAMES: compo_list,
-                COLORS: colors,
-                EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
+                VOLUME_NAMES: data.cell_ids,
+                COMPO_NAMES: data.cell_values,
+                COLORS: data.cell_colors,
+                EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
             }
         )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
+        colors = data.cell_colors
         cell_count = len(colors)
         self.source_polygons.patch(
             {
-                COMPO_NAMES: [(slice(0, cell_count), compo_list)],
+                COMPO_NAMES: [(slice(0, cell_count), data.cell_values)],
                 COLORS: [(slice(0, cell_count), colors)],
                 EDGE_COLORS: [
                     (slice(0, cell_count), get_edges_colors(np.array(colors)).tolist())

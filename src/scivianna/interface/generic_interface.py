@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple, Dict, Union
 
+from scivianna.data import Data2D
 from scivianna.interface.option_element import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
-from scivianna.enums import VisualizationMode, GeometryType
+from scivianna.enums import VisualizationMode, GeometryType, DataType
 
 from typing import TYPE_CHECKING
 
@@ -92,14 +93,18 @@ class GenericInterface:
         return []
     
 
+
 class Geometry2D(GenericInterface):
     """ Interface parent class for classes that can compute geometry 2D slices.
     """
     geometry_type:GeometryType
     """Enum telling if the geometry is 2D or 3D (Displays the axis card and the w coordinate in the GUI)."""
+    data_type:DataType
+    """Enum saying if the data are returned in a 2D grid or a polygon list"""
     rasterized:bool = False
     """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
     
+
     def compute_2D_data(
         self,
         u: Tuple[float, float, float],
@@ -113,7 +118,7 @@ class Geometry2D(GenericInterface):
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
-    ) -> Tuple[List[PolygonElement], bool]:
+    ) -> Tuple[Data2D, bool]:
         """Returns a list of polygons that defines the geometry in a given frame
 
         Parameters
@@ -143,8 +148,8 @@ class Geometry2D(GenericInterface):
 
         Returns
         -------
-        List[PolygonElement]
-            List of polygons to display
+        Data2D
+            Geometry to display
         bool
             Were the polygons updated compared to the past call
 
@@ -181,6 +186,15 @@ class Geometry2D(GenericInterface):
         """
         raise NotImplementedError()
 
+class Geometry2DPolygon(Geometry2D):
+    """ Interface parent class for classes that can compute geometry 2D slices and provide a list of polygons.
+    """
+class Geometry2DGrid(Geometry2D):
+    """ Interface parent class for classes that can compute geometry 2D slices and provide a numpy array.
+    """
+    rasterized:bool = True
+    """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
+    
 
 class ValueAtLocation(GenericInterface):
     """ Interface parent class to implement a function to get values at a specific location.

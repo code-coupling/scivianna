@@ -36,6 +36,12 @@ class GeometryType(Enum):
     """ 3D geometry : U and V axis are required to slice the geometry
     """
 
+class DataType(Enum):
+    """Are the data returned in a grid or polygons"""
+    GRID = 0
+    """Data are contained in a numpy array"""
+    POLYGONS = 1
+    """Data are contained in a list of polygons"""
 
 class UpdateEvent(Enum):
     """What triggers a plot update"""

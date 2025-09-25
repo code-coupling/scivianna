@@ -4,15 +4,17 @@ import panel as pn
 import os
 import functools
 
-from scivianna.interface.generic_interface import Geometry2D
+from scivianna.data import Data2D
+from scivianna.interface.generic_interface import Geometry2D, Geometry2DPolygon
 from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
 from scivianna.components.overlay_component import Overlay
 from scivianna.components.server_file_browser import ServerFileBrowser
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.slave import ComputeSlave
 
-from scivianna.utils.polygonize_tools import PolygonElement, PolygonSorter
-from scivianna.plotter_2d.bokeh import Bokeh2DPlotter
+from scivianna.utils.polygonize_tools import PolygonElement
+from scivianna.plotter_2d.polygon.bokeh import Bokeh2DPolygonPlotter
+from scivianna.plotter_2d.grid.bokeh import Bokeh2DGridPlotter
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.constants import GEOMETRY, COLORS, COMPO_NAMES, VOLUME_NAMES, POLYGONS
 from scivianna.utils.color_tools import beautiful_color_maps
@@ -51,11 +53,15 @@ class VisualizationPanel:
     """ Panel name
     """
 
-    current_polygons: Dict[str, Any]
-    """ Displayed polygons and their properties.
+    current_data: Dict[str, Any]
+    """ Displayed data and their properties.
     """
     update_event:Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
     """ On what event does the panel recompute itself
+    """
+
+    display_polygons:bool = True
+    """ Display as polygons or as a 2D grid.
     """
 
     def __init__(self, slave: ComputeSlave, name=""):
@@ -72,14 +78,16 @@ class VisualizationPanel:
         self.copy_index = 0
         self.slave = slave
         self.bounds_row = None
-        self.update_polygons = False
-        """Need to update the polygons at the next async call"""
+        self.update_data = False
+        """Need to update the data at the next async call"""
 
         code_interface:Geometry2D = self.slave.code_interface
+
+        assert issubclass(code_interface, Geometry2D), \
+            f"A VisualizationPanel can only be given a Geometry2D interface slave, received {code_interface}."
+        
         self.geometry_type:GeometryType = code_interface.geometry_type
         self.rasterized:bool = code_interface.rasterized
-
-        self.polygon_worker = PolygonSorter()
 
         self.__data_to_update: bool = False
         self.__range_to_update: bool = False
@@ -167,13 +175,17 @@ class VisualizationPanel:
         self.color_map_selector.value_name = "BuRd"
         self.color_map_selector.value = beautiful_color_maps["BuRd"]
 
-        polygons, volume_compo_list, volume_color_list = self.compute_fn(
+        data_ = self.compute_fn(
             (1, 0, 0), (0, 1, 0), u_min, v_min, u_max, v_max, z
         )
 
-        self.plotter = Bokeh2DPlotter()
+        if self.display_polygons:
+            self.plotter = Bokeh2DPolygonPlotter()
+        else:
+            self.plotter = Bokeh2DGridPlotter()
+
         self.plotter.set_axes((1, 0, 0), (0, 1, 0), z)
-        self.plotter.plot_2d_frame(polygons, volume_compo_list, volume_color_list)
+        self.plotter.plot_2d_frame(data_)
 
         if (
             slave.get_label_coloring_mode(self.field_color_selector.value[0]) == VisualizationMode.FROM_VALUE
@@ -181,8 +193,8 @@ class VisualizationPanel:
             self.plotter.update_colorbar(
                 True,
                 (
-                    min([float(e) for e in volume_compo_list]),
-                    max([float(e) for e in volume_compo_list]),
+                    min([float(e) for e in data_.cell_values]),
+                    max([float(e) for e in data_.cell_values]),
                 ),
             )
         else:
@@ -556,26 +568,12 @@ class VisualizationPanel:
                 )
                 self.plotter.set_color_map(self.color_map_selector.value_name)
 
-            if "source_polygons" in self.__new_data:
-                self.current_polygons = self.__new_data["source_polygons"]
-                if not self.update_polygons:
-                    new_compo_name = self.polygon_worker.sort_list(
-                        self.__new_data["source_polygons"][COMPO_NAMES]
-                    )
-                    new_color = self.polygon_worker.sort_list(
-                        self.__new_data["source_polygons"][COLORS]
-                    )
-
-                    self.plotter.update_colors(
-                        new_compo_name,
-                        new_color,
-                    )
+            if "data" in self.__new_data:
+                self.current_data:Data2D = self.__new_data["data"]
+                if not self.update_data:
+                    self.plotter.update_colors(self.current_data)
                 else:
-                    self.plotter.update_2d_frame(
-                        polygon_list=self.__new_data["source_polygons"][POLYGONS],
-                        compo_list=self.__new_data["source_polygons"][COMPO_NAMES],
-                        colors=self.__new_data["source_polygons"][COLORS],
-                    )
+                    self.plotter.update_2d_frame(self.current_data)
 
             self.__data_to_update = False
 
@@ -647,13 +645,8 @@ class VisualizationPanel:
         z: float,
         res_x: int = 300,
         res_y: int = 300,
-    ) -> Tuple[
-        List[PolygonElement],
-        List[Union[str, int]],
-        List[str],
-        List[Tuple[int, int, int]],
-    ]:
-        """Request the slave to compute a new frame, and updates the polygons to display
+    ) -> Data2D:
+        """Request the slave to compute a new frame, and updates the data to display
 
         Parameters
         ----------
@@ -678,8 +671,8 @@ class VisualizationPanel:
 
         Returns
         -------
-        List[PolygonElement], List[Union[str, int]], List[str], List[Tuple[int, int, int]]
-            Formatted list of polygons, list of volumes, list of compositions, list of volume colors.
+        Data2D
+            Geometry data.
         """
         if self.bounds_row is None:
             options = {
@@ -713,24 +706,16 @@ class VisualizationPanel:
                 print(
                     f"\n\n Got None from computed data on {self.name}, returning the past values.\n\n"
                 )
-                return (
-                    self.current_polygons[POLYGONS],
-                    self.current_polygons[COMPO_NAMES],
-                    self.current_polygons[COLORS],
-                )
-            polygon_list, dict_compos_found, dict_volume_color, polygons_updated = (
+                return self.current_data
+            
+            computed_data, data_updated = (
                 computed_data
             )
-            self.update_polygons = polygons_updated
+            self.update_data = data_updated
 
-            return self.polygon_worker.sort_polygon_list(
-                polygon_list,
-                dict_compos_found,
-                dict_volume_color,
-                sort=polygons_updated,
-            )
+            return computed_data
         else:
-            return None, None, None
+            return None
 
     def get_uv(self,) -> Tuple[np.ndarray, np.ndarray]:
         """Gets the normal direction vectors from the FloatInput objects.
@@ -793,22 +778,17 @@ class VisualizationPanel:
 
         print(f"{self.name} - Recomputing for axes {u}, {v}, at range : ({x0}, {y0}), ({x1}, {y1}), ({self.w_inp.value}), with field {self.field_color_selector.value[0]}")
 
-        polygons, volume_compo_list, volume_color_list = self.compute_fn(
+        data = self.compute_fn(
             u, v, x0, y0, x1, y1, self.w_inp.value, res_x=res_x, res_y=res_y
         )
 
-        if polygons is not None:
+        if data is not None:
             if profile_time:
                 print(f"Plot panel compute function : {time.time() - st}")
                 st = time.time()
 
             self.__new_data = {
-                "source_polygons": {
-                    POLYGONS: polygons,
-                    COLORS: volume_color_list,
-                    VOLUME_NAMES: [p.volume_id for p in polygons],
-                    COMPO_NAMES: volume_compo_list,
-                },
+                "data": data,
             }
 
             if (
@@ -816,8 +796,8 @@ class VisualizationPanel:
                 and self.slave.get_label_coloring_mode(self.field_color_selector.value[0]) == VisualizationMode.FROM_VALUE
             ):
                 self.__new_data["color_mapper"] = {
-                    "new_low": np.nanmin(np.array(volume_compo_list).astype(float)),
-                    "new_high": np.nanmax(np.array(volume_compo_list).astype(float)),
+                    "new_low": np.nanmin(np.array(data.cell_values).astype(float)),
+                    "new_high": np.nanmax(np.array(data.cell_values).astype(float)),
                 }
                 self.__new_data["hide_colorbar"] = False
             else:
@@ -858,8 +838,6 @@ class VisualizationPanel:
 
         new_visualiser = VisualizationPanel(self.slave, new_name)
         new_visualiser.copy_index = new_index
-
-        new_visualiser.plotter.source_polygons.data = self.plotter.source_polygons.data.copy()
 
         return new_visualiser
 

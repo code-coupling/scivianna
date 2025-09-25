@@ -9,7 +9,7 @@ from scivianna.plotter_2d.api import plot_frame_in_axes
 from scivianna.interface.med_interface import MEDInterface
 
 
-def test_plot_api():
+def test_plot_polygons():
     """Simple test to make sure things happen before more tests are actually implemented
     """
 

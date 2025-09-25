@@ -1,4 +1,5 @@
 from typing import IO, Any, Dict, List, Tuple, Union
+from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
@@ -18,7 +19,7 @@ import numpy as np
 import panel as pn
 
 
-class Matplotlib2DPlotter(Plotter2D):
+class Matplotlib2DPolygonPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
 
     def __init__(
@@ -75,28 +76,20 @@ class Matplotlib2DPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        self.plot_2d_frame_in_axes(polygon_list, compo_list, colors, self.ax, {})
+        self.plot_2d_frame_in_axes(data, self.ax, {})
 
     def plot_2d_frame_in_axes(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
         axes: matplotlib.axes.Axes,
         plot_options: Dict[str, Any] = {},
     ):
@@ -104,20 +97,16 @@ class Matplotlib2DPlotter(Plotter2D):
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Geometry data
         axes : matplotlib.axes.Axes
             Axes in which plot the figure
         plot_options : Dict[str, Any])
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        volume_list: List[Union[str, int]] = data.cell_ids
 
-        volume_colors: np.ndarray = np.array(colors).astype(float)
+        volume_colors: np.ndarray = np.array(data.cell_colors).astype(float)
         volume_edge_colors: np.ndarray = get_edges_colors(volume_colors)
 
         polygons: List[Polygon] = [
@@ -131,7 +120,7 @@ class Matplotlib2DPlotter(Plotter2D):
                     for h in p.holes
                 ],
             )
-            for p in polygon_list
+            for p in data.get_polygons()
         ]
 
         gdf = gpd.GeoDataFrame(geometry=polygons)
@@ -160,48 +149,36 @@ class Matplotlib2DPlotter(Plotter2D):
         self.last_plot = {
             POLYGONS: polygons,
             VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
+            COMPO_NAMES: data.cell_values,
             COLORS: volume_colors.tolist(),
             EDGE_COLORS: volume_edge_colors.tolist(),
         }
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            polygon_list,
-            compo_list,
-            colors,
+            data,
         )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            self.last_plot[POLYGONS],
-            compo_list,
-            colors,
+            data,
         )
 
     def _set_callback_on_range_update(self, callback: IO):

@@ -6,7 +6,7 @@ import multiprocessing as mp
 from pathlib import Path
 import numpy as np
 
-from scivianna.interface.generic_interface import Geometry2D, GenericInterface
+from scivianna.interface.generic_interface import Geometry2D, GenericInterface, Geometry2DPolygon
 from scivianna.constants import CSV, GEOMETRY, MATERIAL, MESH
 from scivianna.slave import ComputeSlave
 from scivianna.panel.plot_panel import VisualizationPanel
@@ -15,6 +15,7 @@ from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
 from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.data import Data2D
 
 from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface
 
@@ -34,7 +35,7 @@ def get_country_category(country_code:str):
             return cat
     return np.NaN
 
-class EuropeGridInterface(Geometry2D):
+class EuropeGridInterface(Geometry2DPolygon):
     geometry_type=GeometryType._2D
 
     def __init__(
@@ -184,8 +185,8 @@ class EuropeGridInterface(Geometry2D):
             for p in self.polygons_per_country[country]
         ]
 
-        self.polygons = list_of_polygons
-        return list_of_polygons, True
+        self.polygons = Data2D.from_polygon_list(list_of_polygons)
+        return self.polygons, True
 
     def get_value_dict(
         self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]

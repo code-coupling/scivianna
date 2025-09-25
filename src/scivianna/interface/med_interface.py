@@ -3,7 +3,8 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import multiprocessing as mp
 
-from scivianna.interface.generic_interface import Geometry2D, IcocoInterface
+from scivianna.data import Data2D
+from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
 from scivianna.interface.option_element import IntOption
 from scivianna.slave import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement, PolygonCoords
@@ -18,7 +19,7 @@ if profile_time:
     import time
 
 
-class MEDInterface(Geometry2D, IcocoInterface):
+class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
     polygons: List[PolygonElement]
     """Polygons computed at the previous iteration"""
@@ -51,7 +52,7 @@ class MEDInterface(Geometry2D, IcocoInterface):
 
     def __init__(self):
         """MEDCoupling interface constructor."""
-        self.polygons: List[PolygonElement] = None
+        self.data: List[PolygonElement] = None
         self.file_path = None
         self.meshnames = []
         self.mesh = None
@@ -124,7 +125,7 @@ class MEDInterface(Geometry2D, IcocoInterface):
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
-    ) -> Tuple[List[PolygonElement], bool]:
+    ) -> Tuple[Data2D, bool]:
         """Returns a list of polygons that defines the geometry in a given frame
 
         Parameters
@@ -154,16 +155,16 @@ class MEDInterface(Geometry2D, IcocoInterface):
 
         Returns
         -------
-        List[PolygonElement]
-            List of polygons to display
+        Data2D
+            Geometry to display
         bool
             Were the polygons updated compared to the past call
         """
-        if (self.polygons is not None) and (
+        if (self.data is not None) and (
             self.last_computed_frame == [*u, *v, w_value]
         ):
             print("Skipping polygon computation.")
-            return self.polygons, False
+            return self.data, False
 
         if profile_time:
             start_time = time.time()
@@ -211,7 +212,7 @@ class MEDInterface(Geometry2D, IcocoInterface):
 
         cells_count = mesh.getNumberOfCells()
 
-        self.polygons = []
+        self.data = []
 
         vertices_coords = [list(c) for c in mesh.getCoords()]
         self.cell_dict.clear()
@@ -233,7 +234,7 @@ class MEDInterface(Geometry2D, IcocoInterface):
             u_vals = np.matmul(coords.T, u)
             v_vals = np.matmul(coords.T, v)
 
-            self.polygons.append(
+            self.data.append(
                 PolygonElement(
                     exterior_polygon=PolygonCoords(x_coords=u_vals, y_coords=v_vals),
                     holes=[],
@@ -254,7 +255,8 @@ class MEDInterface(Geometry2D, IcocoInterface):
                 f"Gathering cells id time: {time.time() - start_time} using cell id {use_cell_id}"
             )
 
-        return self.polygons, True
+        self.data = Data2D.from_polygon_list(self.data)
+        return self.data, True
 
     def get_labels(
         self,
