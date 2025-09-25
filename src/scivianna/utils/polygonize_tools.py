@@ -158,8 +158,19 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
 
     polygon_element_list:List[PolygonElement] = []
 
+    #   We build a new array, we list the string values, and replace them by their index to accept very large values and non floats
+    values, direct, inv = np.unique(arr.flatten(), return_index = True, return_inverse=True)   #   Values found
+
+    # values : found values
+    # direct : first index of the value in arr.flatten()
+    # inv : for each element in arr.flatten(), index in values of the element
+
+    # values[inv].reshape(arr.shape) = arr
+
+    index_arr = np.array(range(len(values)))[inv].reshape(arr.shape).astype(np.int32)
+
     transform1 = Affine.translation(x0 - (x1-x0)/len(x) / 2, y0 - (y1-y0)/len(y) / 2) * Affine.scale((x1-x0)/len(x), (y1-y0)/len(y))
-    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(arr.astype(np.float32), transform=transform1))
+    shape_gen = ((shape(s), val) for s, val in rasterio.features.shapes(index_arr, transform=transform1))
 
     s:Polygon
     for s, val in shape_gen:
@@ -172,7 +183,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
                                         holes=[PolygonCoords(x_coords=np.array([vert[0] for vert in interior.coords]),
                                                              y_coords=np.array([vert[1] for vert in interior.coords])) 
                                                              for interior in s.interiors],
-                                        volume_id=str(int(val)))
+                                        volume_id=values[int(val)])
                     )
         
     return polygon_element_list
@@ -248,3 +259,11 @@ class PolygonSorter:
         assert len(arr) == len(self.sort_indexes), f"Given array to sort has a different length from the sorted indexes, respectively found {len(arr)} and {len(self.sort_indexes)}."
         return [arr[i] for i in self.sort_indexes]
         
+
+if __name__ == "__main__":
+    x_vals = np.arange(10)
+    y_vals = np.arange(10)
+
+    z_vals = x_vals*np.expand_dims(y_vals, axis=0).T
+
+    numpy_2D_array_to_polygons(x_vals, y_vals, z_vals, False)
