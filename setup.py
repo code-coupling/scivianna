@@ -35,6 +35,8 @@ setup(
             "panel/*.py",
             "plotter_1d/*.py",
             "plotter_2d/*.py",
+            "plotter_2d/grid/*.py",
+            "plotter_2d/polygon/*.py",
             "utils/*",
             "*.sh",
             "VERSION",
@@ -44,6 +46,7 @@ setup(
             "c3po_coupling/*",
             "europe_grid/*",
             "medcoupling/*",
+            "mandelbrot/*",
             "*/README.md",
             "*.py"
         ]

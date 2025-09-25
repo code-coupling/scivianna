@@ -13,6 +13,13 @@ The visualizer allows:
 
 An example of each is provided in the **examples** folder.
 
+A demonstrator of these features except real time simulation can be found at:
+https://huggingface.co/spaces/tmoulignier/scivianna
+
 ##  Installation
 
-Pypi incoming...
+Scivianna can be installed using the following command:
+
+```
+python -m pip install scivianna
+```
