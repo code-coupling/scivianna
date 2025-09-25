@@ -87,17 +87,12 @@ class Data2D:
         data_.data_type = DataType.GRID
 
         return data_
-
-    def get_polygons(self,) -> List[PolygonElement]:
-        """Returns the polygon list of the geometry. If defined as grid, the grid is rasterized and self is converted to polygon data.
-
-        Returns
-        -------
-        List[PolygonElement]
-            Polygon list
+    
+    def convert_to_polygons(self,):
+        """Convert the geometry to polygons
         """
         if self.data_type == DataType.POLYGONS:
-            return self.polygons
+            pass
         else:
             self.polygons = numpy_2D_array_to_polygons(self.u_values, self.v_values, self.grid, self.simplify)
 
@@ -110,6 +105,19 @@ class Data2D:
             self.cell_colors = [id_to_color[e] for e in self.cell_ids]
 
             self.data_type = DataType.POLYGONS
+
+    def get_polygons(self,) -> List[PolygonElement]:
+        """Returns the polygon list of the geometry. If defined as grid, the grid is rasterized and self is converted to polygon data.
+
+        Returns
+        -------
+        List[PolygonElement]
+            Polygon list
+        """
+        if self.data_type == DataType.POLYGONS:
+            return self.polygons
+        else:
+            self.convert_to_polygons()
             
             return self.polygons
 

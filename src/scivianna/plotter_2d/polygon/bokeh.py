@@ -311,6 +311,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         data : Data2D
             Data2D object containing the data to update
         """
+        data.convert_to_polygons()
         colors = data.cell_colors
         cell_count = len(colors)
         self.source_polygons.patch(
