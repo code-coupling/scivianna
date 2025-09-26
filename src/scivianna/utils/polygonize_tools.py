@@ -164,6 +164,17 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
     List[PolygonElement]
         List of PolygonElements
     """
+    if not isinstance(arr, np.ndarray):
+        raise TypeError(f"arr must be a numpy array, found {type(arr)}") 
+    if type(x) not in (list, np.ndarray):
+        raise TypeError(f"x must be a numpy array or a list, found {type(x)}") 
+    if type(y) not in (list, np.ndarray):
+        raise TypeError(f"y must be a numpy array or a list, found {type(y)}") 
+    if not len(x) == arr.shape[0]:
+        raise ValueError(f"len(x) must have the same length as arr first coordinate, found {len(x)} and {arr.shape[0]}")
+    if not len(y) == arr.shape[1]:
+        raise ValueError(f"len(y) must have the same length as arr second coordinate, found {len(x)} and {arr.shape[0]}")
+
     x0 = min(x)
     x1 = max(x)
     y0 = min(y)
