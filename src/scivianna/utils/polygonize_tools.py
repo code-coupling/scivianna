@@ -5,6 +5,7 @@ import numpy as np
 import rasterio
 import rasterio.features
 from rasterio.transform import Affine 
+
 from shapely.geometry.polygon import Polygon
 from shapely.geometry import shape
 
@@ -188,77 +189,6 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
         
     return polygon_element_list
 
-
-class PolygonSorter:
-    """Object used to convert a list of polygons to shapes that are understood by Bokeh plotters
-    """
-    def __init__(self):
-        """Object used to convert a list of polygons to shapes that are understood by Bokeh plotters
-        """
-        self.sort_indexes = None
-
-    def sort_polygon_list(self,
-                            polygon_list:List[PolygonElement], 
-                            dict_compos_found:Dict[Union[int, str], str], 
-                            dict_volume_color:Dict[Union[int, str], Tuple[float, float, float]], 
-                            sort=True) \
-                                -> Tuple[
-                                            List[Polygon], 
-                                            List[str],
-                                            List[Tuple[int, int, int]]
-                                        ]:
-            """Converts a set of polygons to objects lists that can be understood by the panel interface
-
-            Parameters
-            ----------
-            polygon_list : List[PolygonElement]
-                Polygon element list from which extract the vertices coordinates
-            dict_compos_found : Dict[Union[int, str], str]
-                Volume - Material map
-            dict_volume_color : Dict[Union[int, str], Tuple[float, float, float]]
-                Volume - color map
-            sort : bool
-                Sort the shapes per compo
-
-            Returns
-            -------
-            Tuple[List[Polygon], List[str], List[Tuple[int, int, int]]]
-                List of polygons, list of compositions, list of volume colors.
-            """
-            
-            volume_list:List[Union[str, int]] = [p.volume_id for p in polygon_list]
-            compo_list:List[str] = [dict_compos_found[v] for v in volume_list]
-
-            volume_color_list:List[Tuple[int, int, int]] = [dict_volume_color[v] for v in volume_list]
-            
-            # Sorting the polygons per color in order to prevent overlaping edges of different colors
-            # Check if both sort and sort_indexes is None in case a slave is used for different panels.
-            if self.sort_indexes is None or sort:
-                self.sort_indexes = sorted(range(len(compo_list)), key=lambda i:compo_list[i])
-                compo_list = [compo_list[i] for i in self.sort_indexes]
-                volume_color_list = [volume_color_list[i] for i in self.sort_indexes]
-                
-                polygon_list = [polygon_list[i] for i in self.sort_indexes]
-
-            return polygon_list, compo_list, volume_color_list
-
-    def sort_list(self, arr:List[Any]) -> List[Any]:
-        """Sort the array in the same order as the past polygon_element_list_to_shapes order
-
-        Parameters
-        ----------
-        arr : List[Any]
-            List to sort
-
-        Returns
-        -------
-        List[Any]
-            Sorted list
-        """
-        assert self.sort_indexes is not None, "The sort_list function can't be called before polygon_element_to_list_shapes is called."
-        assert len(arr) == len(self.sort_indexes), f"Given array to sort has a different length from the sorted indexes, respectively found {len(arr)} and {len(self.sort_indexes)}."
-        return [arr[i] for i in self.sort_indexes]
-        
 
 if __name__ == "__main__":
     x_vals = np.arange(10)

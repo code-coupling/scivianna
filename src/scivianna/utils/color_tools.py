@@ -73,8 +73,22 @@ def get_edges_colors(face_colors:np.ndarray) -> np.ndarray:
     return np.where(edge_colors<0, 0, edge_colors)
 
 def interpolate_cmap_at_values(
-    cmap_name: str, values: np.ndarray, keys: List[str]
-) -> Dict[str, Tuple[float, float, float, float]]:
+    cmap_name: str, values: np.ndarray
+) -> np.ndarray:
+    """Returns a numpy array containing the RGBA 255 colors per value in values
+
+    Parameters
+    ----------
+    cmap_name : str
+        Name of the cmaps to get from scivianna.utils.color_tools.color_maps
+    values : np.ndarray
+        Values to interpolate
+
+    Returns
+    -------
+    np.ndarray
+        RGBA 255 colors per value in values
+    """ 
 
     cmap = color_maps[cmap_name]
     colors = np.array([(int(c[1:3], 16) , int(c[3:5], 16) , int(c[5:7], 16)) for c in cmap]).astype(float)/255
@@ -97,8 +111,8 @@ def interpolate_cmap_at_values(
 
     y_vals = float_array.astype(np.int16)
 
-    return dict(zip(keys, y_vals))
+    return y_vals
 
 beautiful_color_maps = {
-    c:[list(e)[:3] for e in interpolate_cmap_at_values(c, np.arange(0, 1, 0.01), np.arange(0, 1, .01)).values()] for c in color_maps
+    c:[list(e)[:3] for e in interpolate_cmap_at_values(c, np.arange(0, 1, 0.01))] for c in color_maps
 }

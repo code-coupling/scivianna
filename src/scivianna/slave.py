@@ -19,7 +19,7 @@ from scivianna.interface.generic_interface import (
     Value1DAtLocation
     )
 from scivianna.interface.option_element import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement, PolygonSorter
+from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.enums import VisualizationMode
 
 from typing import TYPE_CHECKING
@@ -64,20 +64,20 @@ class SlaveCommand:
     """Returns the values of a field at cells"""
 
 
-def get_colors_list(
-    list_volume_found: List[Union[int, str]],
+def set_colors_list(
+    data: Data2D,
     code_interface: GenericInterface,
     coloring_label: str,
     color_map: str,
     center_colormap_on_zero: bool,
     options: Dict[str, Any],
-) -> Tuple[np.ndarray, Dict[int | str, str], Dict[int | str, Tuple[int, int, int]]]:
-    """Returns the list of color for a fiel per polygon.
+):
+    """Sets in a Data2D the list of colors for a field per polygon.
 
     Parameters
     ----------
-    polygon_list : List[Union[int, str]]
-        List of cell names
+    data : Data2D
+        Geometry data
     code_interface : GenericInterface
         Code interface to request the field values
     coloring_label : str
@@ -88,11 +88,6 @@ def get_colors_list(
         Center the color map on zero
     options : Dict[str, Any]
         Plot extra options
-
-    Returns
-    -------
-    Tuple[np.ndarray, Dict[int | str, str], Dict[int | str, Tuple[int, int, int]]]
-        List of volume, list of materials, volume - color map
 
     Raises
     ------
@@ -108,9 +103,11 @@ def get_colors_list(
     coloring_mode = code_interface.get_label_coloring_mode(coloring_label)
 
     dict_value_per_volume = code_interface.get_value_dict(
-        coloring_label, list_volume_found, options
+        coloring_label, data.cell_ids, options
     )
 
+    cell_values = [dict_value_per_volume[v] for v in data.cell_ids]
+    
     if profile_time:
         print(f"get color list prepare time {time.time() - start_time}")
         start_time = time.time()
@@ -122,22 +119,20 @@ def get_colors_list(
         sorted_values = np.sort(np.unique(list(dict_value_per_volume.values())))
         map_to = np.array([hash(c)%255 for c in sorted_values]) / 255
 
-        value_list = np.array([dict_value_per_volume[v] for v in list_volume_found])
+        value_list = np.array(cell_values)
 
         _, inv = np.unique(value_list, return_inverse=True)
 
-        dict_volume_color = interpolate_cmap_at_values(
-            color_map, map_to[inv].astype(float), list_volume_found
+        volume_colors = interpolate_cmap_at_values(
+            color_map, map_to[inv].astype(float)
         )
-
-        dict_volume_color["-1"] = [255, 255, 255, 255]
 
     elif coloring_mode == VisualizationMode.FROM_VALUE:
         """
         The color is got from a color map set in the range (-max, max)
         """
-        dict_values = np.array([float(e) for e in dict_value_per_volume.values()])
-        no_nan_values = dict_values[~np.isnan(dict_values)]
+        cell_values = np.array(cell_values).astype(float)
+        no_nan_values = cell_values[~np.isnan(cell_values)]
 
         if profile_time:
             print(f"extracting no nan {time.time() - start_time}")
@@ -151,7 +146,7 @@ def get_colors_list(
             else:
                 minmax = max(abs(no_nan_values.min()), no_nan_values.max())
 
-            dict_values = (dict_values + minmax) / (2 * minmax)
+            cell_values = (cell_values + minmax) / (2 * minmax)
         else:
             if (
                 len(no_nan_values) == 0 or max(abs(no_nan_values.min()), no_nan_values.max()) == 0.0
@@ -165,13 +160,14 @@ def get_colors_list(
                 minmax = no_nan_values.max() - no_nan_values.min()
                 min_val = no_nan_values.min()
 
-            dict_values = (dict_values - min_val) / minmax
+            cell_values = (cell_values - min_val) / minmax
 
         if profile_time:
             print(f"Rescaling data {time.time() - start_time}")
             start_time = time.time()
-        dict_volume_color = interpolate_cmap_at_values(
-            color_map, dict_values, list_volume_found
+
+        volume_colors = interpolate_cmap_at_values(
+            color_map, cell_values
         )
 
         if profile_time:
@@ -179,9 +175,9 @@ def get_colors_list(
             start_time = time.time()
 
         # Changing the main color from black to gray in case of Nan
-        for c in dict_volume_color:
-            if dict_volume_color[c][3] == 0.0:
-                dict_volume_color[c] = (200, 200, 200, 0)
+        for c in range(len(volume_colors)):
+            if volume_colors[c, 3] == 0.0:
+                volume_colors[c] = (200, 200, 200, 0)
 
         if profile_time:
             print(f"Fixing nans {time.time() - start_time}")
@@ -191,18 +187,14 @@ def get_colors_list(
         """
         No color, mesh displayed only
         """
-        dict_volume_color = dict(
-            zip(
-                list(list_volume_found) + ["-1"],
-                [(200, 200, 200, 0)] * (len(list_volume_found) + 1),
-            )
-        )
+        volume_colors = np.array([(200, 200, 200, 0)] * (len(data.cell_ids)))
     else:
         raise NotImplementedError(
             f"Visualization mode {coloring_mode} not implemented."
         )
-
-    return dict_value_per_volume, dict_volume_color
+    
+    data.cell_values = cell_values
+    data.cell_colors = volume_colors.tolist()
 
 
 def worker(
@@ -296,8 +288,8 @@ def worker(
                     print(f"Code compute 2D time : {time.time() - st}")
                     st = time.time()
 
-                dict_values_found, dict_volume_color = get_colors_list(
-                    data.cell_ids,
+                set_colors_list(
+                    data,
                     code_,
                     coloring_label,
                     color_map,
@@ -305,31 +297,19 @@ def worker(
                     options,
                 )
 
-                data.cell_values = [dict_values_found[v_id] for v_id in data.cell_ids]
-                data.cell_colors = [dict_volume_color[v_id] for v_id in data.cell_ids]
-                
-
                 if uses_polygons:
                     if polygons_updated:
-                        polygon_list, value_list, color_list = polygon_sorter.sort_polygon_list(
-                            data.get_polygons(),
-                            dict_values_found,
-                            dict_volume_color,
+                        print(f"Main sorting per {coloring_label}")
+                        polygon_sorter.sort_polygon_list(
+                            data,
                             sort=polygons_updated,
                         )
-                        data.polygons = polygon_list
 
                     else:
-                        value_list = polygon_sorter.sort_list(
-                            data.cell_values
+                        print(f"Second sorting per {coloring_label}")
+                        polygon_sorter.sort_list(
+                            data
                         )
-                        color_list = polygon_sorter.sort_list(
-                            data.cell_colors
-                        )
-                    
-                    data.cell_values = value_list
-                    data.cell_colors = color_list
-
                     
                 if profile_time:
                     print(f"Color list building time : {time.time() - st}")
@@ -592,7 +572,7 @@ class ComputeSlave:
         Returns
         -------
         Tuple[Data2D, bool]
-            List of PolygonElements, list of materials, volume - color map
+            Data2D object containing the geometry, whether the polygons were updated
         """
         self.q_tasks.put(
             [
