@@ -1,3 +1,5 @@
+import numpy as np
+
 #   Plots elements names
 XS = "xs"
 YS = "ys"
@@ -19,3 +21,6 @@ CSV = "CSV"
 X = (1., 0., 0.)
 Y = (0., 1., 0.)
 Z = (0., 0., 1.)
+
+# Cell name to define the outside world
+OUTSIDE = np.inf

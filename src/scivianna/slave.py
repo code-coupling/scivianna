@@ -6,6 +6,7 @@ import time
 import pandas as pd
 from typing import Any, List, Dict, Tuple, Type, Union
 
+from scivianna.constants import OUTSIDE
 from scivianna.data import Data2D
 from scivianna.utils.color_tools import interpolate_cmap_at_values
 
@@ -105,7 +106,6 @@ def set_colors_list(
     dict_value_per_volume = code_interface.get_value_dict(
         coloring_label, data.cell_ids, options
     )
-
     cell_values = [dict_value_per_volume[v] for v in data.cell_ids]
     
     if profile_time:
@@ -126,6 +126,10 @@ def set_colors_list(
         volume_colors = interpolate_cmap_at_values(
             color_map, map_to[inv].astype(float)
         )
+        
+        if OUTSIDE in data.cell_ids:
+            for index_ in np.where(data.cell_ids == OUTSIDE):
+                volume_colors[index_] = (255, 255, 255, 0)
 
     elif coloring_mode == VisualizationMode.FROM_VALUE:
         """
