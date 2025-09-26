@@ -34,6 +34,7 @@ class PolygonSorter:
             # Check if both sort and sort_indexes is None in case a slave is used for different panels.
             if self.sort_indexes is None or sort:
                 self.sort_indexes = sorted(range(len(values_list)), key=lambda i:values_list[i])
+                data.cell_ids = [data.cell_ids[i] for i in self.sort_indexes]
                 data.cell_values = [values_list[i] for i in self.sort_indexes]
                 data.cell_colors = [data.cell_colors[i] for i in self.sort_indexes]
                 
@@ -52,6 +53,8 @@ class PolygonSorter:
         assert self.sort_indexes is not None, "The sort_list function can't be called before polygon_element_to_list_shapes is called."
         assert len(data.cell_values) == len(self.sort_indexes), f"Given cell values list has a different length from the sorted indexes, respectively found {len(data.cell_values)} and {len(self.sort_indexes)}."
         assert len(data.cell_colors) == len(self.sort_indexes), f"Given cell colors list has a different length from the sorted indexes, respectively found {len(data.cell_colors)} and {len(self.sort_indexes)}."
+        assert len(data.cell_ids) == len(self.sort_indexes), f"Given cell ID list has a different length from the sorted indexes, respectively found {len(data.cell_ids)} and {len(self.sort_indexes)}."
+        data.cell_ids = [data.cell_ids[i] for i in self.sort_indexes]
         data.cell_colors = [data.cell_colors[i] for i in self.sort_indexes]
         data.cell_values = [data.cell_values[i] for i in self.sort_indexes]
         

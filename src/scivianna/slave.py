@@ -215,9 +215,7 @@ def worker(
     """
     code_: GenericInterface = code_interface()
 
-    uses_polygons = isinstance(code_, Geometry2DPolygon)
-    if uses_polygons:
-        polygon_sorter = PolygonSorter()
+    polygon_sorter = PolygonSorter()
 
     while True:
         if not q_tasks.empty():
@@ -297,19 +295,16 @@ def worker(
                     options,
                 )
 
-                if uses_polygons:
-                    if polygons_updated:
-                        print(f"Main sorting per {coloring_label}")
-                        polygon_sorter.sort_polygon_list(
-                            data,
-                            sort=polygons_updated,
-                        )
+                if polygons_updated:
+                    polygon_sorter.sort_polygon_list(
+                        data,
+                        sort=polygons_updated,
+                    )
 
-                    else:
-                        print(f"Second sorting per {coloring_label}")
-                        polygon_sorter.sort_list(
-                            data
-                        )
+                else:
+                    polygon_sorter.sort_list(
+                        data
+                    )
                     
                 if profile_time:
                     print(f"Color list building time : {time.time() - st}")
