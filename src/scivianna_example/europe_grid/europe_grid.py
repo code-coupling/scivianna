@@ -171,12 +171,12 @@ class EuropeGridInterface(Geometry2DPolygon):
         list_of_polygons = [
             PolygonElement(
                 exterior_polygon=PolygonCoords(
-                    p.exterior.xy[0],
-                    p.exterior.xy[1]
+                    np.array(p.exterior.xy[0]),
+                    np.array(p.exterior.xy[1])
                 ),
                 holes=[
                     
-                        PolygonCoords(h.xy[0], h.xy[1]) 
+                        PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1])) 
                         for h in p.interiors
                     ],
                 volume_id=self.country_id[country],
