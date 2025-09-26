@@ -24,6 +24,13 @@ class PolygonCoords:
         y_coords : Union[List[float], np.ndarray]
             Y coordinates of the polygon vertices
         """
+        if type(x_coords) not in (list, np.ndarray):
+            raise TypeError(f"x_coords must be a numpy array or list, found {type(x_coords)}")
+        if type(y_coords) not in (list, np.ndarray):
+            raise TypeError(f"y_coords must be a numpy array or list, found {type(y_coords)}")
+        
+        if len(x_coords) != len(y_coords):
+            raise ValueError(f"Given polygons coords must have the same length, found {len(x_coords)} and {len(y_coords)}")
         
         self.x_coords:np.ndarray = np.array(x_coords)
         """ X coordinate of each vertex of a polygon
