@@ -92,6 +92,14 @@ class PolygonElement:
         volume_id : str
             Volume, associated to the polygon, id
         """
+        if not isinstance(exterior_polygon, PolygonCoords):
+            raise TypeError(f"exterior_polygon expects a PolygonCoords object, found {type(exterior_polygon)}")
+        if not isinstance(holes, list):
+            raise TypeError(f"holes expects a list, found {type(holes)}")
+        
+        for i in range(len(holes)):
+            if not isinstance(holes[i], PolygonCoords):
+                raise TypeError(f"holes expects a list of PolygonCoords objects, found {type(holes[i])} at item {i}")
     
         self.exterior_polygon:PolygonCoords = exterior_polygon
         """ Polygon that surrounds a polygonal object
