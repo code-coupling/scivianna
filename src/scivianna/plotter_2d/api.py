@@ -9,7 +9,7 @@ from typing import Dict, Tuple, Any
 
 from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 from scivianna.utils.color_tools import get_edges_colors
-from scivianna.utils.polygonize_tools import PolygonSorter
+from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.enums import VisualizationMode
 
 import numpy as np
@@ -102,14 +102,9 @@ def plot_frame_in_axes(
     )
 
     pw = PolygonSorter()
-    polygon_list, compo_list, volume_color_list = pw.sort_polygon_list(
-        data.get_polygons(),
-        dict(zip(data.cell_ids, data.cell_values)),
-        dict(zip(data.cell_ids, data.cell_colors)),
+    pw.sort_polygon_list(
+        data
     )
-    data.polygons = polygon_list
-    data.cell_values = compo_list
-    data.cell_colors = volume_color_list
 
     plotter = Matplotlib2DPolygonPlotter()
 

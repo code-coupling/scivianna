@@ -104,6 +104,7 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
         plot_options : Dict[str, Any])
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
+        data.convert_to_polygons()
         volume_list: List[Union[str, int]] = data.cell_ids
 
         volume_colors: np.ndarray = np.array(data.cell_colors).astype(float)

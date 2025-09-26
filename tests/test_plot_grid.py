@@ -1,11 +1,9 @@
-from pathlib import Path
+
 import matplotlib.pyplot as plt
 
-import scivianna
-from scivianna.constants import GEOMETRY, MATERIAL, X, Y
+from scivianna.constants import MATERIAL, X, Y
 from scivianna.slave import ComputeSlave
 from scivianna.plotter_2d.api import plot_frame_in_axes
-from scivianna.interface.med_interface import MEDInterface
 
 from scivianna_example.mandelbrot.mandelbrot import MandelBrotInterface
 
