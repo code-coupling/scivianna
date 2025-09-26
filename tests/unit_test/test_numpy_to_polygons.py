@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from scivianna.utils.polygonize_tools import numpy_2D_array_to_polygons, PolygonCoords, PolygonElement
-
+from scivianna.constants import OUTSIDE
 
 def test_numpy_2D_array_to_polygons_basic():
     """Test basic functionality with a simple 2x2 grid."""
@@ -48,16 +48,16 @@ def test_numpy_2D_array_to_polygons_simplify():
     assert len(result) == 1
     assert result[0].volume_id == 1
 
-def test_numpy_2D_array_to_polygons_with_inf():
+def test_numpy_2D_array_to_polygons_with_outside():
     """Test with a single value across entire array."""
     x = np.array([0, 1])
     y = np.array([0, 1])
-    arr = np.array([[5, 5], [5, np.inf]])
+    arr = np.array([[5, 5], [5, OUTSIDE]])
 
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((5, np.inf))
+    assert set((result[0].volume_id, result[1].volume_id)) == set((5, OUTSIDE))
 
 
 def test_numpy_2D_array_to_polygons_non_integer_values():
@@ -71,6 +71,18 @@ def test_numpy_2D_array_to_polygons_non_integer_values():
     assert len(result) == 2
     assert result[0].volume_id == 1.5
     assert result[1].volume_id == 2.0
+
+def test_numpy_2D_array_to_polygons_non_number_values():
+    """Test with non-integer values (strings or floats)."""
+    x = np.array([0, 1])
+    y = np.array([0, 1])
+    arr = np.array([["1.5", "1.5"], ["1.5", "2.0"]])
+
+    result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
+
+    assert len(result) == 2
+    assert result[0].volume_id == "1.5"
+    assert result[1].volume_id == "2.0"
 
 
 def test_numpy_2D_array_to_polygons_invalid_input():

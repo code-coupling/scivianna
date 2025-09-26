@@ -12,7 +12,7 @@ from scivianna.components.server_file_browser import ServerFileBrowser
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.slave import ComputeSlave
 
-from scivianna.utils.polygonize_tools import PolygonElement
+from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.plotter_2d.polygon.bokeh import Bokeh2DPolygonPlotter
 from scivianna.plotter_2d.grid.bokeh import Bokeh2DGridPlotter
 from scivianna.plotter_2d.generic_plotter import Plotter2D
@@ -82,6 +82,7 @@ class VisualizationPanel:
         """Need to update the data at the next async call"""
 
         code_interface:Geometry2D = self.slave.code_interface
+        self.polygon_sorter = PolygonSorter()
 
         assert issubclass(code_interface, Geometry2D), \
             f"A VisualizationPanel can only be given a Geometry2D interface slave, received {code_interface}."
@@ -711,6 +712,16 @@ class VisualizationPanel:
             computed_data, data_updated = (
                 computed_data
             )
+            
+            if data_updated:
+                self.polygon_sorter.sort_polygon_list(
+                    computed_data
+                )
+            else:
+                self.polygon_sorter.sort_list(
+                    computed_data
+                )
+                
             self.update_data = data_updated
 
             return computed_data

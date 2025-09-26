@@ -1,6 +1,7 @@
 
 from typing import List, Union
 
+import numpy as np
 from scivianna.data import Data2D, DataType
 
 
@@ -13,33 +14,36 @@ class PolygonSorter:
         self.sort_indexes = None
 
     def sort_polygon_list(self,
-                            data:Data2D, 
-                            sort=True):
-            """Sorts a set of polygons per field
+            data:Data2D
+        ):
+        """Sorts a set of polygons per field
 
-            Parameters
-            ----------
-            data : Data2D
-                Data2D object containing the geometry properties
-            sort : bool
-                Sort the shapes per compo
-            """
-            values_list:List[Union[int, str]] = data.cell_values
+        Parameters
+        ----------
+        data : Data2D
+            Data2D object containing the geometry properties
+        """
+        values_list:List[Union[int, str]] = data.cell_values
 
-            assert len(data.cell_values) == len(data.cell_colors), "The Data2D object must have the same number of cell values and colors"
+        assert len(data.cell_ids) == len(data.cell_colors), "The Data2D object must have the same number of cell id and colors"
+        assert len(data.cell_values) == len(data.cell_colors), "The Data2D object must have the same number of cell values and colors"
+        if data.data_type == DataType.POLYGONS:
+            assert len(data.cell_values) == len(data.polygons), "The Data2D object must have the same number of cell values and polygons"
+
+        if any(isinstance(item, str) for item in values_list):
+            assert all(isinstance(item, str) for item in values_list), "If any of the values is a string, they all must be"
+
+        # Sorting the polygons per color in order to prevent overlaping edges of different colors
+        # Check if both sort and sort_indexes is None in case a slave is used for different panels.
+        if self.sort_indexes is None:
+            self.sort_indexes = np.argsort(values_list)
+            
+            data.cell_ids = np.array(data.cell_ids)[self.sort_indexes].tolist()
+            data.cell_values = np.array(values_list)[self.sort_indexes].tolist()
+            data.cell_colors = np.array(data.cell_colors)[self.sort_indexes].tolist()
+            
             if data.data_type == DataType.POLYGONS:
-                assert len(data.cell_values) == len(data.polygons), "The Data2D object must have the same number of cell values and polygons"
-
-            # Sorting the polygons per color in order to prevent overlaping edges of different colors
-            # Check if both sort and sort_indexes is None in case a slave is used for different panels.
-            if self.sort_indexes is None or sort:
-                self.sort_indexes = sorted(range(len(values_list)), key=lambda i:values_list[i])
-                data.cell_ids = [data.cell_ids[i] for i in self.sort_indexes]
-                data.cell_values = [values_list[i] for i in self.sort_indexes]
-                data.cell_colors = [data.cell_colors[i] for i in self.sort_indexes]
-                
-                if data.data_type == DataType.POLYGONS:
-                    data.polygons = [data.polygons[i] for i in self.sort_indexes]
+                data.polygons = [data.polygons[i] for i in self.sort_indexes]
 
 
     def sort_list(self, data:Data2D):
@@ -54,7 +58,8 @@ class PolygonSorter:
         assert len(data.cell_values) == len(self.sort_indexes), f"Given cell values list has a different length from the sorted indexes, respectively found {len(data.cell_values)} and {len(self.sort_indexes)}."
         assert len(data.cell_colors) == len(self.sort_indexes), f"Given cell colors list has a different length from the sorted indexes, respectively found {len(data.cell_colors)} and {len(self.sort_indexes)}."
         assert len(data.cell_ids) == len(self.sort_indexes), f"Given cell ID list has a different length from the sorted indexes, respectively found {len(data.cell_ids)} and {len(self.sort_indexes)}."
-        data.cell_ids = [data.cell_ids[i] for i in self.sort_indexes]
-        data.cell_colors = [data.cell_colors[i] for i in self.sort_indexes]
-        data.cell_values = [data.cell_values[i] for i in self.sort_indexes]
+        
+        data.cell_ids = np.array(data.cell_ids)[self.sort_indexes].tolist()
+        data.cell_colors = np.array(data.cell_colors)[self.sort_indexes].tolist()
+        data.cell_values = np.array(data.cell_values)[self.sort_indexes].tolist()
         

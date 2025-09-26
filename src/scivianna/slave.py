@@ -13,14 +13,11 @@ from scivianna.utils.color_tools import interpolate_cmap_at_values
 from scivianna.interface.generic_interface import (
     GenericInterface,
     Geometry2D, 
-    Geometry2DPolygon, 
-    Geometry2DGrid, 
     IcocoInterface, 
     ValueAtLocation, 
     Value1DAtLocation
-    )
+)
 from scivianna.interface.option_element import OptionElement
-from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.enums import VisualizationMode
 
 from typing import TYPE_CHECKING
@@ -219,8 +216,6 @@ def worker(
     """
     code_: GenericInterface = code_interface()
 
-    polygon_sorter = PolygonSorter()
-
     while True:
         if not q_tasks.empty():
             task, data = q_tasks.get()
@@ -299,17 +294,6 @@ def worker(
                     options,
                 )
 
-                if polygons_updated:
-                    polygon_sorter.sort_polygon_list(
-                        data,
-                        sort=polygons_updated,
-                    )
-
-                else:
-                    polygon_sorter.sort_list(
-                        data
-                    )
-                    
                 if profile_time:
                     print(f"Color list building time : {time.time() - st}")
                     st = time.time()
