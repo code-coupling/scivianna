@@ -102,7 +102,7 @@ def plot_frame_in_axes(
     )
 
     pw = PolygonSorter()
-    pw.sort_polygon_list(
+    pw.sort_from_value(
         data
     )
 

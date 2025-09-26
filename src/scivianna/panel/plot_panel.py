@@ -78,7 +78,7 @@ class VisualizationPanel:
         self.copy_index = 0
         self.slave = slave
         self.bounds_row = None
-        self.update_data = False
+        self.update_polygons = False
         """Need to update the data at the next async call"""
 
         code_interface:Geometry2D = self.slave.code_interface
@@ -571,7 +571,7 @@ class VisualizationPanel:
 
             if "data" in self.__new_data:
                 self.current_data:Data2D = self.__new_data["data"]
-                if not self.update_data:
+                if not self.update_polygons:
                     self.plotter.update_colors(self.current_data)
                 else:
                     self.plotter.update_2d_frame(self.current_data)
@@ -709,20 +709,20 @@ class VisualizationPanel:
                 )
                 return self.current_data
             
-            computed_data, data_updated = (
+            computed_data, polygons_updated = (
                 computed_data
             )
             
-            if data_updated:
-                self.polygon_sorter.sort_polygon_list(
+            if polygons_updated or (self.polygon_sorter.sort_indexes is None):
+                self.polygon_sorter.sort_from_value(
                     computed_data
                 )
+                self.update_polygons = True
             else:
                 self.polygon_sorter.sort_list(
                     computed_data
                 )
-                
-            self.update_data = data_updated
+                self.update_polygons = False
 
             return computed_data
         else:
@@ -1060,5 +1060,9 @@ class VisualizationPanel:
             raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
         
         self.__new_data["field_name"] = field_name
+
+        # Reseting indexes to prevent weird edges
+        self.polygon_sorter.reset_indexes()
+
         if pn.state.curdoc is not None:
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
