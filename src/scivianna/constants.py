@@ -7,7 +7,8 @@ VOLUME_NAMES = "volume_names"
 COMPO_NAMES = "compo_names"
 COLORS = "colors"
 EDGE_COLORS = "edge_colors"
-POLYGONS = "Polygons"
+POLYGONS = "polygons"
+GRID = "grid"
 
 #   Default field names
 MESH = "Mesh"

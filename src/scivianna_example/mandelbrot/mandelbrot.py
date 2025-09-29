@@ -11,6 +11,7 @@ from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.data import Data2D
 from scivianna.interface.option_element import IntOption, OptionElement
+from scivianna.layout.split import SplitDirection, SplitItem, SplitLayout
 
 
 class MandelBrotInterface(Geometry2DGrid):
@@ -220,11 +221,18 @@ def make_panel(_, return_slaves = False):
     panel = VisualizationPanel(slave, name="Mandelbrot")
     panel.update_event = UpdateEvent.RANGE_CHANGE
     panel.step_inp.value = 2000
+    
+    slave_2 = ComputeSlave(MandelBrotInterface)
+    panel_2 = VisualizationPanel(slave_2, name="Mandelbrot", display_polygons=False)
+    panel_2.update_event = UpdateEvent.RANGE_CHANGE
+    panel_2.step_inp.value = 2000
+
+    layout = SplitLayout(SplitItem(panel, panel_2, SplitDirection.VERTICAL), additional_interfaces={"Mandelbrot":MandelBrotInterface})
 
     if return_slaves:
-        return panel, [slave]
+        return layout, [slave, slave_2]
     else:
-        return panel
+        return layout
 
 if __name__ == "__main__":
     from scivianna.notebook_tools import _serve_panel

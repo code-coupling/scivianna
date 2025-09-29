@@ -60,11 +60,11 @@ class VisualizationPanel:
     """ On what event does the panel recompute itself
     """
 
-    display_polygons:bool = True
+    display_polygons:bool
     """ Display as polygons or as a 2D grid.
     """
 
-    def __init__(self, slave: ComputeSlave, name=""):
+    def __init__(self, slave: ComputeSlave, name="", display_polygons:bool=True):
         """Visualization panel constructor
 
         Parameters
@@ -73,6 +73,8 @@ class VisualizationPanel:
             ComputeSlave object to which request the plots.
         name : str
             Name of the panel.
+        display_polygons : bool
+            Display as polygons or as a 2D grid.
         """
         self.name = name
         self.copy_index = 0
@@ -80,6 +82,7 @@ class VisualizationPanel:
         self.bounds_row = None
         self.update_polygons = False
         """Need to update the data at the next async call"""
+        self.display_polygons = display_polygons
 
         code_interface:Geometry2D = self.slave.code_interface
         self.polygon_sorter = PolygonSorter()

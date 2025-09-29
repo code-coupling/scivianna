@@ -1,7 +1,8 @@
 import functools
-from typing import IO, Callable, List, Tuple, Union
+from typing import IO, Callable, List, Tuple
 import bokeh.events
 import panel as pn
+from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
@@ -16,7 +17,6 @@ from bokeh.models import (
     CustomJSHover,
     LinearColorMapper,
     ColorBar,
-    TapTool,
 )
 # from bokeh.models import CustomJS
 from bokeh import events
@@ -24,7 +24,7 @@ from scivianna.utils.color_tools import get_edges_colors
 
 import numpy as np
 
-from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY
+from scivianna.constants import XS, YS, GRID, VOLUME_NAMES, COMPO_NAMES, GEOMETRY
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -37,12 +37,9 @@ class Bokeh2DGridPlotter(Plotter2D):
         self,
     ):
         """Creates the bokeh Figure and ColumnDataSources"""
-        self.source_polygons = ColumnDataSource(
+        self.source_grid = ColumnDataSource(
             {
-                XS: [],
-                YS: [],
-                COLORS: [],
-                EDGE_COLORS: [],
+                GRID: [],
                 VOLUME_NAMES: [],
                 COMPO_NAMES: [],
             }
@@ -245,97 +242,88 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_names : Dict[Union[int, str], str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        img, grid, val_grid = self.get_grids(data)
+        
+        self.source_grid = ColumnDataSource(
+            {
+                GRID: [img],
+                VOLUME_NAMES: [grid],
+                COMPO_NAMES: [val_grid],
+            }
+        )
 
-        self.source_polygons.data = {
-            XS: xs,
-            YS: ys,
-            VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
-            COLORS: colors,
-            EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
-        }
-
-        self.figure.multi_polygons(
-            xs=XS,
-            ys=YS,
-            line_width=2,
-            source=self.source_polygons,
-            color=COLORS,
-            # hover_line_alpha=1.,
-            # hover_line_color='light_blue',
-            hover_fill_alpha=0.6,
-            # hover_fill_color='light_blue',
-            line_color=EDGE_COLORS,
+        self.image = self.figure.image_rgba(
+            image = GRID,
+            x = data.u_values.min(),
+            y = data.v_values.min(),
+            dw = data.u_values.max() - data.u_values.min(),
+            dh = data.v_values.max() - data.v_values.min(),
+            source=self.source_grid
         )
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
-
-        self.source_polygons.update(
-            data={
-                XS: xs,
-                YS: ys,
-                VOLUME_NAMES: volume_list,
-                COMPO_NAMES: compo_list,
-                COLORS: colors,
-                EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
+        img, grid, val_grid = self.get_grids(data)
+        self.source_grid.update(
+            data = {
+                GRID : [img],
+                VOLUME_NAMES : [grid],
+                COMPO_NAMES : [val_grid],
             }
         )
+        print(dir(self.image.glyph))
+        self.image.glyph.update(
+            x = data.u_values.min(),
+            y = data.v_values.min(),
+            dw = data.u_values.max() - data.u_values.min(),
+            dh = data.v_values.max() - data.v_values.min(),
+        )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def get_grids(
+        self,
+        data: Data2D,
+    ):
+        grid = data.get_grid()
+
+        color_map = dict(zip(data.cell_values, data.cell_colors))
+        color_array = np.array([color_map[val] for val in data.cell_values])
+
+        colors = color_array[grid]  # shape (n, m, 4)
+        val_grid = np.array(data.cell_values)[grid]
+
+        img = np.empty(grid.shape, dtype=np.uint32)
+        view = img.view(dtype=np.uint8).reshape(colors.shape)
+        view[:, :, :] = colors[:, :, :]
+        
+        return img, grid, val_grid
+        
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
-        cell_count = len(colors)
-        self.source_polygons.patch(
-            {
-                COMPO_NAMES: [(slice(0, cell_count), compo_list)],
-                COLORS: [(slice(0, cell_count), colors)],
-                EDGE_COLORS: [
-                    (slice(0, cell_count), get_edges_colors(np.array(colors)).tolist())
-                ],
-            }
-        )
+        self.update_2d_frame(data)
 
     def _set_callback_on_range_update(self, callback: IO):
         """Sets a callback to update the x and y ranges in the GUI.
@@ -475,15 +463,14 @@ class Bokeh2DGridPlotter(Plotter2D):
         return xs, ys
 
     def send_event(self, callback):
-        # If the mouse is hovered while a range update triggered update is done, the self.source_polygons.data length is updated faster than the data coming from the mouse.
+        # If the mouse is hovered while a range update triggered update is done, the self.source_grid.data length is updated faster than the data coming from the mouse.
         #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
-        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[VOLUME_NAMES]):
-            callback(position=(
-                                self.source_mouse.data["x"][0], 
-                                self.source_mouse.data["y"][0], 
-                                self.source_mouse.data["z"][0]
-                            ), 
-                    volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
+        callback(position=(
+                            self.source_mouse.data["x"][0], 
+                            self.source_mouse.data["y"][0], 
+                            self.source_mouse.data["z"][0]
+                        ), 
+                volume_id=int(self.source_mouse.data["index"][0]))
 
 
     def provide_on_mouse_move_callback(self, callback:Callable):
