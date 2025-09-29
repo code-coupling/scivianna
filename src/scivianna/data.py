@@ -138,3 +138,44 @@ class Data2D:
             raise NotImplementedError()
         else:
             return self.grid
+    
+    def copy(self,) -> "Data2D":
+        """Returns a copy of the present Data2D
+
+        Returns
+        -------
+        Data2D
+            Copy of self
+        """
+        if self.data_type == DataType.POLYGONS:
+            data = Data2D.from_polygon_list(self.polygons.copy())
+            
+            if self.cell_colors is not None:
+                data.cell_colors = self.cell_colors.copy()
+            if self.cell_ids is not None:
+                data.cell_ids = self.cell_ids.copy()
+            if self.cell_values is not None:
+                data.cell_values = self.cell_values.copy()
+        
+        else:
+            data = Data2D.from_grid(self.grid.copy(), self.u_values.copy(), self.v_values.copy(), self.simplify)
+            
+            if self.cell_colors is not None:
+                data.cell_colors = self.cell_colors.copy()
+            if self.cell_ids is not None:
+                data.cell_ids = self.cell_ids.copy()
+            if self.cell_values is not None:
+                data.cell_values = self.cell_values.copy()
+
+        return data
+    
+    def check_valid(self,):
+        """Checks if this Data2D is valid, raises an AssertionError otherwise
+        """
+        assert len(self.cell_ids) == len(self.cell_colors), "The Data2D object must have the same number of cell id and colors"
+        assert len(self.cell_values) == len(self.cell_colors), "The Data2D object must have the same number of cell values and colors"
+        if self.data_type == DataType.POLYGONS:
+            assert len(self.cell_values) == len(self.polygons), "The Data2D object must have the same number of cell values and polygons"
+
+        if any(isinstance(item, str) for item in self.cell_values):
+            assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
