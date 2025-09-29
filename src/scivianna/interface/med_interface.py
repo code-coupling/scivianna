@@ -337,7 +337,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         if field_np_array is not None:
             indexes = np.array(list(self.cell_dict.values())).astype(int)
-            values = field_np_array[indexes[np.array(volumes).astype(int)]]
+            values = field_np_array[np.array(volumes).astype(int)]
+            # values = field_np_array[indexes[np.array(volumes).astype(int)]]
 
             value_dict = dict(zip(np.array(volumes).astype(str), values))
 
