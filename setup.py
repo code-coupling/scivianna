@@ -28,6 +28,7 @@ setup(
     packages=find_packages(where="src"),  # Required
     package_data={
         "scivianna": [
+            "agent/*.py",
             "components/*.py",
             "default_jdd/*",
             "interface/*.py",
