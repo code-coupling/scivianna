@@ -68,7 +68,7 @@ def get_edges_colors(face_colors:np.ndarray) -> np.ndarray:
     edge_colors[:, :3] -= 20
 
     # Setting the alpha channel to 255
-    edge_colors[:, 3] = 255
+    # edge_colors[:, 3] = 255
     
     return np.where(edge_colors<0, 0, edge_colors)
 
