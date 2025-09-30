@@ -120,6 +120,7 @@ if __name__ == "__main__":
     from scivianna.slave import set_colors_list
     from scivianna.data import Data2D
     from scivianna.agent.data_2d_worker import Data2DWorker
+    from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 
     med = MEDInterface()
     med.read_file(
@@ -138,5 +139,13 @@ if __name__ == "__main__":
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
 
     dw = Data2DWorker(data_2d)
-    dw("For test, run get_values function")
-    dw("tu peux essayer de mettre une opacité nulle pour les valeus nulles?")
+    dw("tu peux essayer de mettre une opacité de 0.2/1 pour les valeus nulles?")
+
+        
+    """     data_2d est maintenant parfait
+    """
+
+    plotter = Matplotlib2DPolygonPlotter()
+    plotter.plot_2d_frame(dw.data2d)
+    plotter.figure.savefig("my_plot.png")
+    
