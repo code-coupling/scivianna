@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 import numpy as np
 from scivianna.data import Data2D
-from smolagents import tool, CodeAgent, OpenAIServerModel
+from smolagents import tool, Tool, CodeAgent, OpenAIServerModel
 
 def get_env_variable(var_name: str) -> str:
     """
@@ -17,6 +17,25 @@ def get_env_variable(var_name: str) -> str:
         return os.environ[var_name]
     except KeyError:
         raise ValueError(f"Environment variable '{var_name}' not found.")
+
+class FinalAnswerTool(Tool):
+    name = "final_answer"
+    description = """Return only the code (which must be self-contained) allowing the user to re-execute it to obtain the answer to their question. If the code is OK and answers the user's question, return True to code_is_ok."""
+    inputs = {
+        "code_is_ok": {"type": "boolean", "description": "If the code is OK and answers the user's question, return True."},
+        "code": {"type": "string", "description": "Code to answer to the user problem."},
+    }
+    output_type = "object"
+    
+    def forward(
+        self,
+        code_is_ok: bool,
+        code: str
+    ) -> dict[bool, str]:
+        """
+        Code to the given problem.
+        """
+        return {"code_is_ok": code_is_ok, "code": code}
 
 class Data2DWorker:
     """Worker that receives a Data2D object and works with it. """
@@ -93,25 +112,24 @@ class Data2DWorker:
         with open(Path(__file__).parent / "instructions.md", "r") as f:
             instructions = f.read()
 
-        # Initialize the agent with our retriever tool
         self.smoll_agent = CodeAgent(
-                        tools=[check_valid, get_values, set_alpha, reset],  # List of tools available to the agent
+                        tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset],  # List of tools available to the agent
                         model=self.aiServer, 
-                        max_steps=5,  # Limit the number of reasoning steps
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
-                        instructions=instructions, #"TO_DO -> détailler ce qu'on veux"
-                        use_structured_outputs_internally=True,
-                        planning_interval=None)
+                        instructions=instructions,
+                        use_structured_outputs_internally=False,
+                        planning_interval=8)
     
-    def __call__(self, question, reset=False, images=[], max_steps=5, additional_args={}):
+    def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
 
         agent_output = self.smoll_agent.run(question,
-                                        reset=reset,
-                                        images=images,
-                                        max_steps=max_steps,
-                                        additional_args=additional_args)
-        print("agent_output", agent_output)
+                                            reset=reset,
+                                            images=images,
+                                            max_steps=max_steps,
+                                            additional_args=additional_args)
+
+        return agent_output['code_is_ok'], agent_output['code']
 
 
 if __name__ == "__main__":
@@ -143,9 +161,10 @@ if __name__ == "__main__":
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
 
     dw = Data2DWorker(data_2d)
-    dw("highlight the highest value cell, hide zero values, dim the rest")
+    code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
 
-        
+    print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
+
     """     data_2d est maintenant parfait
     """
 
