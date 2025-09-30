@@ -1,4 +1,5 @@
 
+from pathlib import Path
 import os
 import numpy as np
 from scivianna.data import Data2D
@@ -89,20 +90,23 @@ class Data2DWorker:
                                           api_base = llm_api_base,
                                           api_key = llm_api_key)
 
+        with open(Path(__file__).parent / "instructions.md", "r") as f:
+            instructions = f.read()
+
         # Initialize the agent with our retriever tool
-        self.smollAg = CodeAgent(
+        self.smoll_agent = CodeAgent(
                         tools=[check_valid, get_values, set_alpha, reset],  # List of tools available to the agent
                         model=self.aiServer, 
                         max_steps=5,  # Limit the number of reasoning steps
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
-                        instructions=None, #"TO_DO -> détailler ce qu'on veux"
+                        instructions=instructions, #"TO_DO -> détailler ce qu'on veux"
                         use_structured_outputs_internally=True,
                         planning_interval=None)
     
     def __call__(self, question, reset=False, images=[], max_steps=5, additional_args={}):
 
-        agent_output = self.smollAg.run(question,
+        agent_output = self.smoll_agent.run(question,
                                         reset=reset,
                                         images=images,
                                         max_steps=max_steps,
@@ -139,7 +143,7 @@ if __name__ == "__main__":
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
 
     dw = Data2DWorker(data_2d)
-    dw("tu peux essayer de mettre une opacité de 0.2/1 pour les valeus nulles?")
+    dw("highlight the highest value cell, hide zero values, dim the rest")
 
         
     """     data_2d est maintenant parfait
@@ -148,4 +152,3 @@ if __name__ == "__main__":
     plotter = Matplotlib2DPolygonPlotter()
     plotter.plot_2d_frame(dw.data2d)
     plotter.figure.savefig("my_plot.png")
-    
