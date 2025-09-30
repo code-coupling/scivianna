@@ -289,7 +289,7 @@ class Bokeh2DGridPlotter(Plotter2D):
                 COMPO_NAMES : [val_grid],
             }
         )
-        print(dir(self.image.glyph))
+        
         self.image.glyph.update(
             x = data.u_values.min(),
             y = data.v_values.min(),
@@ -302,13 +302,18 @@ class Bokeh2DGridPlotter(Plotter2D):
         data: Data2D,
     ):
         grid = data.get_grid()
+        flat_grid = grid.flatten()
+        vals, inv = np.unique(flat_grid, return_inverse=True)
 
-        color_map = dict(zip(data.cell_values, data.cell_colors))
-        color_array = np.array([color_map[val] for val in data.cell_values])
+        value_map = dict(zip(data.cell_ids, data.cell_values))
+        color_map = dict(zip(data.cell_ids, data.cell_colors))
+        
+        value_array = np.array([value_map[val] for val in vals])
+        color_array = np.array([color_map[val] for val in vals])
 
-        colors = color_array[grid]  # shape (n, m, 4)
-        val_grid = np.array(data.cell_values)[grid]
-
+        colors = color_array[inv].reshape((*grid.shape, 4))  # shape (n, m, 4)
+        val_grid = value_array[inv].reshape(grid.shape)
+        
         img = np.empty(grid.shape, dtype=np.uint32)
         view = img.view(dtype=np.uint8).reshape(colors.shape)
         view[:, :, :] = colors[:, :, :]

@@ -114,25 +114,26 @@ class MandelBrotInterface(Geometry2DGrid):
         ]
 
         # Script taken from:
-        # https://stackoverflow.com/questions/45377971/simple-mandelbrot-set-in-python
+        # https://gist.github.com/jfpuget/60e07a82dece69b011bb
 
         maxiter = options["Max iter"]
 
-        grid = np.zeros([v_steps, u_steps], np.uint8)
-        xvalues = np.linspace(u_min, u_max, u_steps)
-        yvalues = np.linspace(v_min, v_max, v_steps)
+        def mandelbrot(z,maxiter):
+            c = z
+            for n in range(maxiter):
+                if abs(z) > 2:
+                    return n
+                z = z*z + c
+            return maxiter
 
-        for u, x in enumerate(xvalues):
-            for v, y in enumerate(yvalues):
-                z = 0
-                c = complex(x, y)
-                for _ in range(maxiter):
-                    z = z*z + c
-                    if abs(z) > 2.0:
-                        grid[v, u] = 1
-                        break
+        def mandelbrot_set(xmin,xmax,ymin,ymax,width,height,maxiter):
+            r1 = np.linspace(xmin, xmax, width)
+            r2 = np.linspace(ymin, ymax, height)
+            return (r1,r2,[mandelbrot(complex(r, i),maxiter) for r in r1 for i in r2])
 
-        self.data = Data2D.from_grid(grid, xvalues, yvalues)
+        xvalues, yvalues, grid = mandelbrot_set(u_min, u_max, v_min, v_max, u_steps, v_steps, maxiter)
+
+        self.data = Data2D.from_grid(np.array(grid).reshape((v_steps, u_steps), order="F"), xvalues, yvalues)
         
         return self.data, True
 
@@ -157,7 +158,7 @@ class MandelBrotInterface(Geometry2DGrid):
         """
         if value_label == MATERIAL:
             dict_compo = {
-                0:"IN", 1:"OUT"
+                v:v for v in volumes
             }
             return dict_compo
 
@@ -214,7 +215,7 @@ class MandelBrotInterface(Geometry2DGrid):
         ]
     
     def get_options_list(self) -> List[OptionElement]:
-        return [IntOption("Max iter", 100, "Maximum iteration in the mendebrot calculation")]
+        return [IntOption("Max iter", 30, "Maximum iteration in the mendebrot calculation")]
 
 def make_panel(_, return_slaves = False):
     slave = ComputeSlave(MandelBrotInterface)
