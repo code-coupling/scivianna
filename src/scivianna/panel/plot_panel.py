@@ -5,6 +5,7 @@ import panel_material_ui as pmui
 import os
 import functools
 
+
 from scivianna.agent.data_2d_worker import Data2DWorker
 from scivianna.data import Data2D
 from scivianna.interface.generic_interface import Geometry2D
@@ -26,9 +27,7 @@ if profile_time:
     import time
 
 pn.config.inline = True  # necessary if your system does not have internet access due to CEA liste blanche
-pn.extension(
-    "tabulator", design="material", template="material", loading_indicator=True
-)  # necessary to have Panel/Bokeh in a Notebook
+
 
 class VisualizationPanel:
     """Visualisation panel associated to a code."""
@@ -470,8 +469,24 @@ class VisualizationPanel:
         )
         def clear_prompt(*args, **kwargs):
             self.prompt_text_input.value = ""
+            self.llm_code = ""
+            self.recompute()
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
             
+        def exec_prompt(*args, **kwargs):
+            if self.prompt_text_input.value != "":
+                dw = Data2DWorker(self.current_data)
+                valid, llm_code = dw(self.prompt_text_input.value)
+
+                if valid:
+                    self.code_editor.value = llm_code
+                    self.dialog.param.update(open=True)
+                else:
+                    exec_prompt()
+
         prompt_clear_button.on_click(clear_prompt)
+        prompt_run_button.on_click(exec_prompt)
 
         agent_row = pn.Row(
             self.prompt_text_input, 
@@ -559,7 +574,6 @@ class VisualizationPanel:
 
         # Attach the CB to the button
         self.recompute_btn.on_click(recompute_cb)
-        prompt_run_button.on_click(recompute_cb)
         self.field_color_selector.param.watch(recompute_cb, "value")
         self.color_map_selector.param.watch(recompute_cb, "value_name")
         self.center_colormap_on_zero_tick.param.watch(recompute_cb, "value")
@@ -590,7 +604,40 @@ class VisualizationPanel:
             pn.pane.Markdown(f"## {self.name}", align="center"),
         )
 
-        self.main_frame = self.fig_overlay
+        self.llm_code = ""
+        self.llm_comment = pn.pane.Markdown("")
+        self.code_editor = pn.widgets.CodeEditor(value="", language='python', theme='monokai')
+        self.code_valid_button = pmui.IconButton(icon="check")
+        self.code_invalid_button = pmui.IconButton(icon="clear")
+        self.dialog = pmui.Dialog(
+            pn.Column(
+                self.llm_comment, 
+                self.code_editor, 
+                pn.Row(self.code_valid_button, self.code_invalid_button, align="end"), 
+            ), 
+            open=False, 
+            full_screen=False, 
+            show_close_button=True, 
+            close_on_click=False, 
+        )
+
+        def valid_code(e):
+            self.llm_code = self.code_editor.value
+            self.code_editor.value = ""
+            self.recompute()
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+        def invalid_code(e):
+            self.llm_code = ""
+            self.code_editor.value = ""
+
+        self.code_valid_button.on_click(valid_code) 
+        self.code_invalid_button.on_click(invalid_code) 
+        self.code_valid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false")
+        self.code_invalid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false") 
+
+        self.main_frame = pn.Column(self.fig_overlay, self.dialog, margin=0, sizing_mode = "stretch_both")
 
         self.periodic_recompute_added = False
         """Coupling periodic update"""
@@ -618,9 +665,16 @@ class VisualizationPanel:
             if "data" in self.__new_data:
                 self.current_data:Data2D = self.__new_data["data"]
 
-                if self.prompt_text_input.value != "":
-                    dw = Data2DWorker(self.current_data)
-                    dw(self.prompt_text_input.value)
+                if self.llm_code != "":
+                    data_worker = Data2DWorker(self.current_data)
+                    try:
+                        print("Executing :", self.llm_code)
+                        data_worker.execute_code(self.llm_code)
+                        self.current_data = data_worker.data2d
+                    except Exception as e:
+                        print("Execution failed, got error ", e)
+                        self.current_data = data_worker.data2d_save
+
 
                 if not self.update_polygons:
                     self.plotter.update_colors(self.current_data)

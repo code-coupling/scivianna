@@ -47,7 +47,7 @@ def _make_template(panel: VisualizationPanel, title: str = ""):
     }
     """
 
-    pn.extension(raw_css=[custom_css])
+    pn.extension("tabulator", 'codeeditor', raw_css=[custom_css])
     return pn.template.BootstrapTemplate(
         main=[
             pn.Column(

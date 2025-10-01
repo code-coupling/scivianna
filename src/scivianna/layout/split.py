@@ -17,8 +17,6 @@ from scivianna.components.splitjs_component import (
     SplitJSHorizontal,
 )
 
-pn.extension()
-
 class SplitDirection(Enum):
     """
     Enum defining the direction of the split.

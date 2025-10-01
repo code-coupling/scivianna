@@ -65,7 +65,7 @@ class Data2DWorker:
             AssertionError
                 Current Data2D is not valid
             """
-            self.data2d.check_valid()
+            self.check_valid()
 
         @tool
         def get_values() -> np.ndarray:
@@ -76,7 +76,7 @@ class Data2DWorker:
             np.ndarray
                 Numpy array with the value per cell
             """
-            return self.data2d.cell_values
+            return self.get_values()
         
         @tool
         def set_alpha(alphas:np.ndarray) -> bool:
@@ -86,24 +86,18 @@ class Data2DWorker:
             Args:
                 alphas: opacity values                
             """
-            assert type(alphas) == np.ndarray, f"A numpy array is expected, type found {type(alphas)}."
-            assert len(alphas.shape) == 1, f"A 1D numpy array is expected, shape found {alphas.shape}."
-            assert alphas.shape[0] == len(self.data2d.cell_colors), f"We expect the same number of elements as in self.data2d.cell_colors, received size {alphas.shape[0]} instead of {len(self.data2d.cell_colors)}."
-            assert alphas.max() <= 255, f"The values must be lower than 255, found in array {alphas.max()}."
-            assert alphas.min() >= 0, f"The values must be greater than 0, found in array {alphas.min()}."
-
-            colors = np.array(self.data2d.cell_colors)
-            colors[:, -1] = alphas.astype(int)
-
-            self.data2d.cell_colors = colors.tolist()
-
-            return True
-
+            return self.set_alpha(alphas)
         @tool
         def reset():
             """Returns to the data2d provided in the initialization
             """
-            self.data2d = self.data2d_save.copy()
+            return self.reset()
+        
+        @tool
+        def get_numpy():
+            """Returns the numpy module
+            """
+            return self.get_numpy()
         
         self.aiServer = OpenAIServerModel(model_id = llm_model_id,
                                           api_base = llm_api_base,
@@ -113,7 +107,7 @@ class Data2DWorker:
             instructions = f.read()
 
         self.smoll_agent = CodeAgent(
-                        tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset],  # List of tools available to the agent
+                        tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
                         model=self.aiServer, 
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
@@ -121,7 +115,7 @@ class Data2DWorker:
                         use_structured_outputs_internally=True,
                         planning_interval=None)
     
-    def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
+    def __call__(self, question, reset=False, images=[], max_steps=5, additional_args={}):
 
         agent_output = self.smoll_agent.run(question,
                                             reset=reset,
@@ -134,6 +128,11 @@ class Data2DWorker:
         except:
             print("agent fail!!!")
             agent_output = {"code_is_ok":False, "code":""}
+            return agent_output['code_is_ok'], agent_output['code']
+
+    def execute_code(self, code_to_execute:str):
+        context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
+        exec(context_string+"\n"+code_to_execute)
 
     def has_changed(self,) -> bool:
         """Tells if the data_2d was changed by the agent
@@ -152,6 +151,57 @@ class Data2DWorker:
 
         return False
 
+    def check_valid(self,):
+        """Check if the Data2D is valid
+
+        Raises
+        ------
+        AssertionError
+            Current Data2D is not valid
+        """
+        self.data2d.check_valid()
+
+    def get_values(self,) -> np.ndarray:
+        """Returns the value per 2D cell of the geometry
+
+        Returns
+        -------
+        np.ndarray
+            Numpy array with the value per cell
+        """
+        return np.array(self.data2d.cell_values)
+    
+    def set_alpha(self,alphas:np.ndarray) -> bool:
+        """
+        Sets the cells opacity values, expects a numpy array of integers between 0 and 255. return True if it's ok.
+
+        Args:
+            alphas: opacity values                
+        """
+        assert type(alphas) in (np.ndarray, list), f"A numpy array is expected, type found {type(alphas)}."
+        alphas = np.array(alphas)
+        assert len(alphas.shape) == 1, f"A 1D numpy array is expected, shape found {alphas.shape}."
+        assert alphas.shape[0] == len(self.data2d.cell_colors), f"We expect the same number of elements as in self.data2d.cell_colors, received size {alphas.shape[0]} instead of {len(self.data2d.cell_colors)}."
+        assert alphas.max() <= 255, f"The values must be lower than 255, found in array {alphas.max()}."
+        assert alphas.min() >= 0, f"The values must be greater than 0, found in array {alphas.min()}."
+
+        colors = np.array(self.data2d.cell_colors)
+        colors[:, -1] = alphas.astype(int)
+
+        self.data2d.cell_colors = colors.tolist()
+
+        return True
+
+    def reset(self,):
+        """Returns to the data2d provided in the initialization
+        """
+        self.data2d = self.data2d_save.copy()
+    
+    def get_numpy(self,):
+        """Returns the numpy module
+        """
+        return np
+    
 
 
 if __name__ == "__main__":
