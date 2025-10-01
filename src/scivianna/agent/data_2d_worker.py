@@ -118,8 +118,8 @@ class Data2DWorker:
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
                         instructions=instructions,
-                        use_structured_outputs_internally=False,
-                        planning_interval=8)
+                        use_structured_outputs_internally=True,
+                        planning_interval=None)
     
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
 
@@ -129,8 +129,11 @@ class Data2DWorker:
                                             max_steps=max_steps,
                                             additional_args=additional_args)
 
-        return agent_output['code_is_ok'], agent_output['code']
-
+        try:
+            return agent_output['code_is_ok'], agent_output['code']
+        except:
+            print("agent fail!!!")
+            agent_output = {"code_is_ok":False, "code":""}
 
 if __name__ == "__main__":
     from pathlib import Path
@@ -160,10 +163,19 @@ if __name__ == "__main__":
     )
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
 
-    dw = Data2DWorker(data_2d)
-    code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
+    win = 0
+    ag_codes = []
+    for i in range(10):
+        dw = Data2DWorker(data_2d)
+        code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
+        ag_codes.append((code_is_ok, code))
+        if code_is_ok:
+            win +=1
 
-    print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
+    print(f"ratio win: {win*10}%")
+
+    for code_is_ok, code in ag_codes:
+        print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
 
     """     data_2d est maintenant parfait
     """

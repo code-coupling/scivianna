@@ -5,5 +5,5 @@ The colors are set by a numpy array of RGBA values going from 0 to 255. You can 
 Start your script with : 'import numpy as np'.
 
 Follow these steps:
-1) First steps: write and test a Python code to answer the user's question.
-2) IMPORTANT, for the final step: in your final_answer, return only the self-contained code that allows the user to re-execute it to obtain the answer to their question. Do not include any additional comments.
+1) Write and test a Python code to answer the user's question.
+2) IMPORTANT, in your final_answer, return only the self-contained code that allows the user to re-execute it to obtain the answer to their question. If the code is OK and answers the user's question, return True to code_is_ok.
