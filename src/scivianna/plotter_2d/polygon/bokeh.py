@@ -25,7 +25,7 @@ from scivianna.utils.color_tools import get_edges_colors
 
 import numpy as np
 
-from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY
+from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY, ALPHA
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -262,7 +262,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             YS: ys,
             VOLUME_NAMES: data.cell_ids,
             COMPO_NAMES: data.cell_values,
-            COLORS: data.cell_colors,
+            COLORS: np.array(data.cell_colors)[:, :-1].tolist(),
+            ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
             EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
         }
 
@@ -272,11 +273,12 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             line_width=2,
             source=self.source_polygons,
             color=COLORS,
-            # hover_line_alpha=1.,
-            # hover_line_color='light_blue',
-            hover_fill_alpha=0.6,
-            # hover_fill_color='light_blue',
             line_color=EDGE_COLORS,
+            fill_alpha = ALPHA,
+            line_alpha = ALPHA,
+            hatch_alpha = ALPHA,
+            hover_line_alpha=0.6,
+            hover_fill_alpha=0.6,
         )
 
     def update_2d_frame(
@@ -298,8 +300,9 @@ class Bokeh2DPolygonPlotter(Plotter2D):
                 YS: ys,
                 VOLUME_NAMES: data.cell_ids,
                 COMPO_NAMES: data.cell_values,
-                COLORS: data.cell_colors,
+                COLORS: np.array(data.cell_colors)[:, :-1].tolist(),
                 EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
+                ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
             }
         )
 
@@ -314,12 +317,16 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         data.convert_to_polygons()
         colors = data.cell_colors
         cell_count = len(colors)
+
         self.source_polygons.patch(
             {
                 COMPO_NAMES: [(slice(0, cell_count), data.cell_values)],
-                COLORS: [(slice(0, cell_count), colors)],
+                COLORS: [(slice(0, cell_count), np.array(data.cell_colors)[:, :-1].tolist())],
                 EDGE_COLORS: [
                     (slice(0, cell_count), get_edges_colors(np.array(colors)).tolist())
+                ],
+                ALPHA: [
+                    (slice(0, cell_count), (np.array(data.cell_colors)[:, -1]/255).tolist())
                 ],
             }
         )

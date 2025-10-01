@@ -115,7 +115,7 @@ class Data2DWorker:
                         use_structured_outputs_internally=True,
                         planning_interval=None)
     
-    def __call__(self, question, reset=False, images=[], max_steps=5, additional_args={}):
+    def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
 
         agent_output = self.smoll_agent.run(question,
                                             reset=reset,

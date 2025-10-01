@@ -9,6 +9,7 @@ COLORS = "colors"
 EDGE_COLORS = "edge_colors"
 POLYGONS = "polygons"
 GRID = "grid"
+ALPHA = "alpha"
 
 #   Default field names
 MESH = "Mesh"
