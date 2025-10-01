@@ -289,7 +289,6 @@ class Bokeh2DGridPlotter(Plotter2D):
                 COMPO_NAMES : [val_grid],
             }
         )
-        print(dir(self.image.glyph))
         self.image.glyph.update(
             x = data.u_values.min(),
             y = data.v_values.min(),

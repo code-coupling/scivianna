@@ -49,7 +49,7 @@ class MandelBrotInterface(Geometry2DGrid):
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
-    ) -> Tuple[List[PolygonElement], bool]:
+    ) -> Tuple[Data2D, bool]:
         """Returns a list of data that defines the geometry in a given frame
 
         Parameters
@@ -79,8 +79,8 @@ class MandelBrotInterface(Geometry2DGrid):
 
         Returns
         -------
-        List[PolygonElement]
-            List of data to display
+        Data2D
+            Geometry properties
         bool
             Were the data updated compared to the past call
         """
@@ -116,7 +116,7 @@ class MandelBrotInterface(Geometry2DGrid):
         # Script taken from:
         # https://stackoverflow.com/questions/45377971/simple-mandelbrot-set-in-python
 
-        maxiter = options["Max iter"]
+        maxiter = options["Max iter"] if "Max iter" in options else 10
 
         grid = np.zeros([v_steps, u_steps], np.uint8)
         xvalues = np.linspace(u_min, u_max, u_steps)

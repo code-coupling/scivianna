@@ -67,8 +67,8 @@ setup(
         "geopandas"
     ],
     extras_require={
-        # "example": [
-        #     "scivianna_example",
-        # ],
+        "agent": [
+            "smolagents[openai]",
+        ],
     },
 )

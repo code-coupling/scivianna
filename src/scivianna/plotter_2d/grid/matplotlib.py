@@ -1,4 +1,5 @@
 from typing import IO, Any, Dict, List, Tuple, Union
+from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
@@ -8,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps
 from matplotlib import colors as plt_colors
 
-from scivianna.constants import POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
+from scivianna.constants import GRID, POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
 from scivianna.utils.color_tools import get_edges_colors
 
 from shapely import Polygon
@@ -30,7 +31,6 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
         # self.colorbar = self.figure.colorbar(None)
 
-        self.last_plot = {}
         plt.gca().set_aspect("equal")
 
         self.colormap_name = "BuRd"
@@ -75,28 +75,40 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        self.plot_2d_frame_in_axes(polygon_list, compo_list, colors, self.ax, {})
+        self.plot_2d_frame_in_axes(data, self.ax, {})
 
+    def get_grids(
+        self,
+        data: Data2D,
+    ):
+        grid = data.get_grid()
+
+        color_map = dict(zip(data.cell_values, data.cell_colors))
+        color_array = np.array([color_map[val] for val in data.cell_values])
+
+        colors = color_array[grid]  # shape (n, m, 4)
+        val_grid = np.array(data.cell_values)[grid]
+
+        img = np.empty(grid.shape, dtype=np.uint32)
+        view = img.view(dtype=np.uint8).reshape(colors.shape)
+        print(view.shape, colors.shape)
+        
+        view[:, :, :] = colors[:, :, :]
+        
+        return img, grid, val_grid
+        
     def plot_2d_frame_in_axes(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
         axes: matplotlib.axes.Axes,
         plot_options: Dict[str, Any] = {},
     ):
@@ -104,48 +116,20 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         axes : matplotlib.axes.Axes
             Axes in which plot the figure
         plot_options : Dict[str, Any])
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        x_values = data.u_values
+        y_values = data.v_values
 
-        volume_colors: np.ndarray = np.array(colors).astype(float)
-        volume_edge_colors: np.ndarray = get_edges_colors(volume_colors)
+        img, grid, val_grid = self.get_grids(data)
 
-        polygons: List[Polygon] = [
-            Polygon(
-                shell=[
-                    (p.exterior_polygon.x_coords[j], p.exterior_polygon.y_coords[j])
-                    for j in range(len(p.exterior_polygon.x_coords))
-                ],
-                holes=[
-                    [(h.x_coords[j], h.y_coords[j]) for j in range(len(h.x_coords))]
-                    for h in p.holes
-                ],
-            )
-            for p in polygon_list
-        ]
-
-        gdf = gpd.GeoDataFrame(geometry=polygons)
-
-        volume_colors /= 255.0
-        volume_edge_colors /= 255.0
-
-        gdf.normalize().plot(
-            facecolor=volume_colors.tolist(),
-            edgecolor=volume_edge_colors.tolist(),
-            ax=axes,
-            **plot_options
-        )
-
+        axes.pcolormesh(x_values, y_values, img)
+        
         if self.display_colorbar:
             plt.colorbar(
                 cm.ScalarMappable(
@@ -157,51 +141,32 @@ class Matplotlib2DGridPlotter(Plotter2D):
                 ax=axes,
             )
 
-        self.last_plot = {
-            POLYGONS: polygons,
-            VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
-            COLORS: volume_colors.tolist(),
-            EDGE_COLORS: volume_edge_colors.tolist(),
-        }
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            polygon_list,
-            compo_list,
-            colors,
+            data,
         )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            self.last_plot[POLYGONS],
-            compo_list,
-            colors,
+            data,
         )
 
     def _set_callback_on_range_update(self, callback: IO):
