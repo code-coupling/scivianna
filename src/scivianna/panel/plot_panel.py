@@ -479,7 +479,7 @@ class VisualizationPanel:
                 dw = Data2DWorker(self.current_data)
                 valid, llm_code = dw(self.prompt_text_input.value)
 
-                if valid:
+                if valid and isinstance(llm_code, str):
                     self.code_editor.value = llm_code
                     self.dialog.param.update(open=True)
                 else:
