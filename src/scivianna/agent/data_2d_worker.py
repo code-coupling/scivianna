@@ -54,7 +54,7 @@ class Data2DWorker:
         llm_api_key = get_env_variable("LLM_API_KEY")
 
         self.data2d = data2d.copy()
-        # self.data2d_save = data2d.copy()
+        self.data2d_save = data2d.copy()
 
         @tool
         def check_valid():
@@ -134,6 +134,25 @@ class Data2DWorker:
         except:
             print("agent fail!!!")
             agent_output = {"code_is_ok":False, "code":""}
+
+    def has_changed(self,) -> bool:
+        """Tells if the data_2d was changed by the agent
+
+        Returns
+        -------
+        bool
+            data_2d changed
+        """
+        if not np.testing.assert_equal(np.array(self.data2d.cell_colors), np.array(self.data2d_save.cell_colors)):
+            return True
+        if not np.testing.assert_equal(np.array(self.data2d.cell_ids), np.array(self.data2d_save.cell_ids)):
+            return True
+        if not np.testing.assert_equal(np.array(self.data2d.cell_values), np.array(self.data2d_save.cell_values)):
+            return True
+
+        return False
+
+
 
 if __name__ == "__main__":
     from pathlib import Path

@@ -56,7 +56,7 @@ def test_polygon_plt_from_polygons():
     plotter.figure.savefig("p2p.png")
 
 def test_grid_plt_from_polygons():
-    data_2d = build_data_polygon()
+    data_2d = build_data_grid()
 
     plotter = Matplotlib2DPolygonPlotter()
     plotter.plot_2d_frame(data_2d)

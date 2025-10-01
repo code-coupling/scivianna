@@ -1,11 +1,13 @@
 from typing import Callable, Dict, List, Any, Tuple, Union
 import numpy as np
 import panel as pn
+import panel_material_ui as pmui
 import os
 import functools
 
+from scivianna.agent.data_2d_worker import Data2DWorker
 from scivianna.data import Data2D
-from scivianna.interface.generic_interface import Geometry2D, Geometry2DPolygon
+from scivianna.interface.generic_interface import Geometry2D
 from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
 from scivianna.components.overlay_component import Overlay
 from scivianna.components.server_file_browser import ServerFileBrowser
@@ -16,7 +18,7 @@ from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.plotter_2d.polygon.bokeh import Bokeh2DPolygonPlotter
 from scivianna.plotter_2d.grid.bokeh import Bokeh2DGridPlotter
 from scivianna.plotter_2d.generic_plotter import Plotter2D
-from scivianna.constants import GEOMETRY, COLORS, COMPO_NAMES, VOLUME_NAMES, POLYGONS
+from scivianna.constants import GEOMETRY
 from scivianna.utils.color_tools import beautiful_color_maps
 
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
@@ -442,7 +444,47 @@ class VisualizationPanel:
             file_loader_list.append(pn.pane.Markdown(f"{fi} file browser", margin=(0, 0, 0, 0)))
             file_loader_list.append(self.file_browsers[fi])
 
+
+        self.prompt_text_input = pmui.TextInput(
+            label="Prompt",
+            placeholder='Type your prompt ...',
+            enter_pressed=True,
+            size="small",
+            variant="outlined",
+            sizing_mode="stretch_width",
+            margin=1,
+        )
+        prompt_clear_button = pmui.IconButton(
+            label="Clear",
+            icon='clear',            
+            variant="outlined",
+            description='Clear the prompt text',
+            margin=1,
+            )
+        prompt_run_button = pmui.IconButton(
+            label="Run",
+            icon='auto_fix_high',
+            variant="contained",
+            description='Apply to the geometry',
+            margin=1,
+        )
+        def clear_prompt(*args, **kwargs):
+            self.prompt_text_input.value = ""
+            
+        prompt_clear_button.on_click(clear_prompt)
+
+        agent_row = pn.Row(
+            self.prompt_text_input, 
+            prompt_clear_button, 
+            prompt_run_button, 
+            align=("start", "center"),
+            margin = (10, 5),
+        )
+        
         self.side_bar = pn.layout.WidgetBox(
+            # Agent text box
+            agent_row,
+
             # File loaders
             pn.Card(
                 pn.Column(
@@ -517,6 +559,7 @@ class VisualizationPanel:
 
         # Attach the CB to the button
         self.recompute_btn.on_click(recompute_cb)
+        prompt_run_button.on_click(recompute_cb)
         self.field_color_selector.param.watch(recompute_cb, "value")
         self.color_map_selector.param.watch(recompute_cb, "value_name")
         self.center_colormap_on_zero_tick.param.watch(recompute_cb, "value")
@@ -574,6 +617,11 @@ class VisualizationPanel:
 
             if "data" in self.__new_data:
                 self.current_data:Data2D = self.__new_data["data"]
+
+                if self.prompt_text_input.value != "":
+                    dw = Data2DWorker(self.current_data)
+                    dw(self.prompt_text_input.value)
+
                 if not self.update_polygons:
                     self.plotter.update_colors(self.current_data)
                 else:
