@@ -103,6 +103,7 @@ def set_colors_list(
     dict_value_per_volume = code_interface.get_value_dict(
         coloring_label, data.cell_ids, options
     )
+    
     cell_values = [dict_value_per_volume[v] for v in data.cell_ids]
     
     if profile_time:

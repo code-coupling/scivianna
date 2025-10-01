@@ -205,7 +205,6 @@ def plot_frame(
     v_min: float,
     v_max: float,
     coloring_label: str,
-    axes: matplotlib.axes.Axes,
     u_steps: int = 0,
     v_steps: int = 0,
     w_value: float = 0.0,
