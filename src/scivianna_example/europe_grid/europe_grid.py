@@ -6,7 +6,7 @@ import multiprocessing as mp
 from pathlib import Path
 import numpy as np
 
-from scivianna.interface.generic_interface import Geometry2D, GenericInterface, Geometry2DPolygon
+from scivianna.interface.generic_interface import GenericInterface, Geometry2DPolygon
 from scivianna.constants import CSV, GEOMETRY, MATERIAL, MESH
 from scivianna.slave import ComputeSlave
 from scivianna.panel.plot_panel import VisualizationPanel
@@ -29,26 +29,27 @@ country_cat = {
     "Other countries":["AR","AU","BR","CA","CN_X_HK","HK","IN","JP","MX","NG","NZ","RU","SG","ZA","KR","TW","UK","US",]	
 }
 
-def get_country_category(country_code:str):
+
+def get_country_category(country_code: str):
     for cat in country_cat:
         if country_code in country_cat[cat]:
             return cat
     return np.NaN
 
+
 class EuropeGridInterface(Geometry2DPolygon):
-    geometry_type=GeometryType._2D
+    geometry_type: GeometryType = GeometryType._2D
 
     def __init__(
         self,
         geometry_path: str = str(Path(__file__).parent / 'europe.geojson'),
-        results:Dict[str, GenericInterface] = {},
+        results: Dict[str, GenericInterface] = {},
     ):
         """Antares interface constructor."""
         self.polygons = None
         self.results = results
         if geometry_path != "":
             self.read_file(geometry_path, GEOMETRY)
-
 
     def read_file(self, file_path: str, file_label: str):
         """Read a file and store its content in the interface
@@ -67,33 +68,33 @@ class EuropeGridInterface(Geometry2DPolygon):
             self.data = gp.read_file(file_path)
             self.country_id = self.data["CNTR_ID"]
 
-            self.polygons_per_country:Dict[str, List[shapely.Polygon]] = {}
+            self.polygons_per_country: Dict[str, List[shapely.Polygon]] = {}
 
             for country in range(len(self.data.count_geometries())):
                 self.polygons_per_country[country] = []
-                
+
                 for i in range(self.data.count_geometries()[country]):
                     self.polygons_per_country[country].append(self.data.get_geometry(i)[country])
 
             xs_dict = [
-                        [
-                            {
-                                "exterior": p.exterior.xy[0], 
-                                "holes": [h.xy[0] for h in p.interiors]
-                            } 
-                            for p in self.polygons_per_country[c]] 
-                        for c in self.polygons_per_country
-                    ]
+                [
+                    {
+                        "exterior": p.exterior.xy[0],
+                        "holes": [h.xy[0] for h in p.interiors]
+                    }
+                    for p in self.polygons_per_country[c]]
+                for c in self.polygons_per_country
+            ]
 
             ys_dict = [
-                        [
-                            {
-                                "exterior": p.exterior.xy[1], 
-                                "holes": [h.xy[1] for h in p.interiors]
-                            } 
-                            for p in self.polygons_per_country[c]] 
-                        for c in self.polygons_per_country
-                    ]
+                [
+                    {
+                        "exterior": p.exterior.xy[1],
+                        "holes": [h.xy[1] for h in p.interiors]
+                    }
+                    for p in self.polygons_per_country[c]]
+                for c in self.polygons_per_country
+            ]
 
             self.xs = [[[p["exterior"], *p["holes"]] for p in mp] for mp in xs_dict]
             self.ys = [[[p["exterior"], *p["holes"]] for p in mp] for mp in ys_dict]
@@ -175,10 +176,9 @@ class EuropeGridInterface(Geometry2DPolygon):
                     np.array(p.exterior.xy[1])
                 ),
                 holes=[
-                    
-                        PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1])) 
-                        for h in p.interiors
-                    ],
+                    PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1]))
+                    for h in p.interiors
+                ],
                 volume_id=self.country_id[country],
             )
             for country in self.polygons_per_country
@@ -286,7 +286,8 @@ class EuropeGridInterface(Geometry2DPolygon):
             (CSV, "CSV result file."),
         ]
 
-def make_europe_panel(_, return_slaves = False):
+
+def make_europe_panel(_, return_slaves: bool = False):
     slave = ComputeSlave(EuropeGridInterface)
     # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
     slave.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
@@ -295,21 +296,27 @@ def make_europe_panel(_, return_slaves = False):
     slave_result.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
 
     map_panel = VisualizationPanel(slave, name="Map")
+    map_panel.sync_field = True
     line_panel = LineVisualisationPanel(slave_result, name="Plot")
     line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
+    line_panel.sync_field = True
 
     split_panel = SplitLayout(
-                                            SplitItem(map_panel, line_panel, SplitDirection.VERTICAL),
-                                            additional_interfaces = {"EuropeGrid":EuropeGridInterface, "TimeSeries":CountryTimeSeriesInterface},
-                                        )
+        SplitItem(
+            map_panel,
+            line_panel,
+            SplitDirection.VERTICAL
+        ),
+        additional_interfaces={"EuropeGrid": EuropeGridInterface, "TimeSeries": CountryTimeSeriesInterface},
+    )
 
     if return_slaves:
         return split_panel, [slave, slave_result]
     else:
         return split_panel
 
+
 if __name__ == "__main__":
     from scivianna.notebook_tools import _serve_panel
 
     _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")
-    

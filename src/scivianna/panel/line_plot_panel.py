@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
 import panel as pn
 import os
 import pandas as pd
@@ -28,23 +28,29 @@ class LineVisualisationPanel:
     plotter: BokehPlotter1D
     """ 1D plotter displaying and updating the graph
     """
-    update_event:Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
+    update_event: Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
+    """ On what event does the panel recompute itself
+    """
+    sync_field: bool = False
     """ On what event does the panel recompute itself
     """
 
-    position:Tuple[float, float, float] = None
+    position: Tuple[float, float, float] = None
     """Position where request the plot"""
-    volume_id:str = None
+    volume_id: str = None
     """Volume ID where request the plot"""
 
-    def __init__(self, 
-                    slave:ComputeSlave,
-                    name="",
-                    ):
+    def __init__(
+            self,
+            slave: ComputeSlave,
+            name: str = "",
+        ):
         """Visualization panel constructor
 
         Parameters
         ----------
+        slave : ComputeSlave
+            Slave used to take the information from.
         name : str
             Name of the panel.
         """
@@ -59,11 +65,13 @@ class LineVisualisationPanel:
 
         self.__data_to_update: bool = False
         """Is it required to update the data, can be set on periodic event or on clic"""
+        self.field_change_callback: Callable = None
+        """Function to call when the field is changed"""
 
         self.current_time = 0.0
         self.current_value = None
 
-        self.series:Dict[str, pd.Series] = {}
+        self.series: Dict[str, pd.Series] = {}
 
         def recompute_cb(event):
             self.recompute()
@@ -71,13 +79,26 @@ class LineVisualisationPanel:
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
+        def field_changed(event):
+            """Function called on field changed
+
+            Parameters
+            ----------
+            event : Any
+                Field changed trigering event
+            """
+            if self.field_change_callback is not None and\
+                    len(self.field_color_selector.value) > 0:
+                self.field_change_callback(self.field_color_selector.value[0])
+            recompute_cb(event)
+
         fields_list = self.slave.get_label_list()
         self.field_color_selector = pn.widgets.MultiChoice(
             name="Color field",
             options=fields_list,
             value=[fields_list[0]],
         )
-        self.field_color_selector.param.watch(recompute_cb, "value")
+        self.field_color_selector.param.watch(field_changed, "value")
 
         self.__new_data = {}
 
@@ -90,7 +111,7 @@ class LineVisualisationPanel:
 
         self.fig_overlay = Overlay(
             figure=fig_pane,
-            message = pn.pane.Markdown(""),
+            message=pn.pane.Markdown(""),
             margin=0,
             width_policy="max",
             height_policy="max",
@@ -118,7 +139,7 @@ class LineVisualisationPanel:
         """Update the figures and buttons based on what was added in self.__new_data. This function is called between two servers ticks to prevent multi-users collisions."""
         
         if "field_names" in self.__new_data:
-            self.__data_to_update=False
+            self.__data_to_update = False
             
             self.field_color_selector.value = self.__new_data["field_names"]
             self.__new_data = {}
@@ -158,7 +179,7 @@ class LineVisualisationPanel:
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-    def __get_series(self, key:str):
+    def __get_series(self, key: str):
         """Get the serie or series associated to the given key
 
         Parameters
@@ -210,7 +231,7 @@ class LineVisualisationPanel:
     ):
         return self.slave
 
-    def recompute_at(self, position:Tuple[float, float, float], volume_id:str):
+    def recompute_at(self, position: Tuple[float, float, float], volume_id: str):
         """Triggers a panel recomputation at the provided location. Called by layout update event.
 
         Parameters
@@ -224,21 +245,50 @@ class LineVisualisationPanel:
         self.position = position
         self.volume_id = volume_id
         self.recompute()
-        
-    def set_field(self, field_names:List[str]):
+
+    def set_field(self, field_names: List[str], allow_wrong_name: bool = False):
         """Updates the plotted fields
 
         Parameters
         ----------
         field_name : List[str]
             Fields to display
+        allow_wrong_name : bool
+            Accept a wrong field (nothing happens)
         """
-        for field_name in field_names:
-            if not field_name in self.field_color_selector.options:
-                raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
-        
-        self.__new_data["field_names"] = field_names
+        fields: List[str] = []
+        if isinstance(field_names, str):
+            if field_names not in self.field_color_selector.options:
+                if allow_wrong_name:
+                    pass
+                else:
+                    raise ValueError(f"Requested field {field_names} not found, available fields : {self.field_color_selector.options}")
+            else:
+                fields.append(field_names)
+        else:
+            for field_name in field_names:
+                if field_name not in self.field_color_selector.options:
+                    if allow_wrong_name:
+                        continue
+                    else:
+                        raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
+                else:
+                    fields.append(field_name)
 
-        self.__data_to_update = True
-        if pn.state.curdoc is not None:
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+        if fields != [] and set(fields) != set(self.field_color_selector.value):
+            self.__new_data["field_names"] = fields
+
+            self.__data_to_update = True
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+    def provide_field_change_callback(self, callback: Callable):
+        """Stores a function to call everytime the displayed field is changed.
+        the functions takes a string as argument.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.field_change_callback = callback

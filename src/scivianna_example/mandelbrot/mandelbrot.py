@@ -1,4 +1,3 @@
-
 from typing import Any, Dict, List, Tuple, Union
 import multiprocessing as mp
 import numpy as np
@@ -7,7 +6,7 @@ from scivianna.interface.generic_interface import Geometry2DGrid
 from scivianna.constants import MATERIAL, MESH
 from scivianna.slave import ComputeSlave
 from scivianna.panel.plot_panel import VisualizationPanel
-from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
+from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.data import Data2D
 from scivianna.interface.option_element import IntOption, OptionElement
@@ -15,7 +14,7 @@ from scivianna.layout.split import SplitDirection, SplitItem, SplitLayout
 
 
 class MandelBrotInterface(Geometry2DGrid):
-    geometry_type=GeometryType._2D
+    geometry_type: GeometryType = GeometryType._2D
 
     def __init__(
         self,
@@ -118,23 +117,31 @@ class MandelBrotInterface(Geometry2DGrid):
 
         maxiter = options["Max iter"]
 
-        def mandelbrot(z,maxiter):
+        def mandelbrot(z, maxiter):
             c = z
             for n in range(maxiter):
                 if abs(z) > 2:
                     return n
-                z = z*z + c
+                z = z * z + c
             return maxiter
 
-        def mandelbrot_set(xmin,xmax,ymin,ymax,width,height,maxiter):
+        def mandelbrot_set(xmin, xmax, ymin, ymax, width, height, maxiter):
             r1 = np.linspace(xmin, xmax, width)
             r2 = np.linspace(ymin, ymax, height)
-            return (r1,r2,[mandelbrot(complex(r, i),maxiter) for r in r1 for i in r2])
+            return (
+                r1,
+                r2,
+                [mandelbrot(complex(r, i), maxiter) for r in r1 for i in r2],
+            )
 
-        xvalues, yvalues, grid = mandelbrot_set(u_min, u_max, v_min, v_max, u_steps, v_steps, maxiter)
+        xvalues, yvalues, grid = mandelbrot_set(
+            u_min, u_max, v_min, v_max, u_steps, v_steps, maxiter
+        )
 
-        self.data = Data2D.from_grid(np.array(grid).reshape((v_steps, u_steps), order="F"), xvalues, yvalues)
-        
+        self.data = Data2D.from_grid(
+            np.array(grid).reshape((v_steps, u_steps), order="F"), xvalues, yvalues
+        )
+
         return self.data, True
 
     def get_value_dict(
@@ -157,9 +164,7 @@ class MandelBrotInterface(Geometry2DGrid):
             Field value for each requested volume names
         """
         if value_label == MATERIAL:
-            dict_compo = {
-                v:v for v in volumes
-            }
+            dict_compo = {v: v for v in volumes}
             return dict_compo
 
         if value_label == MESH:
@@ -211,32 +216,37 @@ class MandelBrotInterface(Geometry2DGrid):
         List[Tuple[str, str]]
             List of (file label, description)
         """
-        return [
-        ]
-    
-    def get_options_list(self) -> List[OptionElement]:
-        return [IntOption("Max iter", 30, "Maximum iteration in the mendebrot calculation")]
+        return []
 
-def make_panel(_, return_slaves = False):
+    def get_options_list(self) -> List[OptionElement]:
+        return [
+            IntOption("Max iter", 30, "Maximum iteration in the mendebrot calculation")
+        ]
+
+
+def make_panel(_, return_slaves=False):
     slave = ComputeSlave(MandelBrotInterface)
     panel = VisualizationPanel(slave, name="Mandelbrot")
     panel.update_event = UpdateEvent.RANGE_CHANGE
     panel.step_inp.value = 2000
-    
+
     slave_2 = ComputeSlave(MandelBrotInterface)
     panel_2 = VisualizationPanel(slave_2, name="Mandelbrot", display_polygons=False)
     panel_2.update_event = UpdateEvent.RANGE_CHANGE
     panel_2.step_inp.value = 2000
 
-    layout = SplitLayout(SplitItem(panel, panel_2, SplitDirection.VERTICAL), additional_interfaces={"Mandelbrot":MandelBrotInterface})
+    layout = SplitLayout(
+        SplitItem(panel, panel_2, SplitDirection.VERTICAL),
+        additional_interfaces={"Mandelbrot": MandelBrotInterface},
+    )
 
     if return_slaves:
         return layout, [slave, slave_2]
     else:
         return layout
 
+
 if __name__ == "__main__":
     from scivianna.notebook_tools import _serve_panel
 
     _serve_panel(get_panel_function=make_panel, title="Mandelbrot set")
-    

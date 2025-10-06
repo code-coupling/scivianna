@@ -5,7 +5,7 @@ import os
 import functools
 
 from scivianna.data import Data2D
-from scivianna.interface.generic_interface import Geometry2D, Geometry2DPolygon
+from scivianna.interface.generic_interface import Geometry2D
 from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
 from scivianna.components.overlay_component import Overlay
 from scivianna.components.server_file_browser import ServerFileBrowser
@@ -16,7 +16,7 @@ from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.plotter_2d.polygon.bokeh import Bokeh2DPolygonPlotter
 from scivianna.plotter_2d.grid.bokeh import Bokeh2DGridPlotter
 from scivianna.plotter_2d.generic_plotter import Plotter2D
-from scivianna.constants import GEOMETRY, COLORS, COMPO_NAMES, VOLUME_NAMES, POLYGONS
+from scivianna.constants import GEOMETRY
 from scivianna.utils.color_tools import beautiful_color_maps
 
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
@@ -27,6 +27,7 @@ pn.config.inline = True  # necessary if your system does not have internet acces
 pn.extension(
     "tabulator", design="material", template="material", loading_indicator=True
 )  # necessary to have Panel/Bokeh in a Notebook
+
 
 class VisualizationPanel:
     """Visualisation panel associated to a code."""
@@ -56,15 +57,18 @@ class VisualizationPanel:
     current_data: Dict[str, Any]
     """ Displayed data and their properties.
     """
-    update_event:Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
+    update_event: Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
+    """ On what event does the panel recompute itself
+    """
+    sync_field: bool = False
     """ On what event does the panel recompute itself
     """
 
-    display_polygons:bool
+    display_polygons: bool
     """ Display as polygons or as a 2D grid.
     """
 
-    def __init__(self, slave: ComputeSlave, name="", display_polygons:bool=True):
+    def __init__(self, slave: ComputeSlave, name="", display_polygons: bool = True):
         """Visualization panel constructor
 
         Parameters
@@ -84,14 +88,17 @@ class VisualizationPanel:
         """Need to update the data at the next async call"""
         self.display_polygons = display_polygons
 
-        code_interface:Geometry2D = self.slave.code_interface
+        code_interface: Geometry2D = self.slave.code_interface
         self.polygon_sorter = PolygonSorter()
+
+        self.field_change_callback: Callable = None
+        """Function to call when the field is changed"""
 
         assert issubclass(code_interface, Geometry2D), \
             f"A VisualizationPanel can only be given a Geometry2D interface slave, received {code_interface}."
-        
-        self.geometry_type:GeometryType = code_interface.geometry_type
-        self.rasterized:bool = code_interface.rasterized
+
+        self.geometry_type: GeometryType = code_interface.geometry_type
+        self.rasterized: bool = code_interface.rasterized
 
         self.__data_to_update: bool = False
         self.__range_to_update: bool = False
@@ -110,7 +117,7 @@ class VisualizationPanel:
             Load input files
         """
 
-        def load_file(event, browser_name:str):
+        def load_file(event, browser_name: str):
             """Request the slave to load an input file. If the file is a geometry file, the slave is reseted
 
             Parameters
@@ -141,8 +148,6 @@ class VisualizationPanel:
         for name, description in file_input_list:
             self.file_browsers[name] = ServerFileBrowser(
                 name=name
-                # , sizing_mode="stretch_width"
-                #, description=description
             )
             self.file_browsers[name].param.watch(functools.partial(load_file, browser_name=name), "selected_file")
 
@@ -168,7 +173,7 @@ class VisualizationPanel:
         self.color_map_selector = pn.widgets.ColorMap(
             options=beautiful_color_maps,
             visible=False,
-            swatch_width = 60,
+            swatch_width=60,
         )
 
         self.color_map_selector.width = self.color_map_selector.height
@@ -218,7 +223,7 @@ class VisualizationPanel:
             figure=fig_pane,
             button_1=self.color_map_selector,
             button_2=hide_show_button,
-            message = pn.pane.Markdown(""),
+            message=pn.pane.Markdown(""),
             margin=0,
             width_policy="max",
             height_policy="max",
@@ -430,13 +435,13 @@ class VisualizationPanel:
         )
 
         self.axes_card = pn.Card(
-                pn.Column(axis_buttons, pn.Row(u, v)),
-                title="View axis coordinates",
-                width=350,
-                margin=(0, 0, 0, 0),
-                collapsed=True,
-            )
-        
+            pn.Column(axis_buttons, pn.Row(u, v)),
+            title="View axis coordinates",
+            width=350,
+            margin=(0, 0, 0, 0),
+            collapsed=True,
+        )
+
         file_loader_list = []
         for fi in self.file_browsers:
             file_loader_list.append(pn.pane.Markdown(f"{fi} file browser", margin=(0, 0, 0, 0)))
@@ -515,9 +520,22 @@ class VisualizationPanel:
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
+        def field_changed(event):
+            """Function called on field changed
+
+            Parameters
+            ----------
+            event : Any
+                Field changed trigering event
+            """
+            if self.field_change_callback is not None and\
+                    len(self.field_color_selector.value) > 0:
+                self.field_change_callback(self.field_color_selector.value[0])
+            recompute_cb(event)
+
         # Attach the CB to the button
         self.recompute_btn.on_click(recompute_cb)
-        self.field_color_selector.param.watch(recompute_cb, "value")
+        self.field_color_selector.param.watch(field_changed, "value")
         self.color_map_selector.param.watch(recompute_cb, "value_name")
         self.center_colormap_on_zero_tick.param.watch(recompute_cb, "value")
 
@@ -573,7 +591,7 @@ class VisualizationPanel:
                 self.plotter.set_color_map(self.color_map_selector.value_name)
 
             if "data" in self.__new_data:
-                self.current_data:Data2D = self.__new_data["data"]
+                self.current_data: Data2D = self.__new_data["data"]
                 if not self.update_polygons:
                     self.plotter.update_colors(self.current_data)
                 else:
@@ -610,7 +628,7 @@ class VisualizationPanel:
                 self.x1_inp.value = self.__new_data["x1"]
             if "y1" in self.__new_data:
                 self.y1_inp.value = self.__new_data["y1"]
-                
+
             if "w" in self.__new_data:
                 self.w_inp.value = self.__new_data["w"]
 
@@ -623,20 +641,20 @@ class VisualizationPanel:
             pn.io.push_notebook(self.fig_overlay)
 
         if "field_name" in self.__new_data:
-            self.marked_to_recompute=False
+            self.marked_to_recompute = False
             if self.__new_data["field_name"] in self.field_color_selector.options:
-                self.field_color_selector.value = [self.__new_data["field_name"]]
+                if set(self.field_color_selector.value) != set([self.__new_data["field_name"]]):
+                    self.field_color_selector.value = [self.__new_data["field_name"]]
 
-                self.async_update_data()
+                    self.async_update_data()
         else:
             # If marked to recompute, a safe change was applied on a plot parameter, a recompute is requested async
             if self.marked_to_recompute:
                 self.recompute()
-                self.marked_to_recompute=False
+                self.marked_to_recompute = False
                 self.async_update_data()
 
         self.__new_data = {}
-
 
     def compute_fn(
         self,
@@ -711,11 +729,11 @@ class VisualizationPanel:
                     f"\n\n Got None from computed data on {self.name}, returning the past values.\n\n"
                 )
                 return self.current_data
-            
+
             computed_data, polygons_updated = (
                 computed_data
             )
-            
+
             if polygons_updated or (self.polygon_sorter.sort_indexes is None):
                 self.polygon_sorter.sort_from_value(
                     computed_data
@@ -767,7 +785,7 @@ class VisualizationPanel:
         if len(self.field_color_selector.value) == 0:
             # We can't process the calculation if no field is selected
             return
-        
+
         self.recompute_btn.disabled = True
         if profile_time:
             st = time.time()
@@ -930,8 +948,8 @@ class VisualizationPanel:
         """
         return self.slave
 
-    def provide_on_mouse_move_callback(self, callback:Callable):
-        """Stores a function to call everytime the user moves the mouse on the plot. 
+    def provide_on_mouse_move_callback(self, callback: Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot.
         Functions arguments are location, volume_id.
 
         Parameters
@@ -941,8 +959,8 @@ class VisualizationPanel:
         """
         self.plotter.provide_on_mouse_move_callback(callback)
 
-    def provide_on_clic_callback(self, callback:Callable):
-        """Stores a function to call everytime the user clics on the plot. 
+    def provide_on_clic_callback(self, callback: Callable):
+        """Stores a function to call everytime the user clics on the plot.
         Functions arguments are location, volume_id.
 
         Parameters
@@ -952,8 +970,18 @@ class VisualizationPanel:
         """
         self.plotter.provide_on_clic_callback(callback)
 
-        
-    def recompute_at(self, position:Tuple[float, float, float], volume_id:str):
+    def provide_field_change_callback(self, callback: Callable):
+        """Stores a function to call everytime the displayed field is changed.
+        the functions takes a string as argument.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        self.field_change_callback = callback
+
+    def recompute_at(self, position: Tuple[float, float, float], volume_id: str):
         """Triggers a panel recomputation at the provided location. Called by layout update event.
 
         Parameters
@@ -977,14 +1005,16 @@ class VisualizationPanel:
             self.marked_to_recompute = True
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-    def set_coordinates(self, 
-                            u:Tuple[float, float, float] = None,
-                            v:Tuple[float, float, float] = None,
-                            u_min:float = None,
-                            u_max:float = None,
-                            v_min:float = None,
-                            v_max:float = None,
-                            w:float = None,):
+    def set_coordinates(
+            self,
+            u: Tuple[float, float, float] = None,
+            v: Tuple[float, float, float] = None,
+            u_min: float = None,
+            u_max: float = None,
+            v_min: float = None,
+            v_max: float = None,
+            w: float = None,
+    ):
         """Updates the plot coordinates
 
         Parameters
@@ -1006,7 +1036,7 @@ class VisualizationPanel:
         """
         self.__data_to_update = True
         self.__range_to_update = True
-        
+
         if u is not None:
             if not type(u) in [tuple, list, np.ndarray]:
                 raise TypeError(f"u must have one of the following types: [tuple, list, np.ndarray], found {type(u)}")
@@ -1024,7 +1054,7 @@ class VisualizationPanel:
             self.__new_data["v0"] = v[0]
             self.__new_data["v1"] = v[1]
             self.__new_data["v2"] = v[2]
-            
+
         if u_min is not None:
             if not type(u_min) in [float, int]:
                 raise TypeError(f"u_min must be a number, found type {type(u_min)}")
@@ -1041,7 +1071,7 @@ class VisualizationPanel:
             if not type(v_max) in [float, int]:
                 raise TypeError(f"v_max must be a number, found type {type(v_max)}")
             self.__new_data["y1"] = v_max
-            
+
         if w is not None:
             if not type(w) in [float, int]:
                 raise TypeError(f"w must be a number, found type {type(w)}")
@@ -1051,21 +1081,26 @@ class VisualizationPanel:
         if pn.state.curdoc is not None:
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-    def set_field(self, field_name:str):
+    def set_field(self, field_name: str, allow_wrong_name: bool = False):
         """Updates the plotted field
 
         Parameters
         ----------
         field_name : str
             New field to display
+        allow_wrong_name : bool
+            Accept a wrong field (nothing happens)
         """
-        if not field_name in self.field_color_selector.options:
+        if field_name not in self.field_color_selector.options:
+            if allow_wrong_name:
+                return
             raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
-        
-        self.__new_data["field_name"] = field_name
 
-        # Reseting indexes to prevent weird edges
-        self.polygon_sorter.reset_indexes()
+        if set([field_name]) != set(self.field_color_selector.value):
+            self.__new_data["field_name"] = field_name
 
-        if pn.state.curdoc is not None:
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            # Reseting indexes to prevent weird edges
+            self.polygon_sorter.reset_indexes()
+
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
