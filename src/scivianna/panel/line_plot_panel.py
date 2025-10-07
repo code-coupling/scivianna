@@ -257,15 +257,7 @@ class LineVisualisationPanel:
             Accept a wrong field (nothing happens)
         """
         fields: List[str] = []
-        if isinstance(field_names, str):
-            if field_names not in self.field_color_selector.options:
-                if allow_wrong_name:
-                    pass
-                else:
-                    raise ValueError(f"Requested field {field_names} not found, available fields : {self.field_color_selector.options}")
-            else:
-                fields.append(field_names)
-        else:
+        if isinstance(field_names, list):
             for field_name in field_names:
                 if field_name not in self.field_color_selector.options:
                     if allow_wrong_name:
@@ -274,6 +266,14 @@ class LineVisualisationPanel:
                         raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
                 else:
                     fields.append(field_name)
+        else:
+            if field_names not in self.field_color_selector.options:
+                if allow_wrong_name:
+                    pass
+                else:
+                    raise ValueError(f"Requested field {field_names} not found, available fields : {self.field_color_selector.options}")
+            else:
+                fields.append(field_names)
 
         if fields != [] and set(fields) != set(self.field_color_selector.value):
             self.__new_data["field_names"] = fields
