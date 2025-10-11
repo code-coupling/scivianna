@@ -30,6 +30,19 @@ class Data2D:
     simplify:bool
     """Simplify the polygons when converting from grid to polygon list"""
 
+    def __init__(self):
+        """ Empty constructor of the Data2D class.
+        """
+        self.data_type = None
+        self.polygons = []
+        self.grid = np.array([])
+        self.u_values = np.array([])
+        self.v_values = np.array([])
+        self.cell_ids = []
+        self.cell_values = []
+        self.cell_colors = []
+        self.simplify = None
+
     @classmethod
     def from_polygon_list(cls, polygon_list:List[PolygonElement]):
         """Build a Data2D object from a list of PolygonElement
@@ -138,3 +151,24 @@ class Data2D:
             raise NotImplementedError()
         else:
             return self.grid
+        
+    def copy(self,) -> "Data2D":
+        """Returns a copy of self
+
+        Returns
+        -------
+        Data2D
+            Identical copy of self
+        """
+        data2D = Data2D()
+        data2D.data_type = self.data_type
+        data2D.polygons = self.polygons.copy()
+        data2D.grid = self.grid.copy()
+        data2D.u_values = self.u_values.copy()
+        data2D.v_values = self.v_values.copy()
+        data2D.cell_ids = np.array(self.cell_ids).tolist()
+        data2D.cell_values = np.array(self.cell_values).tolist()
+        data2D.cell_colors = np.array(self.cell_colors).tolist()
+        data2D.simplify = self.simplify
+
+        return data2D
