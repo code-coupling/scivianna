@@ -30,6 +30,19 @@ class Data2D:
     simplify:bool
     """Simplify the polygons when converting from grid to polygon list"""
 
+    def __init__(self):
+        """ Empty constructor of the Data2D class.
+        """
+        self.data_type = None
+        self.polygons = []
+        self.grid = np.array([])
+        self.u_values = np.array([])
+        self.v_values = np.array([])
+        self.cell_ids = []
+        self.cell_values = []
+        self.cell_colors = []
+        self.simplify = None
+
     @classmethod
     def from_polygon_list(cls, polygon_list:List[PolygonElement]):
         """Build a Data2D object from a list of PolygonElement
@@ -138,44 +151,24 @@ class Data2D:
             raise NotImplementedError()
         else:
             return self.grid
-    
+        
     def copy(self,) -> "Data2D":
-        """Returns a copy of the present Data2D
+        """Returns a copy of self
 
         Returns
         -------
         Data2D
-            Copy of self
+            Identical copy of self
         """
-        if self.data_type == DataType.POLYGONS:
-            data = Data2D.from_polygon_list(self.polygons.copy())
-            
-            if self.cell_colors is not None:
-                data.cell_colors = self.cell_colors.copy()
-            if self.cell_ids is not None:
-                data.cell_ids = self.cell_ids.copy()
-            if self.cell_values is not None:
-                data.cell_values = self.cell_values.copy()
-        
-        else:
-            data = Data2D.from_grid(self.grid.copy(), self.u_values.copy(), self.v_values.copy(), self.simplify)
-            
-            if self.cell_colors is not None:
-                data.cell_colors = self.cell_colors.copy()
-            if self.cell_ids is not None:
-                data.cell_ids = self.cell_ids.copy()
-            if self.cell_values is not None:
-                data.cell_values = self.cell_values.copy()
+        data2D = Data2D()
+        data2D.data_type = self.data_type
+        data2D.polygons = self.polygons.copy()
+        data2D.grid = self.grid.copy()
+        data2D.u_values = self.u_values.copy()
+        data2D.v_values = self.v_values.copy()
+        data2D.cell_ids = np.array(self.cell_ids).tolist()
+        data2D.cell_values = np.array(self.cell_values).tolist()
+        data2D.cell_colors = np.array(self.cell_colors).tolist()
+        data2D.simplify = self.simplify
 
-        return data
-    
-    def check_valid(self,):
-        """Checks if this Data2D is valid, raises an AssertionError otherwise
-        """
-        assert len(self.cell_ids) == len(self.cell_colors), "The Data2D object must have the same number of cell id and colors"
-        assert len(self.cell_values) == len(self.cell_colors), "The Data2D object must have the same number of cell values and colors"
-        if self.data_type == DataType.POLYGONS:
-            assert len(self.cell_values) == len(self.polygons), "The Data2D object must have the same number of cell values and polygons"
-
-        if any(isinstance(item, str) for item in self.cell_values):
-            assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
+        return data2D

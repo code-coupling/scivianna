@@ -18,7 +18,7 @@ from pathlib import Path
 import panel_material_ui as pmui
 
 
-def make_demo(return_slaves = False) -> pmui.Page:
+def make_demo(return_slaves=False) -> pmui.Page:
     if return_slaves:
         europe_panel, slaves_europe = europe_example(None, return_slaves)
         medcoupling_panel, slaves_medcoupling = medcoupling_example(None, return_slaves)
@@ -30,39 +30,35 @@ def make_demo(return_slaves = False) -> pmui.Page:
 
     with open(Path(europe_grid.__file__).parent / "description.md", "r") as f:
         europe_with_description = pmui.Row(
-            europe_panel.main_frame, 
-            pmui.Typography(f.read(), width=300)
+            europe_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
     with open(Path(split_item_example.__file__).parent / "description.md", "r") as f:
         medcoupling_with_description = pmui.Row(
-            medcoupling_panel.main_frame, 
-            pmui.Typography(f.read(), width=300)
+            medcoupling_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
     with open(Path(mandelbrot.__file__).parent / "description.md", "r") as f:
         mandelbrot_with_description = pmui.Row(
-            mandelbrot_panel.main_frame, 
+            mandelbrot_panel.main_frame,
             pmui.Typography(f.read(), width=300),
-            sizing_mode = "stretch_both"
+            sizing_mode="stretch_both",
         )
     sidebars = [
-            europe_panel.side_bar,
-            medcoupling_panel.side_bar,
-            mandelbrot_panel.side_bar,
-        ]
-    
+        europe_panel.side_bar,
+        medcoupling_panel.side_bar,
+        mandelbrot_panel.side_bar,
+    ]
+
     tabs = pmui.Tabs(
         ("Europe example", europe_with_description),
         ("Medcoupling example", medcoupling_with_description),
         ("Mandelbrot example", mandelbrot_with_description),
     )
 
-    print(tabs.objects)
-    
     def change_active(e):
         for sidebar in sidebars:
-            sidebar.visible = (tabs.active == sidebars.index(sidebar))
+            sidebar.visible = tabs.active == sidebars.index(sidebar)
 
     tabs.param.watch(change_active, "active")
     change_active(None)
@@ -72,11 +68,11 @@ def make_demo(return_slaves = False) -> pmui.Page:
         sidebar=sidebars,
         sidebar_variant="temporary",
         sidebar_open=False,
-        title="Scivianna demonstrator"
+        title="Scivianna demonstrator",
     )
 
     if return_slaves:
-        return page, slaves_medcoupling+slaves_europe+slaves_mandelbrot
+        return page, slaves_medcoupling + slaves_europe + slaves_mandelbrot
     else:
         return page
 

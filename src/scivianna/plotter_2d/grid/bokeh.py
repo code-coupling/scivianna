@@ -35,6 +35,8 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     display_edges = True
     """Display grid cells edges"""
+    dim_hovered_cell = True
+    """Sets the hovered cell opacity to 0.6"""
 
     def __init__(
         self,
@@ -104,10 +106,15 @@ class Bokeh2DGridPlotter(Plotter2D):
             const x = special_vars.x;
             const y = special_vars.y;
 
+            const i = special_vars.image_index.i;
+            const j = special_vars.image_index.j;
             const new_data = Object.assign({}, mouse.data)
 
             new_data["u"] = [x];
             new_data["v"] = [y];
+
+            new_data["i"] = [i];
+            new_data["j"] = [j];
 
             new_data["x"] = [x*u0 + y*v0 +w*w0];
             new_data["y"] = [x*u1 + y*v1 +w*w1];
@@ -125,12 +132,15 @@ class Bokeh2DGridPlotter(Plotter2D):
 
             mouse.change.emit();
 
+            console.log(value);
+            console.log(special_vars);
+
             return  "(" + (x*u0 + y*v0 +w*w0).toFixed(3) + ", " + (x*u1 + y*v1 +w*w1).toFixed(3)+", "+  (x*u2 + y*v2 +w*w2 ).toFixed(3) + ")"
         """
 
         # Manifestement, ca ne marche pas avec un nom a plusieurs caracteres pour x ???
         TOOLTIPS = [
-            ("Coordinates", "$x{custom}"),
+            ("Coordinates", "$coords{custom}"),
             ("Volume ID", "@volume_names"),
             ("Value", "@compo_names"),
         ]
@@ -138,7 +148,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         hover_tool = HoverTool(
             tooltips=TOOLTIPS,
             formatters={
-                "$x": CustomJSHover(
+                "$coords": CustomJSHover(
                     args=dict(
                         full_data=self.source_coordinates, mouse=self.source_mouse
                     ),
@@ -195,6 +205,13 @@ class Bokeh2DGridPlotter(Plotter2D):
         ][0]
         self.figure.toolbar.active_scroll = zoom_tool
         self.figure.toolbar.active_drag = pan_tool
+        
+        if self.dim_hovered_cell:
+            self.figure.on_event(bokeh.events.MouseMove, 
+                                    self.on_mouse_move)
+
+            self.last_update_cell = None
+            self.save_data = True
 
     def display_borders(self, display: bool):
         """Display or hides the figure borders and axis
@@ -351,6 +368,10 @@ class Bokeh2DGridPlotter(Plotter2D):
         view = img.view(dtype=np.uint8).reshape(colors.shape)
         view[:, :, :] = colors[:, :, :]
         
+        if self.save_data:
+            self.data = data
+            self.volume_name_grid = np.array(grid)
+
         return img, grid, val_grid
         
     def update_colors(self, data: Data2D,):
@@ -501,14 +522,70 @@ class Bokeh2DGridPlotter(Plotter2D):
         return xs, ys
 
     def send_event(self, callback):
+        """Calling the callback to update the position and current volume_id to the layout
+
+        Parameters
+        ----------
+        callback : function
+            Function to call
+        """
         # If the mouse is hovered while a range update triggered update is done, the self.source_grid.data length is updated faster than the data coming from the mouse.
         #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
+        hovered_cell = None
+        if "i" in self.source_mouse.data:
+            i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+            if self.volume_name_grid is not None:
+                hovered_cell = self.volume_name_grid[j, i]
+
         callback(position=(
                             self.source_mouse.data["x"][0], 
                             self.source_mouse.data["y"][0], 
                             self.source_mouse.data["z"][0]
                         ), 
-                volume_id=int(self.source_mouse.data["index"][0]))
+                volume_id=hovered_cell)
+
+    def on_mouse_move(self, _):
+        """Callback called when the mouse is moved. The mouse location in the grid is saved, and an update is requested at the current location after a timeout.
+
+        Parameters
+        ----------
+        _ : Any
+            Calling event
+        """
+        if "i" in self.source_mouse.data:
+            i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_timeout_callback(functools.partial(self.update_plot_after_mouse_move, i = i, j = j), 250)
+
+    def update_plot_after_mouse_move(self, i:int, j:int):
+        """Updates the plot after changing the cell at location (i, j) to 0.6. The update is only done if the mouse is currently at (i, j)
+
+        Parameters
+        ----------
+        i : int
+            U coordinate
+        j : int
+            V coordinate
+        """
+        i_, j_ = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+        if i == i_ and j == j_:
+            if self.volume_name_grid is not None:
+                hovered_cell = self.volume_name_grid[j, i]
+                
+                if hovered_cell != self.last_update_cell:
+                    self.save_data = False
+                    data = self.data.copy()
+
+                    data.cell_colors[data.cell_ids.index(hovered_cell)][3] = 0.6*255
+
+                    self.update_2d_frame(data)
+
+                    self.last_update_cell = hovered_cell
+                    self.save_data = True
+                
 
 
     def provide_on_mouse_move_callback(self, callback:Callable):

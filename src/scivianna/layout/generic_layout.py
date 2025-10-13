@@ -6,13 +6,16 @@ from bokeh.plotting import curdoc
 
 from scivianna.enums import UpdateEvent
 from scivianna.interface.generic_interface import GenericInterface
-from scivianna.panel.plot_panel import ComputeSlave, VisualizationPanel
+from scivianna.slave import ComputeSlave
+from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.line_plot_panel import LineVisualisationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
     get_interface_default_panel,
     load_available_interfaces,
 )
 from scivianna.panel.styles import card_style
+
 
 class GenericLayout:
     """Displayable that lets arranging several VisualizationPanel"""
@@ -30,11 +33,11 @@ class GenericLayout:
     available_interfaces: Dict[Union[str, GenericInterfaceEnum], Type[GenericInterface]]
     """ Available interface classes to switch from one to another
     """
-    load_available_interfaces:Callable = None
+    load_available_interfaces: Callable = None
     """ Function loading available interfaces. Can be overwriten to add additional interfaces.
     """
 
-    visualisation_panels:Dict[str, VisualizationPanel]
+    visualisation_panels: Dict[str, VisualizationPanel]
     """ Dictionnary containing all visualisation panels.
     """
 
@@ -47,7 +50,7 @@ class GenericLayout:
         add_run_button: bool = False,
     ):
         self.visualisation_panels = visualisation_panels
-        
+
         if self.load_available_interfaces is None:
             self.available_interfaces = load_available_interfaces()
         else:
@@ -148,7 +151,6 @@ class GenericLayout:
         self.duplicate_horizontally_button.on_click(duplicate_hozironally)
         self.duplicate_vertitally_button.on_click(duplicate_vertically)
 
-
         def request_recompute(event):
             """Request a recompute task on all panels, which will trigger the addition of a periodict update on the panels
 
@@ -233,6 +235,9 @@ class GenericLayout:
             if isinstance(panel, VisualizationPanel):
                 panel.provide_on_clic_callback(self.on_clic_callback)
                 panel.provide_on_mouse_move_callback(self.mouse_move_callback)
+                panel.provide_field_change_callback(self.field_change_callback)
+            elif isinstance(panel, LineVisualisationPanel):
+                panel.provide_field_change_callback(self.field_change_callback)
 
         self.last_hover_id = None
         """Last hovered cell to trigger change if applicable"""
@@ -279,11 +284,10 @@ class GenericLayout:
 
             self.visualisation_panels[current_frame].provide_on_clic_callback(self.on_clic_callback)
             self.visualisation_panels[current_frame].provide_on_mouse_move_callback(self.mouse_move_callback)
-            
+
             self.visualisation_panels[current_frame].bounds_row[0].param.watch(
                 functools.partial(self.set_to_frame, frame_name=current_frame), "value"
             )
-
 
     def change_current_frame(self, event):
         """Swap the the active panel
@@ -340,7 +344,6 @@ class GenericLayout:
             raise ValueError(
                 f"Frame {frame_name} not in options, available keys : {self.frame_selector.options}"
             )
-
 
     def duplicate(self, horizontal: bool):
         """Split the panel, the new panel is a copy of the first, all panels are duplicated.
@@ -425,37 +428,36 @@ class GenericLayout:
     def mark_to_recompute(self, panels_to_recompute):
         self.panels_to_recompute = panels_to_recompute
 
-
     def _make_button_icon(self,) -> pn.widgets.ButtonIcon:
         """Makes a button icon to switch to current panel
 
         Returns
         -------
         pn.widgets.ButtonIcon
-            ButtonIcon 
-        """    
+            ButtonIcon
+        """
         return pn.widgets.ButtonIcon(
-                                    size="2.5em",
-                                    icon="layout-sidebar",
-                                    visible=False,
-                                    description="Change side bar and coordinate bar to current plot."
-                                    )
-    
+            size="2.5em",
+            icon="layout-sidebar",
+            visible=False,
+            description="Change side bar and coordinate bar to current plot."
+        )
+
     def get_bounds_row(self, ) -> pn.Row:
         """Makes the layout bounds_row, if the run button exists, it will be added to the row.
 
         Returns
         -------
         pn.Row
-            Widget row 
+            Widget row
         """
-        
+
         if self.run_button is not None:
             return pn.Row(self.run_button, *[e.bounds_row for e in self.visualisation_panels.values()])
         else:
             return pn.Row(*[e.bounds_row for e in self.visualisation_panels.values()])
-        
-    def on_clic_callback(self, position:Tuple[float, float, float], volume_id:str):
+
+    def on_clic_callback(self, position: Tuple[float, float, float], volume_id: str):
         """Function calling panels update on mouse clic in a 2D panel
 
         Parameters
@@ -468,8 +470,8 @@ class GenericLayout:
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.CLIC or (isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event):
                 panel.recompute_at(position, volume_id)
-        
-    def mouse_move_callback(self, position:Tuple[float, float, float], volume_id:str):
+
+    def mouse_move_callback(self, position: Tuple[float, float, float], volume_id: str):
         """Function calling panels update on mouse move in a 2D panel
 
         Parameters
@@ -483,6 +485,22 @@ class GenericLayout:
             if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
                 panel.recompute_at(position, volume_id)
 
-            if volume_id != self.last_hover_id and (panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)) :
+            if volume_id != self.last_hover_id and\
+                    (
+                        panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE
+                        or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)
+                    ):
                 self.last_hover_id = volume_id
                 panel.recompute_at(position, volume_id)
+
+    def field_change_callback(self, new_field: str):
+        """Function calling panels update a field change
+
+        Parameters
+        ----------
+        new_field : str
+            New field to set
+        """
+        for panel in self.visualisation_panels.values():
+            if panel.sync_field:
+                panel.set_field(new_field, allow_wrong_name=True)
