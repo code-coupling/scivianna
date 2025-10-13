@@ -182,13 +182,13 @@ class BokehPlotter1D(Plotter1D):
 
         y_mins = [np.nanmin(self.source_data_dict[name].data["y"]) 
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["y"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["y"])) == 0
                         )]
         y_maxs = [np.nanmax(self.source_data_dict[name].data["y"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["y"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["y"])) == 0
                         )]
@@ -212,13 +212,13 @@ class BokehPlotter1D(Plotter1D):
 
         x_mins = [np.nanmin(self.source_data_dict[name].data["x"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["x"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["x"])) == 0
                         )]
         x_maxs = [np.nanmax(self.source_data_dict[name].data["x"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["x"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["x"])) == 0
                         )]
