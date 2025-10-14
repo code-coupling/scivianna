@@ -27,7 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .
+        python -m pip install .[pyvista]
         python -m pip install medcoupling
         python -m pip install flake8 coverage pytest-cov nbmake 
     - name: Lint with flake8

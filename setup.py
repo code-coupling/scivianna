@@ -66,8 +66,8 @@ setup(
         "geopandas"
     ],
     extras_require={
-        # "example": [
-        #     "scivianna_example",
-        # ],
+        "pyvista": [
+            "pyvista",
+        ],
     },
 )
