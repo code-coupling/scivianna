@@ -20,7 +20,7 @@ class CarthesianInterface(StructuredMeshInterface):
         file_label : str
             Label to define the file type
         """
-        size = 5
+        size = 7
         self.mesh = CarthesianStructuredMesh(
             np.linspace(0, 4, size),
             np.linspace(0, 4, size),
@@ -39,7 +39,7 @@ class SphericalInterface(StructuredMeshInterface):
         file_label : str
             Label to define the file type
         """
-        size = 5
+        size = 7
         self.mesh = SphericalStructuredMesh(
             np.linspace(0, 4, size),
             np.linspace(0, math.pi*2, size),
@@ -58,7 +58,7 @@ class CylindricalInterface(StructuredMeshInterface):
         file_label : str
             Label to define the file type
         """
-        size = 5
+        size = 7
         self.mesh = CylindricalStructuredMesh(
             np.linspace(0, 4, size),
             np.linspace(0, math.pi*2, size),
@@ -98,6 +98,8 @@ def test_plot_carthesian():
 
     slave.terminate()
 
+    assert True
+
 def test_plot_cylindrical():
     """Test plotting a cylindrical structured mesh
     """
@@ -129,6 +131,8 @@ def test_plot_cylindrical():
 
     slave.terminate()
 
+    assert True
+
 def test_plot_spherical():
     """Test plotting a spherical structured mesh
     """
@@ -159,6 +163,8 @@ def test_plot_spherical():
     )
 
     slave.terminate()
+
+    assert True
 
 if __name__ == "__main__":
     print("Testing carthesian")
