@@ -888,7 +888,6 @@ class ComputeSlave:
         self,
     ):
         """Terminates the subprocess"""
-        print(f"Terminating process of slave {self.code_interface.__name__}")
         if self.p is not None and not self.p._closed:
             self.p.terminate()
 
