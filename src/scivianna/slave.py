@@ -13,7 +13,8 @@ from scivianna.utils.color_tools import interpolate_cmap_at_values
 from scivianna.interface.generic_interface import (
     GenericInterface,
     Geometry2D, 
-    IcocoInterface, 
+    IcocoInterface,
+    OverLine, 
     ValueAtLocation, 
     Value1DAtLocation
 )
@@ -34,32 +35,47 @@ if profile_time:
 class SlaveCommand:
     """Class defining the available commands that are forwarded to the compute slaves"""
 
+    #   GenericInterface functions
     READ_FILE = "read_file"
     """Reads an input file"""
-    GET_LABEL_LIST = "get_label_list"
+    GET_LABELS = "get_labels"
     """Returns the list of displayable fields"""
+    GET_LABEL_COLORING_MODE = "get_label_coloring_mode"
+    """Returns the coloring mode of a field"""
     GET_FILE_INPUT_LIST = "get_file_input_list"
     """Returns the list of read input files"""
-    GET_OPTIONS = "get_options"
+    GET_OPTIONS_LIST = "get_options_list"
     """Returns the list of options to display in the app"""
-    COMPUTE_1D = "compute_1d"
-    """Compute a 1D result"""
-    COMPUTE_2D = "compute_2d"
+
+    #   Geometry2D functions
+    COMPUTE_2D_DATA = "compute_2d_data"
     """Compute a 2D slice of the geometry"""
+    GET_VALUE_DICT = "get_value_dict"
+    """Returns the values of a field at cells"""
+
+    #   ValueAtLocation functions
+    GET_VALUE = "get_value"
+    """Returns the value at a location/cell"""
+    GET_VALUES = "get_values"
+    """Returns the value at a set of locations/cells"""
+
+    #   Value1DAtLocation functions
+    GET_1D_VALUE = "get_1D_value"
+    """Returns the 1Dvalue at a location/cell"""
+
+    #   OverLine functions
+    COMPUTE_1D_LINE_DATA = "compute_1d_line_data"
+    """Compute a 1D result along a line"""
+
+    #   ICOCOInterface functions
     GET_INPUT_MED_DOUBLEFIELD_TEMPLATE = "getInputMEDDoubleFieldTemplate"
     """Returns the med field template"""
-    SET_INPUT_MED_DOUBLEFIELD = "setInputMEDDoubleField"
-    """Sets an input field"""
     SET_INPUT_MED_DOUBLEFIELD = "setInputMEDDoubleField"
     """Sets an input field"""
     SET_INPUT_DOUBLE_VALUE = "setInputDoubleValue"
     """Sets a float"""
     SET_TIME = "setTime"
     """Sets the current time"""
-    GET_COLORING_MODE = "get_label_coloring_mode"
-    """Returns the coloring mode of a field"""
-    GET_VALUE_DICT = "get_value_dict"
-    """Returns the values of a field at cells"""
 
 
 def set_colors_list(
@@ -202,6 +218,7 @@ def set_colors_list(
 def worker(
     q_tasks: mp.Queue,
     q_returns: mp.Queue,
+    q_errors: mp.Queue,
     code_interface: Type[GenericInterface],
 ):
     """Creates a worker that will forward the panel requests to the GenericInterface on another process
@@ -217,149 +234,188 @@ def worker(
     """
     code_: GenericInterface = code_interface()
 
-    while True:
-        if not q_tasks.empty():
-            task, data = q_tasks.get()
+    try:
+        while True:
+            if not q_tasks.empty():
+                task, data = q_tasks.get()
 
-            if task == SlaveCommand.READ_FILE:
-                code_.read_file(*data)
-                q_returns.put("OK")
+                #   GenericInterface functions
+                if task == SlaveCommand.READ_FILE:
+                    code_.read_file(*data)
+                    q_returns.put("OK")
 
-            elif task == SlaveCommand.GET_LABEL_LIST:
-                labels = code_.get_labels()
-                q_returns.put(labels)
+                elif task == SlaveCommand.GET_LABELS:
+                    labels = code_.get_labels()
+                    q_returns.put(labels)
 
-            elif task == SlaveCommand.GET_FILE_INPUT_LIST:
-                input_list = code_.get_file_input_list()
-                q_returns.put(input_list)
+                elif task == SlaveCommand.GET_LABEL_COLORING_MODE:
+                    field_name = data
+                    set_return = code_.get_label_coloring_mode(field_name)
+                    q_returns.put(set_return)
 
-            elif task == SlaveCommand.GET_OPTIONS:
-                input_list = code_.get_options_list()
-                q_returns.put(input_list)
+                elif task == SlaveCommand.GET_FILE_INPUT_LIST:
+                    input_list = code_.get_file_input_list()
+                    q_returns.put(input_list)
 
-            elif task == SlaveCommand.COMPUTE_1D:
-                if not isinstance(code_, Value1DAtLocation):
-                    raise TypeError(
-                        f"The requested panel is not associated to an Value1DAtLocation, found class {type(code_)}."
+                elif task == SlaveCommand.GET_OPTIONS_LIST:
+                    input_list = code_.get_options_list()
+                    q_returns.put(input_list)
+
+
+                #   Geometry2D functions
+                elif task == SlaveCommand.COMPUTE_2D_DATA:
+                    if profile_time:
+                        st = time.time()
+                    (
+                        u,
+                        v,
+                        u_min,
+                        u_max,
+                        v_min,
+                        v_max,
+                        u_steps,
+                        v_steps,
+                        w_value,
+                        coloring_label,
+                        color_map,
+                        center_colormap_on_zero,
+                        options,
+                    ) = data
+
+                    if not isinstance(code_, Geometry2D):
+                        raise TypeError(
+                            f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
+                        )
+                    data, polygons_updated = code_.compute_2D_data(
+                        u,
+                        v,
+                        u_min,
+                        u_max,
+                        v_min,
+                        v_max,
+                        u_steps,
+                        v_steps,
+                        w_value,
+                        q_tasks,
+                        options,
                     )
-                input_list = code_.get_1D_value(*data)
-                q_returns.put(input_list)
 
-            elif task == SlaveCommand.COMPUTE_2D:
-                if profile_time:
-                    st = time.time()
-                (
-                    u,
-                    v,
-                    u_min,
-                    u_max,
-                    v_min,
-                    v_max,
-                    u_steps,
-                    v_steps,
-                    w_value,
-                    coloring_label,
-                    color_map,
-                    center_colormap_on_zero,
-                    options,
-                ) = data
+                    if profile_time:
+                        print(f"Code compute 2D time : {time.time() - st}")
+                        st = time.time()
 
-                if not isinstance(code_, Geometry2D):
-                    raise TypeError(
-                        f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
-                    )
-                data, polygons_updated = code_.compute_2D_data(
-                    u,
-                    v,
-                    u_min,
-                    u_max,
-                    v_min,
-                    v_max,
-                    u_steps,
-                    v_steps,
-                    w_value,
-                    q_tasks,
-                    options,
-                )
-
-                if profile_time:
-                    print(f"Code compute 2D time : {time.time() - st}")
-                    st = time.time()
-
-                set_colors_list(
-                    data,
-                    code_,
-                    coloring_label,
-                    color_map,
-                    center_colormap_on_zero,
-                    options,
-                )
-
-                if profile_time:
-                    print(f"Color list building time : {time.time() - st}")
-                    st = time.time()
-
-                q_returns.put(
-                    [
+                    set_colors_list(
                         data,
-                        polygons_updated,
-                    ]
-                )
-
-            elif task == SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE:
-                if not isinstance(code_, IcocoInterface):
-                    raise TypeError(
-                        f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                        code_,
+                        coloring_label,
+                        color_map,
+                        center_colormap_on_zero,
+                        options,
                     )
-                field_name = data
-                field_template: "medcoupling.MEDCouplingFieldDouble" = (
-                    code_.getInputMEDDoubleFieldTemplate(field_name)
-                )
-                q_returns.put(field_template)
 
-            elif task == SlaveCommand.SET_INPUT_MED_DOUBLEFIELD:
-                if not isinstance(code_, IcocoInterface):
-                    raise TypeError(
-                        f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                    if profile_time:
+                        print(f"Color list building time : {time.time() - st}")
+                        st = time.time()
+
+                    q_returns.put(
+                        [
+                            data,
+                            polygons_updated,
+                        ]
                     )
-                field_name, field = data
-                set_return = code_.setInputMEDDoubleField(field_name, field)
-                q_returns.put(set_return)
 
-            elif task == SlaveCommand.SET_TIME:
-                time_ = data[0]
-                if not isinstance(code_, IcocoInterface):
-                    raise TypeError(
-                        f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                elif task == SlaveCommand.GET_VALUE_DICT:
+                    if not isinstance(code_, Geometry2D):
+                        raise TypeError(
+                            f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
+                        )
+                    set_return = code_.get_value_dict(*data)
+                    q_returns.put(set_return)
+
+
+                #   ValueAtLocation functions
+                elif task == SlaveCommand.GET_VALUE:
+                    if not isinstance(code_, ValueAtLocation):
+                        raise TypeError(
+                            f"The requested panel is not associated to an ValueAtLocation, found class {type(code_)}."
+                        )
+                    set_return = code_.get_value(*data)
+                    q_returns.put(set_return)
+
+                elif task == SlaveCommand.GET_VALUES:
+                    if not isinstance(code_, ValueAtLocation):
+                        raise TypeError(
+                            f"The requested panel is not associated to an ValueAtLocation, found class {type(code_)}."
+                        )
+                    set_return = code_.get_values(*data)
+                    q_returns.put(set_return)
+
+
+                #   Value1DAtLocation functions
+                elif task == SlaveCommand.GET_1D_VALUE:
+                    if not isinstance(code_, Value1DAtLocation):
+                        raise TypeError(
+                            f"The requested panel is not associated to an Value1DAtLocation, found class {type(code_)}."
+                        )
+                    input_list = code_.get_1D_value(*data)
+                    q_returns.put(input_list)
+
+
+                #   OverLine functions
+                elif task == SlaveCommand.GET_1D_VALUE:
+                    if not isinstance(code_, OverLine):
+                        raise TypeError(
+                            f"The requested panel is not associated to an OverLine, found class {type(code_)}."
+                        )
+                    input_list = code_.compute_1D_line_data(*data)
+                    q_returns.put(input_list)
+
+
+                #   ICOCOInterface functions
+                elif task == SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE:
+                    if not isinstance(code_, IcocoInterface):
+                        raise TypeError(
+                            f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                        )
+                    field_name = data
+                    field_template: "medcoupling.MEDCouplingFieldDouble" = (
+                        code_.getInputMEDDoubleFieldTemplate(field_name)
                     )
-                set_return = code_.setTime(time_)
-                q_returns.put(set_return)
+                    q_returns.put(field_template)
 
-            elif task == SlaveCommand.SET_INPUT_DOUBLE_VALUE:
-                name, val = data
-                if not isinstance(code_, IcocoInterface):
-                    raise TypeError(
-                        f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
-                    )
-                set_return = code_.setInputDoubleValue(name, val)
-                q_returns.put(set_return)
+                elif task == SlaveCommand.SET_INPUT_MED_DOUBLEFIELD:
+                    if not isinstance(code_, IcocoInterface):
+                        raise TypeError(
+                            f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                        )
+                    field_name, field = data
+                    set_return = code_.setInputMEDDoubleField(field_name, field)
+                    q_returns.put(set_return)
 
-            elif task == SlaveCommand.GET_COLORING_MODE:
-                field_name = data
-                set_return = code_.get_label_coloring_mode(field_name)
-                q_returns.put(set_return)
+                elif task == SlaveCommand.SET_TIME:
+                    time_ = data[0]
+                    if not isinstance(code_, IcocoInterface):
+                        raise TypeError(
+                            f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                        )
+                    set_return = code_.setTime(time_)
+                    q_returns.put(set_return)
 
-            elif task == SlaveCommand.GET_VALUE_DICT:
-                if not isinstance(code_, Geometry2D):
-                    raise TypeError(
-                        f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
-                    )
-                set_return = code_.get_value_dict(*data)
-                q_returns.put(set_return)
+                elif task == SlaveCommand.SET_INPUT_DOUBLE_VALUE:
+                    name, val = data
+                    if not isinstance(code_, IcocoInterface):
+                        raise TypeError(
+                            f"The requested panel is not associated to an IcocoInterface, found class {type(code_)}."
+                        )
+                    set_return = code_.setInputDoubleValue(name, val)
+                    q_returns.put(set_return)
 
 
-        else:
-            time.sleep(0.1)
+            else:
+                time.sleep(0.1)
+
+    except Exception as e:
+        q_errors.put(e)
 
 
 class ComputeSlave:
@@ -401,11 +457,14 @@ class ComputeSlave:
 
         self.q_tasks = mp.Queue()
         self.q_returns = mp.Queue()
+        self.q_errors = mp.Queue()
         self.p = mp.Process(
-            target=worker, args=(self.q_tasks, self.q_returns, self.code_interface)
+            target=worker, 
+            args=(self.q_tasks, self.q_returns, self.q_errors, self.code_interface)
         )
         self.p.start()
 
+    #   GenericInterface functions
     def read_file(self, file_path: str, file_label: str):
         """Forwards to the worker a file path to read and its associated label
 
@@ -421,10 +480,10 @@ class ComputeSlave:
 
         self.file_read.append((str(file_path), file_label))
 
-        function_return = self.q_returns.get()
+        function_return = self.get_result_or_error()
         assert function_return == "OK"
 
-    def get_label_list(
+    def get_labels(
         self,
     ) -> List[str]:
         """Get from the interface the list of displayable labels (fields list)
@@ -434,10 +493,27 @@ class ComputeSlave:
         List[str]
             List of labels
         """
-        self.q_tasks.put([SlaveCommand.GET_LABEL_LIST, None])
+        self.q_tasks.put([SlaveCommand.GET_LABELS, None])
 
-        return self.q_returns.get()
+        return self.get_result_or_error()
 
+    def get_label_coloring_mode(self, field_name: str) -> VisualizationMode:
+        """Returns the coloring mode of the plot
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the displayed field
+
+        Returns
+        -------
+        VisualizationMode
+            Coloring mode
+        """
+        self.q_tasks.put([SlaveCommand.GET_LABEL_COLORING_MODE, field_name])
+
+        return self.get_result_or_error()
+    
     def get_file_input_list(
         self,
     ) -> List[Tuple[str, str]]:
@@ -450,9 +526,9 @@ class ComputeSlave:
         """
         self.q_tasks.put([SlaveCommand.GET_FILE_INPUT_LIST, None])
 
-        return self.q_returns.get()
+        return self.get_result_or_error()
 
-    def get_options(self) -> List[OptionElement]:
+    def get_options_list(self) -> List[OptionElement]:
         """Get from the interface the list of options to add to the bounds ribbon.
 
         Returns
@@ -460,50 +536,11 @@ class ComputeSlave:
         List[OptionElement]
             List of options
         """
-        self.q_tasks.put([SlaveCommand.GET_OPTIONS, None])
+        self.q_tasks.put([SlaveCommand.GET_OPTIONS_LIST, None])
 
-        return self.q_returns.get()
+        return self.get_result_or_error()
 
-    def get_1D_value(
-        self,
-        position: Tuple[float, float, float],
-        volume_index: str,
-        material_name: str,
-        field: str,
-    ) -> Union[pd.Series, List[pd.Series]]:
-        """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
-
-        Parameters
-        ----------
-        position : Tuple[float, float, float]
-            Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
-        material_name : str
-            Name of the requested material
-        field : str
-            Requested field name
-
-        Returns
-        -------
-        Union[pd.Series, List[pd.Series]]
-            Field value
-        """
-        self.q_tasks.put(
-            [
-                SlaveCommand.COMPUTE_1D,
-                [
-                    position,
-                    volume_index,
-                    material_name,
-                    field,
-                ],
-            ]
-        )
-
-        data = self.q_returns.get()
-        return data
-    
+    #   Geometry2D functions
     def compute_2D_data(
         self,
         u: Tuple[float, float, float],
@@ -560,7 +597,7 @@ class ComputeSlave:
         """
         self.q_tasks.put(
             [
-                SlaveCommand.COMPUTE_2D,
+                SlaveCommand.COMPUTE_2D_DATA,
                 [
                     u,
                     v,
@@ -579,8 +616,247 @@ class ComputeSlave:
             ]
         )
 
-        data = self.q_returns.get()
-        return data
+        return self.get_result_or_error()
+    
+    def get_value_dict(self, field_name: str) -> VisualizationMode:
+        """Returns the coloring mode of the plot
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the displayed field
+
+        Returns
+        -------
+        VisualizationMode
+            Coloring mode
+        """
+        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, field_name])
+
+        return self.get_result_or_error()
+
+
+    #   ValueAtLocation functions
+    def get_value(
+        self,
+        position: Tuple[float, float, float],
+        volume_index: str,
+        material_name: str,
+        field: str,
+    ) -> Union[str, float]:
+        """Provides the result value of a field from either the (x, y, z) position, the volume index, or the material name.
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Position at which the value is requested
+        volume_index : str
+            Index of the requested volume
+        material_name : str
+            Name of the requested material
+        field : str
+            Requested field name
+
+        Returns
+        -------
+        Union[str, float]
+            Field value
+        """
+        self.q_tasks.put(
+            [
+                SlaveCommand.GET_VALUE,
+                [
+                    position,
+                    volume_index,
+                    material_name,
+                    field,
+                ],
+            ]
+        )
+
+        return self.get_result_or_error()
+
+    def get_values(
+        self,
+        positions: List[Tuple[float, float, float]],
+        volume_indexes: List[str],
+        material_names: List[str],
+        field: str,
+    ) -> List[Union[str, float]]:
+        """Provides the result values at different positions from either the (x, y, z) positions, the volume indexes, or the material names.
+
+        Parameters
+        ----------
+        positions : List[Tuple[float, float, float]]
+            List of position at which the value is requested
+        volume_indexes : List[str]
+            Indexes of the requested volumes
+        material_names : List[str]
+            Names of the requested materials
+        field : str
+            Requested field name
+
+        Returns
+        -------
+        List[Union[str, float]]
+            Field values
+        """
+        self.q_tasks.put(
+            [
+                SlaveCommand.GET_VALUES,
+                [
+                    positions,
+                    volume_indexes,
+                    material_names,
+                    field,
+                ],
+            ]
+        )
+
+        return self.get_result_or_error()
+
+
+    #   Value1DAtLocation functions
+    def get_1D_value(
+        self,
+        position: Tuple[float, float, float],
+        volume_index: str,
+        material_name: str,
+        field: str,
+    ) -> Union[pd.Series, List[pd.Series]]:
+        """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
+
+        Parameters
+        ----------
+        position : Tuple[float, float, float]
+            Position at which the value is requested
+        volume_index : str
+            Index of the requested volume
+        material_name : str
+            Name of the requested material
+        field : str
+            Requested field name
+
+        Returns
+        -------
+        Union[pd.Series, List[pd.Series]]
+            Field value
+        """
+        self.q_tasks.put(
+            [
+                SlaveCommand.GET_1D_VALUE,
+                [
+                    position,
+                    volume_index,
+                    material_name,
+                    field,
+                ],
+            ]
+        )
+
+        return self.get_result_or_error()
+    
+    #   OverLine functions
+    def compute_1D_line_data(
+        self,
+        pos: Tuple[float, float, float],
+        u: Tuple[float, float, float],
+        d: float,
+        q_tasks: mp.Queue,
+        options: Dict[str, Any],
+    ) -> pd.DataFrame:
+        """Returns a list of polygons that defines the geometry in a given frame
+
+        Parameters
+        ----------
+        pos : Tuple[float, float, float]
+            1D data line start location
+        u : Tuple[float, float, float]
+            Data line direction vector
+        d : float
+            Distance to travel by the 1D line
+        q_tasks : mp.Queue
+            Queue from which get orders from the master.
+        options : Dict[str, Any]
+            Additional options for frame computation.
+
+        Returns
+        -------
+        pd.DataFrame
+            Pandas dataframe containing the data
+        """
+        self.q_tasks.put(
+            [
+                SlaveCommand.COMPUTE_1D_LINE_DATA,
+                [
+                    pos,
+                    u,
+                    d,
+                    q_tasks,
+                    options,
+                ],
+            ]
+        )
+
+        return self.get_result_or_error()
+    
+    #   ICOCOInterface functions
+    def getInputMEDDoubleFieldTemplate(
+        self, fieldName: str
+    ) -> "medcoupling.MEDCouplingFieldDouble":
+        """Returns the med template in which cast the field set.
+
+        Parameters
+        ----------
+        fieldName: str
+            Field name
+        """
+        self.q_tasks.put([SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE, fieldName])
+
+        return self.get_result_or_error()
+
+    def setInputMEDDoubleField(
+        self, fieldName: str, aField: "medcoupling.MEDCouplingFieldDouble"
+    ):
+        """Updates a field in the interface.
+
+        Parameters
+        ----------
+        fieldName: str
+            Field name
+        aField : medcoupling.MEDCouplingFieldDouble
+            New field value
+        """
+        self.q_tasks.put([SlaveCommand.SET_INPUT_MED_DOUBLEFIELD, [fieldName, aField]])
+
+        return self.get_result_or_error()
+
+    def setInputDoubleValue(self, name: str, val: float):
+        """Set the current time in an interface to associate to the received value.
+
+        Parameters
+        ----------
+        name : str
+            Name associated to the set value
+        time : float
+            Current time
+        """
+        self.q_tasks.put([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
+
+        return self.get_result_or_error()
+
+    def setTime(self, time_:float):
+        """Set the current time in an interface to associate to the received value.
+
+        Parameters
+        ----------
+        time_ : float
+            Current time
+        """
+        self.q_tasks.put([SlaveCommand.SET_TIME, [time_]])
+
+        return self.get_result_or_error()
+
 
     def duplicate(
         self,
@@ -601,101 +877,34 @@ class ComputeSlave:
 
         return duplicata
 
-    def getInputMEDDoubleFieldTemplate(
-        self, fieldName: str
-    ) -> "medcoupling.MEDCouplingFieldDouble":
-        """Returns the med template in which cast the field set.
-
-        Parameters
-        ----------
-        fieldName: str
-            Field name
-        """
-        self.q_tasks.put([SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE, fieldName])
-
-        return self.q_returns.get()
-
-    def setInputMEDDoubleField(
-        self, fieldName: str, aField: "medcoupling.MEDCouplingFieldDouble"
-    ):
-        """Updates a field in the interface.
-
-        Parameters
-        ----------
-        fieldName: str
-            Field name
-        aField : medcoupling.MEDCouplingFieldDouble
-            New field value
-        """
-        self.q_tasks.put([SlaveCommand.SET_INPUT_MED_DOUBLEFIELD, [fieldName, aField]])
-
-        return self.q_returns.get()
-
-    def setInputDoubleValue(self, name: str, val: float):
-        """Set the current time in an interface to associate to the received value.
-
-        Parameters
-        ----------
-        name : str
-            Name associated to the set value
-        time : float
-            Current time
-        """
-        self.q_tasks.put([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
-
-        return self.q_returns.get()
-
-    def setTime(self, time_:float):
-        """Set the current time in an interface to associate to the received value.
-
-        Parameters
-        ----------
-        time_ : float
-            Current time
-        """
-        self.q_tasks.put([SlaveCommand.SET_TIME, [time_]])
-
-        return self.q_returns.get()
-
-    def get_value_dict(self, field_name: str) -> VisualizationMode:
-        """Returns the coloring mode of the plot
-
-        Parameters
-        ----------
-        field_name : str
-            Name of the displayed field
-
-        Returns
-        -------
-        VisualizationMode
-            Coloring mode
-        """
-        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, field_name])
-
-        return self.q_returns.get()
-
-    def get_label_coloring_mode(self, field_name: str) -> VisualizationMode:
-        """Returns the coloring mode of the plot
-
-        Parameters
-        ----------
-        field_name : str
-            Name of the displayed field
-
-        Returns
-        -------
-        VisualizationMode
-            Coloring mode
-        """
-        self.q_tasks.put([SlaveCommand.GET_COLORING_MODE, field_name])
-
-        return self.q_returns.get()
-
     def terminate(
         self,
     ):
         """Terminates the subprocess"""
         self.p.terminate()
+
+    def get_result_or_error(self):
+        """Gets the return value from the process. If an error was sent, raise the error instead.
+
+        Returns
+        -------
+        Any
+            Any returned data from the process
+
+        Raises
+        ------
+        error
+            Any error sent by the slave
+        """
+        while (self.q_errors.empty() and self.q_returns.empty()):
+            time.sleep(0.1)
+
+        if not self.q_errors.empty():
+            error = self.q_errors.get()
+            self.terminate()
+            raise error
+        else:
+            return self.q_returns.get()
 
 
 if __name__ == "__main__":
