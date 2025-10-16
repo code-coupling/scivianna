@@ -1,3 +1,4 @@
+import atexit
 import numpy as np
 import os
 import multiprocessing as mp
@@ -464,6 +465,12 @@ class ComputeSlave:
         )
         self.p.start()
 
+        def terminate_process():
+            self.terminate()
+
+        atexit.register(terminate_process)
+        
+
     #   GenericInterface functions
     def read_file(self, file_path: str, file_label: str):
         """Forwards to the worker a file path to read and its associated label
@@ -881,7 +888,9 @@ class ComputeSlave:
         self,
     ):
         """Terminates the subprocess"""
-        self.p.terminate()
+        print(f"Terminating process of slave {self.code_interface.__name__}")
+        if self.p is not None and not self.p._closed:
+            self.p.terminate()
 
     def get_result_or_error(self):
         """Gets the return value from the process. If an error was sent, raise the error instead.
