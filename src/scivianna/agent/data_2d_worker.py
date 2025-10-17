@@ -2,8 +2,9 @@
 from pathlib import Path
 import os
 import numpy as np
+import numpy
 from scivianna.data import Data2D
-from smolagents import tool, Tool, CodeAgent, OpenAIServerModel
+from smolagents import tool, Tool, CodeAgent, OpenAIServerModel, ToolCallingAgent, PythonInterpreterTool
 
 def get_env_variable(var_name: str) -> str:
     """
@@ -36,6 +37,12 @@ class FinalAnswerTool(Tool):
         Code to the given problem.
         """
         return {"code_is_ok": code_is_ok, "code": code}
+
+    # try:
+    #     int(final_answer)
+    #     return True
+    # except ValueError:
+    #     return False
 
 class Data2DWorker:
     """Worker that receives a Data2D object and works with it. """
@@ -94,11 +101,26 @@ class Data2DWorker:
             return self.reset()
         
         @tool
-        def get_numpy():
+        def get_numpy() -> numpy:
             """Returns the numpy module
             """
             return self.get_numpy()
-        
+            
+        # def execute_code(code_to_execute:str):
+        #     context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
+        #     print("try exe :", context_string+"\n"+code_to_execute)
+        #     exec(context_string+"\n"+code_to_execute)
+
+        # def code_is_ok(final_answer: dict, agent_memory=None) -> bool:
+        #     """Execute code in final_answer for check if exe is OK."""
+        #     print("on est dans le check\n ***debug code", final_answer, final_answer["code"], "\n end debug")
+        #     try:
+        #         execute_code(final_answer["code"])
+        #         return True
+        #     except Exception as e:
+        #         print(f"An error occurred: {e}")
+        #         return False
+
         self.aiServer = OpenAIServerModel(model_id = llm_model_id,
                                           api_base = llm_api_base,
                                           api_key = llm_api_key)
@@ -106,14 +128,25 @@ class Data2DWorker:
         with open(Path(__file__).parent / "instructions.md", "r") as f:
             instructions = f.read()
 
+        # self.smoll_agent = CodeAgent(
+        #                 tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
         self.smoll_agent = CodeAgent(
                         tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
+                        # final_answer_checks=[code_is_ok],
                         model=self.aiServer, 
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
                         instructions=instructions,
                         use_structured_outputs_internally=True,
                         planning_interval=None)
+
+        # self.smoll_agent = ToolCallingAgent(
+        #                 tools=[PythonInterpreterTool(authorized_imports = [check_valid, get_values, set_alpha, reset, get_numpy, "numpy"]), FinalAnswerTool()],  # List of tools available to the agent
+        #                 model=self.aiServer, 
+        #                 verbosity_level=2,  # Show detailed agent reasoning
+        #                 instructions=instructions,
+        #                 planning_interval=None)        
+
     
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
 
@@ -129,10 +162,6 @@ class Data2DWorker:
             print("agent fail!!!")
             agent_output = {"code_is_ok":False, "code":""}
             return agent_output['code_is_ok'], agent_output['code']
-
-    def execute_code(self, code_to_execute:str):
-        context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
-        exec(context_string+"\n"+code_to_execute)
 
     def has_changed(self,) -> bool:
         """Tells if the data_2d was changed by the agent
@@ -205,6 +234,7 @@ class Data2DWorker:
 
 
 if __name__ == "__main__":
+    
     from pathlib import Path
 
     # Field example
@@ -237,11 +267,10 @@ if __name__ == "__main__":
     for i in range(10):
         dw = Data2DWorker(data_2d)
         code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
+        # code_is_ok, code = dw("color in red the highest value cell.")
         ag_codes.append((code_is_ok, code))
         if code_is_ok:
             win +=1
-
-    print(f"ratio win: {win*10}%")
 
     for code_is_ok, code in ag_codes:
         print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
@@ -249,6 +278,10 @@ if __name__ == "__main__":
     """     data_2d est maintenant parfait
     """
 
-    plotter = Matplotlib2DPolygonPlotter()
-    plotter.plot_2d_frame(dw.data2d)
-    plotter.figure.savefig("my_plot.png")
+    print(f"ratio win: {win*10}%")
+
+    # plotter = Matplotlib2DPolygonPlotter()
+    # plotter.plot_2d_frame(dw.data2d)
+    # plotter.figure.savefig("my_plot.png")
+
+    # LLM_MODEL_ID=gpt-oss:20b or qwen3:30b
