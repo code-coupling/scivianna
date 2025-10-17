@@ -63,7 +63,8 @@ setup(
         "holoviews",
         "icoco~=2.0.0",
         "panel_material_ui",
-        "geopandas"
+        "geopandas",
+        "dill"
     ],
     extras_require={
         "pyvista": [
