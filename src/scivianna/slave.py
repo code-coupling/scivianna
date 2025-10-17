@@ -3,6 +3,7 @@ import numpy as np
 import os
 import multiprocessing as mp
 import dill
+import traceback
 
 import time
 import pandas as pd
@@ -417,6 +418,7 @@ def worker(
                 time.sleep(0.1)
 
     except Exception as e:
+        traceback.print_exc()
         q_errors.put(e)
 
 
@@ -924,7 +926,7 @@ class ComputeSlave:
             return
         
         if not self.q_errors.empty():
-            error = self.q_errors.get()
+            error:Exception = self.q_errors.get()
             self.terminate()
             raise error
         else:
