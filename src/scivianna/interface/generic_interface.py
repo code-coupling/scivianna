@@ -92,6 +92,29 @@ class GenericInterface:
         """
         return []
     
+    @classmethod
+    def serialize(self, obj: Any, key: str) -> Any:
+        """This function receives an object that is about to be transmitted at the given key.
+        -   If the object can be passed through a python multiprocessing Queue, it can be returned.
+        -   If the object can't, it is serialized, and the code returns the file path.
+
+        The read function will then be able to expect the returned object at the given key.
+
+        By default, this class returns the obj, if the cobject can't be passed, overwrite this function.
+
+        Parameters
+        ----------
+        obj : Any
+            Object that is sent to the generic interface
+        key : str
+            Key associated to the object
+
+        Returns
+        -------
+        Any
+            Object transmissible through a multiprocessing Queue associated to the given object.
+        """
+        return obj
 
 
 class Geometry2D(GenericInterface):

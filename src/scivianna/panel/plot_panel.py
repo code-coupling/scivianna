@@ -109,9 +109,6 @@ class VisualizationPanel:
             Widget To send the input file
         """
 
-        if not os.path.isdir("jdd"):
-            os.makedirs("jdd")
-
         self.file_browsers: Dict[str, ServerFileBrowser] = {}
         load_files_label = """
             Load input files

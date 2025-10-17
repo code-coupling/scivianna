@@ -2,6 +2,7 @@ import atexit
 import numpy as np
 import os
 import multiprocessing as mp
+import dill
 
 import time
 import pandas as pd
@@ -446,7 +447,9 @@ class ComputeSlave:
         """ List of file read and their associated key.
         """
 
+        self.running = False
         self.reset()
+        
 
     def reset(
         self,
@@ -464,6 +467,7 @@ class ComputeSlave:
             args=(self.q_tasks, self.q_returns, self.q_errors, self.code_interface)
         )
         self.p.start()
+        self.running = True
 
         def terminate_process():
             self.terminate()
@@ -483,9 +487,17 @@ class ComputeSlave:
             File label
         """
         print("Reading file", file_path)
-        self.q_tasks.put((SlaveCommand.READ_FILE, [str(file_path), file_label]))
+        file_path = self.code_interface.serialize(file_path, file_label)
 
-        self.file_read.append((str(file_path), file_label))
+        unpicklables = dill.detect.baditems(file_path)
+
+        if len(unpicklables) > 0:
+            self.running = False
+            raise TypeError(f"Found unpicklable item to send to the interface : {unpicklables[0]}.\nPlease redefine the {self.code_interface.__name__} serialize function to handle this error.")
+
+        self.q_tasks.put((SlaveCommand.READ_FILE, [file_path, file_label]))
+        
+        self.file_read.append((file_path, file_label))
 
         function_return = self.get_result_or_error()
         assert function_return == "OK"
@@ -888,6 +900,7 @@ class ComputeSlave:
         self,
     ):
         """Terminates the subprocess"""
+        self.running = False
         if self.p is not None and not self.p._closed:
             self.p.terminate()
 
@@ -904,9 +917,12 @@ class ComputeSlave:
         error
             Any error sent by the slave
         """
-        while (self.q_errors.empty() and self.q_returns.empty()):
+        while (not self.p._closed) and (self.q_errors.empty() and self.q_returns.empty()):
             time.sleep(0.1)
 
+        if not self.running:
+            return
+        
         if not self.q_errors.empty():
             error = self.q_errors.get()
             self.terminate()

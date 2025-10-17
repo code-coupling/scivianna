@@ -76,6 +76,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             if profile_time:
                 start_time = time.time()
             print("File to read", file_path)
+
+            file_path = str(file_path)
             self.file_path = file_path
 
             if not os.path.isfile(file_path):
