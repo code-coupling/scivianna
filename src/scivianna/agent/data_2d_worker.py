@@ -231,6 +231,17 @@ class Data2DWorker:
         """
         return np
     
+    def execute_code(self, code_to_execute:str):
+        """Applies a code string to the current object. Used to repeat an already processed prompt.
+
+        Parameters
+        ----------
+        code_to_execute : str
+            Code to execute in the Data2DWorker
+        """
+        context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
+        exec(context_string+"\n"+code_to_execute)
+
 
 
 if __name__ == "__main__":
@@ -262,26 +273,24 @@ if __name__ == "__main__":
     )
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
 
-    win = 0
-    ag_codes = []
-    for i in range(10):
-        dw = Data2DWorker(data_2d)
-        code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
-        # code_is_ok, code = dw("color in red the highest value cell.")
-        ag_codes.append((code_is_ok, code))
-        if code_is_ok:
-            win +=1
+    if False:
+        win = 0
+        ag_codes = []
+        for i in range(10):
+            dw = Data2DWorker(data_2d)
+            code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
+            # code_is_ok, code = dw("color in red the highest value cell.")
+            ag_codes.append((code_is_ok, code))
+            if code_is_ok:
+                win +=1
 
-    for code_is_ok, code in ag_codes:
-        print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
+        for code_is_ok, code in ag_codes:
+            print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
 
-    """     data_2d est maintenant parfait
-    """
+        print(f"ratio win: {win*10}%")
 
-    print(f"ratio win: {win*10}%")
-
-    # plotter = Matplotlib2DPolygonPlotter()
-    # plotter.plot_2d_frame(dw.data2d)
-    # plotter.figure.savefig("my_plot.png")
-
-    # LLM_MODEL_ID=gpt-oss:20b or qwen3:30b
+    dw = Data2DWorker(data_2d)
+    code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
+    plotter = Matplotlib2DPolygonPlotter()
+    plotter.plot_2d_frame(dw.data2d)
+    plotter.figure.savefig("my_plot.png")

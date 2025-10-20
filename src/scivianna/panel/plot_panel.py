@@ -684,17 +684,14 @@ class VisualizationPanel:
                 self.current_data:Data2D = self.__new_data["data"]
 
                 if self.llm_code != "":
-                    data_worker = Data2DWorker(self.current_data)
+                    data_worker = Data2DWorker(self.current_data.copy())
                     try:
-                        print("Executing :", self.llm_code)
                         data_worker.execute_code(self.llm_code)
-                        self.current_data = data_worker.data2d
+                        self.current_data = data_worker.data2d.copy()
                     except Exception as e:
                         print("Execution failed, got error ", e)
-                        self.current_data = data_worker.data2d_save
+                        self.current_data = data_worker.data2d_save.copy()
 
-
-                self.current_data: Data2D = self.__new_data["data"]
                 if not self.update_polygons:
                     self.plotter.update_colors(self.current_data)
                 else:
