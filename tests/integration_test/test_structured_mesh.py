@@ -20,7 +20,7 @@ class CarthesianInterface(StructuredMeshInterface):
         file_label : str
             Label to define the file type
         """
-        size = 7
+        size = 100
         self.mesh = CarthesianStructuredMesh(
             np.linspace(0, 4, size),
             np.linspace(0, 4, size),
@@ -167,11 +167,18 @@ def test_plot_spherical():
     assert True
 
 if __name__ == "__main__":
-    print("Testing carthesian")
-    test_plot_carthesian()
+    # print("Testing carthesian")
+    # test_plot_carthesian()
 
-    print("Testing cylindrical")
-    test_plot_cylindrical()
+    # print("Testing cylindrical")
+    # test_plot_cylindrical()
 
-    print("Testing spherical")
-    test_plot_spherical()
+    # print("Testing spherical")
+    # test_plot_spherical()
+
+    from scivianna.panel.plot_panel import VisualizationPanel
+    from scivianna.notebook_tools import _serve_panel
+
+    slave = ComputeSlave(CarthesianInterface)
+    slave.read_file("", "")
+    _serve_panel(VisualizationPanel(slave))

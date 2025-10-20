@@ -557,7 +557,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         if "i" in self.source_mouse.data:
             i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
 
-            if pn.state.curdoc is not None:
+            if self.highlight and (pn.state.curdoc is not None):
                 pn.state.curdoc.add_timeout_callback(functools.partial(self.update_plot_after_mouse_move, i = i, j = j), 250)
 
     def update_plot_after_mouse_move(self, i:int, j:int):
@@ -643,3 +643,13 @@ class Bokeh2DGridPlotter(Plotter2D):
         new_data["w"]  = [w]
 
         self.source_coordinates.update(data = new_data)
+
+    def enable_highlight(self, enable: bool = True):
+        """Enable hover highlight
+
+        Parameters
+        ----------
+        enable : bool, optional
+            Highlight enabled, by default True
+        """
+        self.highlight = enable

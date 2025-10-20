@@ -144,7 +144,7 @@ class VisualizationPanel:
 
         for name, description in file_input_list:
             self.file_browsers[name] = ServerFileBrowser(
-                name=name
+                name=str(name)
             )
             self.file_browsers[name].param.watch(functools.partial(load_file, browser_name=name), "selected_file")
 
@@ -444,6 +444,20 @@ class VisualizationPanel:
             file_loader_list.append(pn.pane.Markdown(f"{fi} file browser", margin=(0, 0, 0, 0)))
             file_loader_list.append(self.file_browsers[fi])
 
+        self.highligh_box = pn.widgets.Checkbox(name="Highlight hover", value = True)
+
+        def toggle_highlight(_):
+            """Enable hover highlight in the plotter
+
+            Parameters
+            ----------
+            _ : Event
+                Bokeh event
+            """
+            self.plotter.enable_highlight(self.highligh_box.value)
+
+        self.highligh_box.param.watch(toggle_highlight, "value")
+
         self.side_bar = pn.layout.WidgetBox(
             # File loaders
             pn.Card(
@@ -461,6 +475,7 @@ class VisualizationPanel:
                 pn.Column(
                     self.field_color_selector,
                     self.center_colormap_on_zero_tick,
+                    self.highligh_box,
                 ),
                 title=select_coloring_label,
                 width=350,

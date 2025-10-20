@@ -34,6 +34,9 @@ import os
 class Bokeh2DPolygonPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
 
+    hovered_glyph: bokeh.models.renderers.glyph_renderer.GlyphRenderer = None
+    glyph: bokeh.models.renderers.glyph_renderer.GlyphRenderer = None
+
     def __init__(
         self,
     ):
@@ -527,3 +530,41 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         new_data["w"]  = [w]
 
         self.source_coordinates.update(data = new_data)
+
+    @pn.io.hold()
+    def enable_highlight(self, enable: bool = True):
+        """Enable hover highlight
+
+        Parameters
+        ----------
+        enable : bool, optional
+            Highlight enabled, by default True
+        """
+        # if enable:
+            # self.glyph.hover_glyph = self.glyph.glyph.copy()
+        # self.glyph.hover_glyph.fill_alpha = (0.6 if enable else 1.)
+        # else:
+        #     self.glyph.hover_glyph = None
+
+        if enable:
+            if self.glyph is not None:
+                self.glyph.visible = False
+
+            self.hovered_glyph.visible = True
+            self.hover_tool.renderers = [self.hovered_glyph]
+        else:
+            self.hovered_glyph.visible = False
+
+            if self.glyph is None:
+                self.glyph = self.figure.multi_polygons(
+                    xs=XS,
+                    ys=YS,
+                    line_width = self.line_width,
+                    source=self.source_polygons,
+                    color=COLORS,
+                    line_color=EDGE_COLORS,
+                )
+            else:
+                self.glyph.visible = True
+
+            self.hover_tool.renderers = [self.glyph]
