@@ -2,29 +2,29 @@ import matplotlib.pyplot as plt
 import matplotlib.axes
 from matplotlib.patches import Patch
 from matplotlib.colors import to_rgb
+import numpy as np
 
-from scivianna.slave import ComputeSlave
+from typing import Dict, Tuple, Any, Union
 
-from typing import Dict, Tuple, Any
-
+from scivianna.interface.generic_interface import Geometry2D
+from scivianna.slave import ComputeSlave, set_colors_list
 from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 from scivianna.utils.color_tools import get_edges_colors
 from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.enums import VisualizationMode
-
-import numpy as np
+from scivianna.constants import X, Y
 
 
 def plot_frame_in_axes(
-    slave: ComputeSlave,
-    u: Tuple[float, float, float],
-    v: Tuple[float, float, float],
-    u_min: float,
-    u_max: float,
-    v_min: float,
-    v_max: float,
+    slave: Union[ComputeSlave, Geometry2D],
     coloring_label: str,
     axes: matplotlib.axes.Axes,
+    u: Tuple[float, float, float] = X,
+    v: Tuple[float, float, float] = Y,
+    u_min: float = 0.,
+    u_max: float = 1.,
+    v_min: float = 0.,
+    v_max: float = 1.,
     u_steps: int = 0,
     v_steps: int = 0,
     w_value: float = 0.0,
@@ -35,33 +35,33 @@ def plot_frame_in_axes(
     rename_values: Dict[str, Dict[str, str]] = {},
     legend_options: Dict[str, Any] = {},
 ):
-    """Plots a geometry in a matplotlib axes object from an already initialized compute slave
+    """Creates a figure and plots a geometry in it from an already initialized compute slave
 
     Parameters
     ----------
-    slave : ComputeSlave
-        Slave from which get the geometry polygons
-    u : Tuple[float, float, float]
-        Horizontal coordinate director vector
-    v : Tuple[float, float, float]
-        Vertical coordinate director vector
-    u_min : float
-        Lower bound value along the u axis
-    u_max : float
-        Upper bound value along the u axis
-    v_min : float
-        Lower bound value along the v axis
-    v_max : float
-        Upper bound value along the v axis
+    slave : Union[ComputeSlave, Geometry2D]
+        Slave from which get the geometry polygons or Geometry2D interface object
     coloring_label : str
         Field to display in the plot
     axes : matplotlib.axes.Axes
         matplotlib axis object (obtainable from a plt.subplot call)
-    u_steps : int
+    u : Tuple[float, float, float], optional
+        Horizontal coordinate director vector, by default X
+    v : Tuple[float, float, float], optional
+        Vertical coordinate director vector, by default Y
+    u_min : float, optional
+        Lower bound value along the u axis, by default 0.
+    u_max : float, optional
+        Upper bound value along the u axis, by default 1.
+    v_min : float, optional
+        Lower bound value along the v axis, by default 0.
+    v_max : float, optional
+        Upper bound value along the v axis, by default 1.
+    u_steps : int, optional
         Number of points along the u axis, by default "BuRd"
-    v_steps : int
+    v_steps : int, optional
         Number of points along the v axis, by default "BuRd"
-    w_value : float
+    w_value : float, optional
         Value along the u ^ v axis, by default "BuRd"
     color_map : str, optional
         Colormap used to color the polygons, by default "BuRd"
@@ -83,23 +83,53 @@ def plot_frame_in_axes(
         where MATERIAL is a displayed field name, and iron/water are its values. This parameter is only used for string based field.
     legend_options : Dict[str, Any]
         Dictionnary of options provided when creating the legend
-    """
 
-    data, _ = slave.compute_2D_data(
-        u=u,
-        v=v,
-        u_min=u_min,
-        u_max=u_max,
-        v_min=v_min,
-        v_max=v_max,
-        u_steps=u_steps,
-        v_steps=v_steps,
-        w_value=w_value,
-        coloring_label=coloring_label,
-        color_map=color_map,
-        center_colormap_on_zero=False,
-        options=options,
-    )
+    Returns
+    ----------
+        plt.Figure
+            Figure containing the axes
+        matplotlib.axes.Axes
+            Axes in which the geometry was plotted
+    """
+    if isinstance(slave, Geometry2D):
+        data, _ = slave.compute_2D_data(
+            u=u,
+            v=v,
+            u_min=u_min,
+            u_max=u_max,
+            v_min=v_min,
+            v_max=v_max,
+            u_steps=u_steps,
+            v_steps=v_steps,
+            w_value=w_value,
+            q_tasks=None,
+            options=options,
+        )
+
+        set_colors_list(
+            data,
+            slave,
+            coloring_label,
+            color_map,
+            False,
+            options,
+        )
+    else:
+        data, _ = slave.compute_2D_data(
+            u=u,
+            v=v,
+            u_min=u_min,
+            u_max=u_max,
+            v_min=v_min,
+            v_max=v_max,
+            u_steps=u_steps,
+            v_steps=v_steps,
+            w_value=w_value,
+            coloring_label=coloring_label,
+            color_map=color_map,
+            center_colormap_on_zero=False,
+            options=options,
+        )
 
     pw = PolygonSorter()
     pw.sort_from_value(
@@ -197,14 +227,14 @@ def plot_frame_in_axes(
 
 
 def plot_frame(
-    slave: ComputeSlave,
-    u: Tuple[float, float, float],
-    v: Tuple[float, float, float],
-    u_min: float,
-    u_max: float,
-    v_min: float,
-    v_max: float,
+    slave: Union[ComputeSlave, Geometry2D],
     coloring_label: str,
+    u: Tuple[float, float, float] = X,
+    v: Tuple[float, float, float] = Y,
+    u_min: float = 0.,
+    u_max: float = 1.,
+    v_min: float = 0.,
+    v_max: float = 1.,
     u_steps: int = 0,
     v_steps: int = 0,
     w_value: float = 0.0,
@@ -219,27 +249,27 @@ def plot_frame(
 
     Parameters
     ----------
-    slave : ComputeSlave
-        Slave from which get the geometry polygons
-    u : Tuple[float, float, float]
-        Horizontal coordinate director vector
-    v : Tuple[float, float, float]
-        Vertical coordinate director vector
-    u_min : float
-        Lower bound value along the u axis
-    u_max : float
-        Upper bound value along the u axis
-    v_min : float
-        Lower bound value along the v axis
-    v_max : float
-        Upper bound value along the v axis
+    slave : Union[ComputeSlave, Geometry2D]
+        Slave from which get the geometry polygons or Geometry2D interface object
     coloring_label : str
         Field to display in the plot
-    u_steps : int
+    u : Tuple[float, float, float], optional
+        Horizontal coordinate director vector, by default X
+    v : Tuple[float, float, float], optional
+        Vertical coordinate director vector, by default Y
+    u_min : float, optional
+        Lower bound value along the u axis, by default 0.
+    u_max : float, optional
+        Upper bound value along the u axis, by default 1.
+    v_min : float, optional
+        Lower bound value along the v axis, by default 0.
+    v_max : float, optional
+        Upper bound value along the v axis, by default 1.
+    u_steps : int, optional
         Number of points along the u axis, by default "BuRd"
-    v_steps : int
+    v_steps : int, optional
         Number of points along the v axis, by default "BuRd"
-    w_value : float
+    w_value : float, optional
         Value along the u ^ v axis, by default "BuRd"
     color_map : str, optional
         Colormap used to color the polygons, by default "BuRd"
