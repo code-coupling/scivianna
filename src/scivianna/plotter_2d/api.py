@@ -30,6 +30,7 @@ def plot_frame_in_axes(
     w_value: float = 0.0,
     color_map: str = "BuRd",
     display_colorbar: bool = False,
+    edge_width: float = 1.,
     options={},
     custom_colors: Dict[str, Dict[str, str]] = {},
     rename_values: Dict[str, Dict[str, str]] = {},
@@ -65,6 +66,8 @@ def plot_frame_in_axes(
         Value along the u ^ v axis, by default "BuRd"
     color_map : str, optional
         Colormap used to color the polygons, by default "BuRd"
+    edge_width : float, optional
+        Cells edge width, by default 1.
     display_colorbar : bool, optional
         Display the polygons, by default False
     options : dict, optional
@@ -137,6 +140,7 @@ def plot_frame_in_axes(
     )
 
     plotter = Matplotlib2DPolygonPlotter()
+    plotter.line_width = edge_width
 
     # Replacing provided colors
     if (
@@ -240,6 +244,7 @@ def plot_frame(
     w_value: float = 0.0,
     color_map: str = "BuRd",
     display_colorbar: bool = False,
+    edge_width: float = 1.,
     options={},
     custom_colors: Dict[str, Dict[str, str]] = {},
     rename_values: Dict[str, Dict[str, str]] = {},
@@ -275,6 +280,8 @@ def plot_frame(
         Colormap used to color the polygons, by default "BuRd"
     display_colorbar : bool, optional
         Display the polygons, by default False
+    edge_width : float, optional
+        Cells edge width, by default 1.
     options : dict, optional
         Extra coloring options, by default {}
     custom_colors : Dict[str, Dict[str, str]], optional
@@ -315,6 +322,7 @@ def plot_frame(
         w_value=w_value,
         color_map=color_map,
         display_colorbar=display_colorbar,
+        edge_width=edge_width,
         options=options,
         custom_colors=custom_colors,
         rename_values=rename_values,
