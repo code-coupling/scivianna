@@ -1,23 +1,11 @@
 
 from pathlib import Path
-import os
 import numpy as np
 import numpy
-from scivianna.data import Data2D
 from smolagents import tool, Tool, CodeAgent, OpenAIServerModel, ToolCallingAgent, PythonInterpreterTool
 
-def get_env_variable(var_name: str) -> str:
-    """
-    Retrieves an environment variable with error if it does not exist.
-
-    :param var_name: Name of the environment variable
-    :return: Value of the environment variable or default value
-    :raises ValueError: If the variable is missing
-    """
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        raise ValueError(f"Environment variable '{var_name}' not found.")
+from scivianna.data import Data2D
+from scivianna.agent.llm_coords import llm_api_base, llm_api_key, llm_model_id
 
 class FinalAnswerTool(Tool):
     name = "final_answer"
@@ -55,11 +43,6 @@ class Data2DWorker:
         data2d : Data2D
             Data class containing geometrical properties
         """
-
-        llm_model_id = get_env_variable("LLM_MODEL_ID")
-        llm_api_base = get_env_variable("LLM_API_BASE")
-        llm_api_key = get_env_variable("LLM_API_KEY")
-
         self.data2d = data2d.copy()
         self.data2d_save = data2d.copy()
 
@@ -86,14 +69,46 @@ class Data2DWorker:
             return self.get_values()
         
         @tool
-        def set_alpha(alphas:np.ndarray) -> bool:
+        def set_alphas(alphas:np.ndarray) -> bool:
             """
             Sets the cells opacity values, expects a numpy array of integers between 0 and 255. return True if it's ok.
 
             Args:
-                alphas: opacity values                
+                alphas : np.ndarray, Opacity values     
+
+            Returns
+            -------
+            bool
+                True if the given array is ok            
             """
-            return self.set_alpha(alphas)
+            return self.set_alphas(alphas)
+        
+        @tool
+        def get_colors() -> np.ndarray:
+            """Returns the color per 2D cell of the geometry. 
+            The returned object is a np.ndarray of shape (cell_count, 4), with values ranging from 0 to 255.
+
+            Returns
+            -------
+            np.ndarray
+                Numpy array with the value per cell
+            """
+            return self.get_colors()
+        
+        @tool
+        def set_colors(colors:np.ndarray) -> bool:
+            """Sets the cells color values, expects a numpy array of integers between 0 and 255 of shape (cell_count, 4). return True if it's ok.
+
+            Args:
+            colors : np.ndarray, np array containing the new per cell colors. expects a numpy array of integers between 0 and 255 of shape (cell_count, 4).
+
+            Returns
+            -------
+            bool
+                True if the given array is ok
+            """
+            return self.set_colors(colors)
+        
         @tool
         def reset():
             """Returns to the data2d provided in the initialization
@@ -106,21 +121,6 @@ class Data2DWorker:
             """
             return self.get_numpy()
             
-        # def execute_code(code_to_execute:str):
-        #     context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
-        #     print("try exe :", context_string+"\n"+code_to_execute)
-        #     exec(context_string+"\n"+code_to_execute)
-
-        # def code_is_ok(final_answer: dict, agent_memory=None) -> bool:
-        #     """Execute code in final_answer for check if exe is OK."""
-        #     print("on est dans le check\n ***debug code", final_answer, final_answer["code"], "\n end debug")
-        #     try:
-        #         execute_code(final_answer["code"])
-        #         return True
-        #     except Exception as e:
-        #         print(f"An error occurred: {e}")
-        #         return False
-
         self.aiServer = OpenAIServerModel(model_id = llm_model_id,
                                           api_base = llm_api_base,
                                           api_key = llm_api_key)
@@ -131,7 +131,7 @@ class Data2DWorker:
         # self.smoll_agent = CodeAgent(
         #                 tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
         self.smoll_agent = CodeAgent(
-                        tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
+                        tools=[FinalAnswerTool(), check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy],  # List of tools available to the agent
                         # final_answer_checks=[code_is_ok],
                         model=self.aiServer, 
                         additional_authorized_imports=["numpy"],
@@ -149,7 +149,6 @@ class Data2DWorker:
 
     
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
-
         agent_output = self.smoll_agent.run(question,
                                             reset=reset,
                                             images=images,
@@ -200,12 +199,54 @@ class Data2DWorker:
         """
         return np.array(self.data2d.cell_values)
     
-    def set_alpha(self,alphas:np.ndarray) -> bool:
+    def get_colors(self,) -> np.ndarray:
+        """Returns the color per 2D cell of the geometry. 
+        The returned object is a np.ndarray of shape (cell_count, 4), with values ranging from 0 to 255.
+
+        Returns
+        -------
+        np.ndarray
+            Numpy array with the value per cell
+        """
+        return np.array(self.data2d.cell_colors)
+    
+    def set_colors(self, colors:np.ndarray) -> bool:
+        """Sets the cells color values, expects a numpy array of integers between 0 and 255 of shape (cell_count, 4). return True if it's ok.
+
+        Parameters
+        ----------
+        colors : np.ndarray
+            np array containing the new per cell colors. expects a numpy array of integers between 0 and 255 of shape (cell_count, 4).
+
+        Returns
+        -------
+        bool
+            True if the given array is ok
+        """
+        assert type(colors) in (np.ndarray, list), f"A numpy array is expected, type found {type(colors)}."
+        colors = np.array(colors)
+        assert len(colors.shape) == 2, f"A 2D numpy array is expected, shape found {colors.shape}."
+        assert colors.shape == np.array(self.data2d.cell_colors).shape, f"We expect the same number of elements as in self.data2d.cell_colors, received shape {colors.shape} instead of {self.data2d.cell_colors}."
+        assert colors.flatten().max() <= 255, f"The values must be lower than 255, found in array {colors.flatten().max()}."
+        assert colors.flatten().min() >= 0, f"The values must be greater than 0, found in array {colors.flatten().min()}."
+
+        self.data2d.cell_colors = colors.tolist()
+
+        return True
+    
+    def set_alphas(self, alphas:np.ndarray) -> bool:
         """
         Sets the cells opacity values, expects a numpy array of integers between 0 and 255. return True if it's ok.
 
-        Args:
-            alphas: opacity values                
+        Parameters
+        ----------
+        alphas : np.ndarray
+            Opacity values     
+
+        Returns
+        -------
+        bool
+            True if the given array is ok            
         """
         assert type(alphas) in (np.ndarray, list), f"A numpy array is expected, type found {type(alphas)}."
         alphas = np.array(alphas)
@@ -239,7 +280,15 @@ class Data2DWorker:
         code_to_execute : str
             Code to execute in the Data2DWorker
         """
-        context_string = "\n".join(f"{e} = self.{e}" for e in ["check_valid", "get_values", "set_alpha", "reset", "get_numpy"])
+        context_string = "\n".join(f"{e} = self.{e}" for e in [
+            "check_valid", 
+            "get_values", 
+            "set_alphas", 
+            "get_colors", 
+            "set_colors", 
+            "reset", 
+            "get_numpy"
+            ])
         exec(context_string+"\n"+code_to_execute)
 
 
