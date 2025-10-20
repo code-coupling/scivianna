@@ -5,8 +5,9 @@ import panel as pn
 from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
-
+from scivianna.utils.color_tools import get_edges_colors
 from scivianna.panel.styles import customize_axis
+
 import bokeh
 from bokeh.colors import RGB
 from bokeh.plotting import figure as Figure
@@ -21,7 +22,6 @@ from bokeh.models import (
 )
 # from bokeh.models import CustomJS
 from bokeh import events
-from scivianna.utils.color_tools import get_edges_colors
 
 import numpy as np
 
@@ -136,7 +136,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             ("Value", "@compo_names"),
         ]
 
-        hover_tool = HoverTool(
+        self.hover_tool = HoverTool(
             tooltips=TOOLTIPS,
             formatters={
                 "$x": CustomJSHover(
@@ -168,7 +168,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         customize_axis(self.figure.xaxis)
         customize_axis(self.figure.yaxis, vertical=True)
 
-        self.figure.add_tools(hover_tool)
+        self.figure.add_tools(self.hover_tool)
 
         self.color_mapper = LinearColorMapper(
             palette=self.__get_color_mapper_from_string("BuRd"), low=0.0, high=1.0
@@ -266,10 +266,10 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
         }
 
-        self.figure.multi_polygons(
+        self.hovered_glyph = self.figure.multi_polygons(
             xs=XS,
             ys=YS,
-            line_width=2,
+            line_width = self.line_width,
             source=self.source_polygons,
             color=COLORS,
             # hover_line_alpha=1.,

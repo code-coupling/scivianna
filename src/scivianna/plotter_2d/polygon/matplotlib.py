@@ -134,6 +134,7 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
             facecolor=volume_colors.tolist(),
             edgecolor=volume_edge_colors.tolist(),
             ax=axes,
+            linewidth = self.line_width,
             **plot_options
         )
 
