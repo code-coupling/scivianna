@@ -3,9 +3,20 @@ from pathlib import Path
 import numpy as np
 import numpy
 from smolagents import tool, Tool, CodeAgent, OpenAIServerModel, ToolCallingAgent, PythonInterpreterTool
+from smolagents.utils import parse_code_blobs
 
 from scivianna.data import Data2D
 from scivianna.agent.llm_coords import llm_api_base, llm_api_key, llm_model_id
+from smolagents.models import (
+    CODEAGENT_RESPONSE_FORMAT,
+    ChatMessage,
+    ChatMessageStreamDelta,
+    ChatMessageToolCall,
+    MessageRole,
+    Model,
+    agglomerate_stream_deltas,
+    parse_json_if_needed,
+)
 
 class FinalAnswerTool(Tool):
     name = "final_answer"
@@ -121,6 +132,22 @@ class Data2DWorker:
             """
             return self.get_numpy()
             
+        @tool
+        def execute_code(code_to_execute:str) -> bool:
+            """Applies a code string to the current object. Used to repeat an already processed prompt.
+
+            Args:
+            code_to_execute : Code to execute in the Data2DWorker.
+
+            Returns:
+            bool : Code is valid.
+            str : comment on why the code is not valid
+
+            """
+            return self.execute_code(code_to_execute)
+
+        print(f"Building AI server with model {llm_model_id}\n")
+
         self.aiServer = OpenAIServerModel(model_id = llm_model_id,
                                           api_base = llm_api_base,
                                           api_key = llm_api_key)
@@ -131,7 +158,9 @@ class Data2DWorker:
         # self.smoll_agent = CodeAgent(
         #                 tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
         self.smoll_agent = CodeAgent(
-                        tools=[FinalAnswerTool(), check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy],  # List of tools available to the agent
+                        tools=[execute_code, 
+                            #    check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy
+                               ],  # List of tools available to the agent
                         # final_answer_checks=[code_is_ok],
                         model=self.aiServer, 
                         additional_authorized_imports=["numpy"],
@@ -139,6 +168,8 @@ class Data2DWorker:
                         instructions=instructions,
                         use_structured_outputs_internally=True,
                         planning_interval=None)
+        
+        self.python_executor = self.smoll_agent.python_executor
 
         # self.smoll_agent = ToolCallingAgent(
         #                 tools=[PythonInterpreterTool(authorized_imports = [check_valid, get_values, set_alpha, reset, get_numpy, "numpy"]), FinalAnswerTool()],  # List of tools available to the agent
@@ -147,20 +178,71 @@ class Data2DWorker:
         #                 instructions=instructions,
         #                 planning_interval=None)        
 
+    def extract_exectute_code(self, text:str):
+        if not "execute_code" in text:
+            return
+        
+        last_exec = 'execute_code("""' + text.split('execute_code("""')[-1]
+        last_exec = text.split('""")')[0] + '""")'
+
+        return last_exec
     
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
-        agent_output = self.smoll_agent.run(question,
-                                            reset=reset,
-                                            images=images,
-                                            max_steps=max_steps,
-                                            additional_args=additional_args)
+        self.executed_code = None
 
-        try:
-            return agent_output['code_is_ok'], agent_output['code']
-        except:
-            print("agent fail!!!")
-            agent_output = {"code_is_ok":False, "code":""}
-            return agent_output['code_is_ok'], agent_output['code']
+        input_messages = question + self.smoll_agent.instructions
+        self.smoll_agent.python_executor.send_tools(self.smoll_agent.tools)
+        step = 0
+
+        while self.executed_code is None and step < max_steps:
+            print(f"Executing step {step}")
+            chat_message: ChatMessage = self.smoll_agent.model.generate(
+                [ChatMessage(
+                    role=MessageRole.ASSISTANT,
+                    content=[
+                        {
+                            "type": "text",
+                            "text": input_messages
+                        }
+                    ],
+                ),]
+            )
+            output_text = chat_message.content
+            
+            code = self.extract_exectute_code(output_text)
+
+            if code is None:
+                input_messages += 'Returned value not containing a code block respecting the format execute_code(""" your code here """)'
+
+            else:
+                try:
+                    print("Executing code :\n\n\n ", code)
+                    execution_output = self.smoll_agent.python_executor.__call__(code)
+                except Exception as e:
+                    execution_output = e
+                    print(e)
+
+                input_messages += f"\n PAST ANSWER \n{execution_output} "
+            step += 1
+
+        if self.executed_code is None:
+            return False, ""
+        
+        print("Success")
+        return True, self.executed_code
+        # agent_output = self.smoll_agent.run(question,
+        #                                     reset=reset,
+        #                                     images=images,
+        #                                     max_steps=max_steps,
+        #                                     additional_args=additional_args)
+
+        # try:
+        #     print("OUTPUT", agent_output)
+        #     return agent_output['code_is_ok'], agent_output['code']
+        # except:
+        #     print("agent fail!!!")
+        #     agent_output = {"code_is_ok":False, "code":""}
+        #     return agent_output['code_is_ok'], agent_output['code']
 
     def has_changed(self,) -> bool:
         """Tells if the data_2d was changed by the agent
@@ -170,11 +252,11 @@ class Data2DWorker:
         bool
             data_2d changed
         """
-        if not np.testing.assert_equal(np.array(self.data2d.cell_colors), np.array(self.data2d_save.cell_colors)):
-            return True
-        if not np.testing.assert_equal(np.array(self.data2d.cell_ids), np.array(self.data2d_save.cell_ids)):
-            return True
-        if not np.testing.assert_equal(np.array(self.data2d.cell_values), np.array(self.data2d_save.cell_values)):
+        try:
+            np.testing.assert_equal(np.array(self.data2d.cell_colors), np.array(self.data2d_save.cell_colors))
+            np.testing.assert_equal(np.array(self.data2d.cell_ids), np.array(self.data2d_save.cell_ids))
+            np.testing.assert_equal(np.array(self.data2d.cell_values), np.array(self.data2d_save.cell_values))
+        except AssertionError:
             return True
 
         return False
@@ -280,6 +362,7 @@ class Data2DWorker:
         code_to_execute : str
             Code to execute in the Data2DWorker
         """
+        code_to_execute = code_to_execute.replace("import numpy as np", "np = get_numpy()")
         context_string = "\n".join(f"{e} = self.{e}" for e in [
             "check_valid", 
             "get_values", 
@@ -291,6 +374,16 @@ class Data2DWorker:
             ])
         exec(context_string+"\n"+code_to_execute)
 
+        try:
+            self.check_valid()
+        except AssertionError as e:
+            return False, f"The code was executed, but the resulting Data2D is not valid. Following problem found {e}."
+
+        if self.has_changed():
+            self.executed_code = context_string+"\n"+code_to_execute
+            return True, "Success"
+        else:
+            return False, "The code was executed properly but did not change the Data2D."
 
 
 if __name__ == "__main__":
