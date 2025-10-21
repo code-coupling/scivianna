@@ -17,6 +17,16 @@ from smolagents.models import (
     agglomerate_stream_deltas,
     parse_json_if_needed,
 )
+import re
+
+from ai_lpec.ai import sendToChat
+from ai_lpec.llmOptions import llm_Options
+
+
+def extract_python_code(text):
+    pattern = r"```python\s*([\s\S]*?)\s*```"
+    match = re.search(pattern, text, re.DOTALL)
+    return match.group(1).strip() if match else None
 
 class FinalAnswerTool(Tool):
     name = "final_answer"
@@ -159,7 +169,7 @@ class Data2DWorker:
         #                 tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
         self.smoll_agent = CodeAgent(
                         tools=[execute_code, 
-                            #    check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy
+                               check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy
                                ],  # List of tools available to the agent
                         # final_answer_checks=[code_is_ok],
                         model=self.aiServer, 
@@ -187,40 +197,36 @@ class Data2DWorker:
 
         return last_exec
     
+    
+
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
         self.executed_code = None
 
-        input_messages = question + self.smoll_agent.instructions
+        with open(Path(__file__).parent / "instructions.md", "r") as f:
+            instructions = f.read()
+        input_messages = instructions + question
+
         self.smoll_agent.python_executor.send_tools(self.smoll_agent.tools)
         step = 0
 
         while self.executed_code is None and step < max_steps:
             print(f"Executing step {step}")
-            chat_message: ChatMessage = self.smoll_agent.model.generate(
-                [ChatMessage(
-                    role=MessageRole.ASSISTANT,
-                    content=[
-                        {
-                            "type": "text",
-                            "text": input_messages
-                        }
-                    ],
-                ),]
-            )
-            output_text = chat_message.content
+            llmOpt = llm_Options()
+
+            #### Test llm
+            sC = sendToChat(llModel = "qwen3:30b-a3b-instruct-2507-q4_K_M")
+            sC(input_messages)
             
-            code = self.extract_exectute_code(output_text)
+            code = extract_python_code(sC.history[-1]['content'])
 
             if code is None:
-                input_messages += 'Returned value not containing a code block respecting the format execute_code(""" your code here """)'
-
+                input_messages += 'Returned value not containing a code block respecting the format """python your code here """'
             else:
                 try:
-                    print("Executing code :\n\n\n ", code)
                     execution_output = self.smoll_agent.python_executor.__call__(code)
+                    self.executed_code = code
                 except Exception as e:
                     execution_output = e
-                    print(e)
 
                 input_messages += f"\n PAST ANSWER \n{execution_output} "
             step += 1
@@ -228,21 +234,7 @@ class Data2DWorker:
         if self.executed_code is None:
             return False, ""
         
-        print("Success")
         return True, self.executed_code
-        # agent_output = self.smoll_agent.run(question,
-        #                                     reset=reset,
-        #                                     images=images,
-        #                                     max_steps=max_steps,
-        #                                     additional_args=additional_args)
-
-        # try:
-        #     print("OUTPUT", agent_output)
-        #     return agent_output['code_is_ok'], agent_output['code']
-        # except:
-        #     print("agent fail!!!")
-        #     agent_output = {"code_is_ok":False, "code":""}
-        #     return agent_output['code_is_ok'], agent_output['code']
 
     def has_changed(self,) -> bool:
         """Tells if the data_2d was changed by the agent
