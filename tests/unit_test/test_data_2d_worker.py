@@ -38,8 +38,14 @@ def worker(data2d, request):
         from scivianna.data.data_2d_worker import Data2DWorker
     elif request.node.get_closest_marker("agent"):
         from scivianna.agent.data_2d_worker import Data2DWorker
+        import os
+        os.environ["LLM_MODEL_ID"] = "PYTEST"
+        os.environ["LLM_API_BASE"] = "PYTEST"
+        os.environ["LLM_API_KEY"] = "PYTEST"
     else:
         from scivianna.agent.data_2d_worker import Data2DWorker
+        import os
+        os.environ[""]
 
     worker = Data2DWorker(data2d)
     return worker
