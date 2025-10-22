@@ -40,13 +40,20 @@ jobs:
 
     - name: Tests
       run: |
+        # Set up Python and run initial tests
         coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m default
 
-        # Split the deps string into an array
-        DEPS="${{ matrix.deps }}"
-        IFS=',' read -ra TAGS <<< "$DEPS"
+        # Split deps into array using PowerShell (Windows) or bash (Linux)
+        # Use a script that works on both platforms
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          # Windows: Use PowerShell to split the string
+          TAGS=$(powershell -Command "$DEPS = '$DEPS'.Split(','); $DEPS -join ' '")
+        else
+          # Linux: Use bash
+          IFS=',' read -ra TAGS <<< "$DEPS"
+        fi
 
-        # Loop through each tag and run pytest with it
+        # Loop through each tag and run pytest
         for tag in "${TAGS[@]}"; do
           echo "Running tests for tag: $tag"
           coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m "$tag"
@@ -54,3 +61,4 @@ jobs:
 
         # Generate coverage report after all runs
         coverage report
+      shell: bash
