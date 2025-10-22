@@ -29,6 +29,7 @@ setup(
     package_data={
         "scivianna": [
             "agent/*.py",
+            "agent/*.md",
             "components/*.py",
             "data/*.py",
             "default_jdd/*",
