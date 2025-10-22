@@ -1,6 +1,7 @@
 
 import matplotlib.pyplot as plt
 
+import pytest
 from scivianna.constants import MATERIAL, X, Y
 from scivianna.slave import ComputeSlave
 from scivianna.plotter_2d.api import plot_frame_in_axes
@@ -8,6 +9,7 @@ from scivianna.plotter_2d.api import plot_frame_in_axes
 from scivianna_example.mandelbrot.mandelbrot import MandelBrotInterface
 
 
+@pytest.mark.default
 def test_plot_grid():
     """Simple test to make sure things happen before more tests are actually implemented
     """

@@ -1,6 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
 
+import pytest
 import scivianna
 from scivianna.constants import GEOMETRY, X, Y
 from scivianna.slave import ComputeSlave
@@ -9,6 +10,7 @@ from scivianna.plotter_2d.api import plot_frame_in_axes
 from scivianna.interface.med_interface import MEDInterface
 
 
+@pytest.mark.default
 def test_plot_polygons():
     """Simple test to make sure things happen before more tests are actually implemented
     """

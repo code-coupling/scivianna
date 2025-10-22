@@ -68,6 +68,7 @@ setup(
         "dill"
     ],
     extras_require={
+        "default": [],
         "agent": [
             "smolagents[openai]",
         ],

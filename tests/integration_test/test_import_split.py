@@ -1,3 +1,4 @@
+import pytest
 from scivianna.constants import X, Y, Z
 from scivianna.enums import UpdateEvent
 from scivianna.layout.split import (
@@ -38,6 +39,7 @@ def get_panel() -> SplitLayout:
     return SplitLayout(split)
 
 
+@pytest.mark.default
 def test_import_split():
     """Test importing the split layout and make the panel without opening it
     """

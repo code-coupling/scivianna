@@ -49,12 +49,14 @@ def mock_data()->Data2D:
     return data
 
 
+@pytest.mark.default
 def test_polygon_sorter_init():
     """Test that PolygonSorter initializes correctly."""
     sorter = PolygonSorter()
     assert sorter.sort_indexes is None
 
 
+@pytest.mark.default
 def test_sort_polygon_list_sorts_by_cell_values(mock_data:Data2D):
     """Test that sort_polygon_list sorts by cell_values in ascending order."""
     sorter = PolygonSorter()
@@ -70,6 +72,7 @@ def test_sort_polygon_list_sorts_by_cell_values(mock_data:Data2D):
     np.testing.assert_equal(len(mock_data.polygons), 4)
 
 
+@pytest.mark.default
 def test_sort_polygon_list_preserves_polygons(mock_data:Data2D):
     """Test that polygons are sorted in same order as cell_values."""
     _original_polygons = mock_data.polygons
@@ -83,6 +86,7 @@ def test_sort_polygon_list_preserves_polygons(mock_data:Data2D):
         assert mock_data.polygons[i] == _original_polygons[idx]
 
 
+@pytest.mark.default
 def test_sort_polygon_list_invalid_length_raises(mock_data:Data2D):
     """Test that mismatched lengths raise AssertionError."""
     sorter = PolygonSorter()
@@ -93,6 +97,7 @@ def test_sort_polygon_list_invalid_length_raises(mock_data:Data2D):
         sorter.sort_from_value(mock_data)
 
 
+@pytest.mark.default
 def test_sort_polygon_list_invalid_polygon_length_raises(mock_data:Data2D):
     """Test that mismatched polygon count raises AssertionError."""
     sorter = PolygonSorter()
@@ -103,6 +108,7 @@ def test_sort_polygon_list_invalid_polygon_length_raises(mock_data:Data2D):
         sorter.sort_from_value(mock_data)
 
 
+@pytest.mark.default
 def test_sort_list_preserves_order(mock_data:Data2D):
     """Test that sort_list applies the same sort order to new data."""
     sorter = PolygonSorter()
@@ -128,6 +134,7 @@ def test_sort_list_preserves_order(mock_data:Data2D):
     np.testing.assert_equal(new_data.cell_ids, [101, 103, 104, 102])
 
 
+@pytest.mark.default
 def test_sort_list_with_different_length_raises(mock_data:Data2D):
     """Test that sort_list raises error if data length doesn't match sort_indexes."""
     sorter = PolygonSorter()
@@ -144,6 +151,7 @@ def test_sort_list_with_different_length_raises(mock_data:Data2D):
 
 
         
+@pytest.mark.default
 def test_sort_polygon_list_with_nan_in_values(mock_data:Data2D):
     """Test that values are sorted with a nan in the values."""
     mock_data.cell_values = [0., 3., np.NaN, 1.]
@@ -157,6 +165,7 @@ def test_sort_polygon_list_with_nan_in_values(mock_data:Data2D):
 
 
         
+@pytest.mark.default
 def test_sort_polygon_list_with_float_values(mock_data:Data2D):
     """Test that values are sorted with a nan in the values."""
     mock_data.cell_values = [0., 3., 12., 1.]
@@ -176,6 +185,7 @@ def test_sort_polygon_list_with_float_values(mock_data:Data2D):
     np.testing.assert_equal(mock_data.cell_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
 
         
+@pytest.mark.default
 def test_sort_polygon_list_with_both_string_float(mock_data:Data2D):
     """Test that values are sorted with a nan in the values."""
     mock_data.cell_values = ["0.", 3., np.NaN, 1.]

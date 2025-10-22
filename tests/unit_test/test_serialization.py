@@ -1,6 +1,7 @@
 from pickle import PicklingError
 from typing import Any
 
+import pytest
 from scivianna.slave import ComputeSlave
 from scivianna.interface.generic_interface import GenericInterface
 
@@ -53,6 +54,7 @@ class PicklableObject:
     def read_file(self, file_path, file_label):
         assert file_path.data == "OK"
 
+@pytest.mark.default
 def test_pickle():
     try:
         slave = ComputeSlave(FakeIterface)
@@ -60,6 +62,7 @@ def test_pickle():
     finally:
         slave.terminate()
 
+@pytest.mark.default
 def test_non_pickle():
     try:
         slave = ComputeSlave(FakeIterface)
@@ -71,6 +74,7 @@ def test_non_pickle():
     finally:
         slave.terminate()
 
+@pytest.mark.default
 def test_non_pickle_serialized():
     try:
         slave = ComputeSlave(FakeIterfaceWithSerialization)

@@ -16,6 +16,7 @@ def create_test_hole_coords():
     return PolygonCoords(x_coords, y_coords)
 
 
+@pytest.mark.default
 def test_init_valid():
     exterior = create_test_polygon_coords()
     holes = [create_test_hole_coords()]
@@ -25,20 +26,24 @@ def test_init_valid():
     assert pe.volume_id == "test_vol"
     assert pe.compo == ""
 
+@pytest.mark.default
 def test_init_invalid_exterior_type():
     with pytest.raises(TypeError):
         PolygonElement(exterior_polygon="not a PolygonCoords", holes=[], volume_id="test")
 
+@pytest.mark.default
 def test_init_invalid_holes_type():
     with pytest.raises(TypeError):
         PolygonElement(exterior_polygon=create_test_polygon_coords(), holes="not a list", volume_id="test")
 
+@pytest.mark.default
 def test_init_invalid_hole_element_type():
     exterior = create_test_polygon_coords()
     holes = [create_test_hole_coords(), "not a PolygonCoords"]
     with pytest.raises(TypeError):
         PolygonElement(exterior_polygon=exterior, holes=holes, volume_id="test")
 
+@pytest.mark.default
 def test_translate():
     exterior = create_test_polygon_coords()
     holes = [create_test_hole_coords()]
@@ -51,6 +56,7 @@ def test_translate():
     assert np.array_equal(pe.holes[0].x_coords, np.array([1.25, 1.75, 1.75, 1.25]))
     assert np.array_equal(pe.holes[0].y_coords, np.array([2.25, 2.25, 2.75, 2.75]))
 
+@pytest.mark.default
 def test_rotate():
     exterior = create_test_polygon_coords()
     holes = [create_test_hole_coords()]

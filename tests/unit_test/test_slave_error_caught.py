@@ -1,6 +1,7 @@
 
 from typing import List, Tuple, Union
 
+import pytest
 from scivianna.interface.generic_interface import ValueAtLocation
 from scivianna.slave import ComputeSlave
 
@@ -76,6 +77,7 @@ class ThrowingErrorInterface(ValueAtLocation):
         raise RuntimeError("Testing RuntimeError")
 
 
+@pytest.mark.default
 def test_runtime_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:
@@ -86,6 +88,7 @@ def test_runtime_error():
     else:
         assert False, "RuntimeError not caught"
 
+@pytest.mark.default
 def test_value_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:
@@ -96,6 +99,7 @@ def test_value_error():
     else:
         assert False, "ValueError not caught"
 
+@pytest.mark.default
 def test_notimplemented_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:

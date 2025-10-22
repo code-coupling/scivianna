@@ -2,6 +2,7 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from scivianna.constants import X, Y
 from scivianna.interface.structured_mesh_interface import StructuredMeshInterface
@@ -66,7 +67,7 @@ class CylindricalInterface(StructuredMeshInterface):
         )
         self.mesh.set_values("id", np.arange(size*size*size).reshape(size, size, size))
 
-
+@pytest.mark.pyvista
 def test_plot_carthesian():
     """Test plotting a carthesian structured mesh
     """
@@ -99,7 +100,7 @@ def test_plot_carthesian():
     slave.terminate()
 
     assert True
-
+@pytest.mark.pyvista
 def test_plot_cylindrical():
     """Test plotting a cylindrical structured mesh
     """
@@ -132,7 +133,8 @@ def test_plot_cylindrical():
     slave.terminate()
 
     assert True
-
+    
+@pytest.mark.pyvista
 def test_plot_spherical():
     """Test plotting a spherical structured mesh
     """

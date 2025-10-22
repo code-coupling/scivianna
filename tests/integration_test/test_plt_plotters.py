@@ -1,6 +1,7 @@
 
 # Field example
 from pathlib import Path
+import pytest
 import scivianna
 from scivianna.constants import GEOMETRY, MATERIAL, X, Y
 from scivianna.interface.med_interface import MEDInterface
@@ -48,6 +49,7 @@ def build_data_grid() -> Data2D:
 
     return data_2d
 
+@pytest.mark.default
 def test_polygon_plt_from_polygons():
     data_2d = build_data_polygon()
 
@@ -55,6 +57,7 @@ def test_polygon_plt_from_polygons():
     plotter.plot_2d_frame(data_2d)
     plotter.figure.savefig("p2p.png")
 
+@pytest.mark.default
 def test_grid_plt_from_polygons():
     data_2d = build_data_grid()
 
@@ -62,6 +65,7 @@ def test_grid_plt_from_polygons():
     plotter.plot_2d_frame(data_2d)
     plotter.figure.savefig("g2p.png")
 
+@pytest.mark.default
 def test_grid_plt_from_grid():
     data_2d = build_data_grid()
 

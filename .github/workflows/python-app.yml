@@ -15,7 +15,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.10", "3.11", "3.12"]
-        deps: ["", "[pyvista]", "[agent]", "[pyvista,agent]"]
+        deps: ["default", "pyvista", "agent", "pyvista,agent"]
 
     runs-on: ${{ matrix.os }}
 
@@ -28,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .${{ matrix.deps }}
+        python -m pip install .[${{ matrix.deps }}]
         python -m pip install medcoupling
         python -m pip install flake8 coverage pytest-cov nbmake 
     - name: Lint with flake8
@@ -40,5 +40,17 @@ jobs:
 
     - name: Tests
       run: |
-        coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning
+        coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m default
+
+        # Split the deps string into an array
+        DEPS="${{ matrix.deps }}"
+        IFS=',' read -ra TAGS <<< "$DEPS"
+
+        # Loop through each tag and run pytest with it
+        for tag in "${TAGS[@]}"; do
+          echo "Running tests for tag: $tag"
+          coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m "$tag"
+        done
+
+        # Generate coverage report after all runs
         coverage report

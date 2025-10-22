@@ -95,12 +95,15 @@ class Matplotlib2DGridPlotter(Plotter2D):
         color_map = dict(zip(data.cell_values, data.cell_colors))
         color_array = np.array([color_map[val] for val in data.cell_values])
 
+        _, inv = np.unique(grid.flatten(), return_inverse = True)
+
+        grid = inv.reshape(grid.shape)
+
         colors = color_array[grid]  # shape (n, m, 4)
         val_grid = np.array(data.cell_values)[grid]
 
         img = np.empty(grid.shape, dtype=np.uint32)
         view = img.view(dtype=np.uint8).reshape(colors.shape)
-        print(view.shape, colors.shape)
         
         view[:, :, :] = colors[:, :, :]
         
