@@ -145,7 +145,7 @@ class VisualizationPanel:
 
         for name, description in file_input_list:
             self.file_browsers[name] = ServerFileBrowser(
-                name=name
+                name=str(name)
             )
             self.file_browsers[name].param.watch(functools.partial(load_file, browser_name=name), "selected_file")
 
@@ -193,6 +193,7 @@ class VisualizationPanel:
 
         self.plotter.set_axes((1, 0, 0), (0, 1, 0), z)
         self.plotter.plot_2d_frame(data_)
+        self.current_data = data_
 
         if (
             slave.get_label_coloring_mode(self.field_color_selector.value[0]) == VisualizationMode.FROM_VALUE

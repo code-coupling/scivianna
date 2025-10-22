@@ -159,6 +159,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             # title = self.name,
             toolbar_location=None,
         )
+        self.figure.xgrid.grid_line_color = None
+        self.figure.ygrid.grid_line_color = None
 
         self.figure.min_border_left = 0
         self.figure.min_border_right = 0
