@@ -8,11 +8,10 @@ from scivianna.constants import X, Y
 from scivianna.slave import ComputeSlave
 from scivianna.plotter_2d.api import plot_frame_in_axes
 
-@pytest.fixture
-def conditional_module(request):
+try:
     from scivianna.utils.structured_mesh import CarthesianStructuredMesh, CylindricalStructuredMesh, SphericalStructuredMesh
     from scivianna.interface.structured_mesh_interface import StructuredMeshInterface
-
+    
     class CarthesianInterface(StructuredMeshInterface):
         def read_file(self, file_path: str, file_label: str):
             """Read a file and store its content in the interface
@@ -69,15 +68,18 @@ def conditional_module(request):
                 np.linspace(0, 4, size),
             )
             self.mesh.set_values("id", np.arange(size*size*size).reshape(size, size, size))
-
-    return CarthesianInterface, CylindricalInterface, SphericalInterface
+except ImportError:
+    class CarthesianInterface:
+        pass
+    class SphericalInterface:
+        pass
+    class CylindricalInterface:
+        pass
 
 @pytest.mark.pyvista
-def test_plot_carthesian(conditional_module):
+def test_plot_carthesian():
     """Test plotting a carthesian structured mesh
     """
-    CarthesianInterface, CylindricalInterface, SphericalInterface = conditional_module
-
     # Field example
     slave = ComputeSlave(CarthesianInterface)
     slave.read_file(
@@ -107,11 +109,9 @@ def test_plot_carthesian(conditional_module):
 
     assert True
 @pytest.mark.pyvista
-def test_plot_cylindrical(conditional_module):
+def test_plot_cylindrical():
     """Test plotting a cylindrical structured mesh
     """
-    CarthesianInterface, CylindricalInterface, SphericalInterface = conditional_module
-
     # Field example
     slave = ComputeSlave(CylindricalInterface)
     slave.read_file(
@@ -142,11 +142,9 @@ def test_plot_cylindrical(conditional_module):
     assert True
 
 @pytest.mark.pyvista
-def test_plot_spherical(conditional_module):
+def test_plot_spherical():
     """Test plotting a spherical structured mesh
     """
-    CarthesianInterface, CylindricalInterface, SphericalInterface = conditional_module
-
     # Field example
     slave = ComputeSlave(SphericalInterface)
     slave.read_file(
