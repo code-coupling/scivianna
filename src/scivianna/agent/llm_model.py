@@ -7,6 +7,7 @@
 This file can be overwriten to hard write the values.
 """
 import os
+from smolagents import OpenAIServerModel
 
 def get_env_variable(var_name: str) -> str:
     """Retrieves an environment variable with error if it does not exist.
@@ -35,3 +36,28 @@ def get_env_variable(var_name: str) -> str:
 llm_model_id = get_env_variable("LLM_MODEL_ID")
 llm_api_base = get_env_variable("LLM_API_BASE")
 llm_api_key = get_env_variable("LLM_API_KEY")
+
+ai_server = OpenAIServerModel(model_id = llm_model_id,
+                             api_base = llm_api_base,
+                             api_key = llm_api_key)
+
+def call_llm(prompt: str, instructions: str) -> str:
+    """Sends a request to the server model to get a piece of code that responds to the prompt considering the instructions.
+
+    Parameters
+    ----------
+    prompt : str
+        User defined need
+    instructions : str
+        Instructions for the LLM
+
+    Returns
+    -------
+    str
+        Code returned by the server
+    """
+    msg = ai_server.generate(messages=[
+                                {"role": "system", "content": instructions},
+                                {"role": "user", "content": prompt}
+                            ])
+    return msg.content

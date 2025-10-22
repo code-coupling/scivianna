@@ -1,57 +1,17 @@
 
-from pathlib import Path
 import numpy as np
-import numpy
-from smolagents import tool, Tool, CodeAgent, OpenAIServerModel, ToolCallingAgent, PythonInterpreterTool
-from smolagents.utils import parse_code_blobs
+from pathlib import Path
+import re
+from smolagents import tool, CodeAgent
 
 from scivianna.data import Data2D
-from scivianna.agent.llm_coords import llm_api_base, llm_api_key, llm_model_id
-from smolagents.models import (
-    CODEAGENT_RESPONSE_FORMAT,
-    ChatMessage,
-    ChatMessageStreamDelta,
-    ChatMessageToolCall,
-    MessageRole,
-    Model,
-    agglomerate_stream_deltas,
-    parse_json_if_needed,
-)
-import re
-
-from ai_lpec.ai import sendToChat
-from ai_lpec.llmOptions import llm_Options
+from scivianna.agent.llm_model import call_llm, ai_server
 
 
 def extract_python_code(text):
     pattern = r"```python\s*([\s\S]*?)\s*```"
     match = re.search(pattern, text, re.DOTALL)
     return match.group(1).strip() if match else None
-
-class FinalAnswerTool(Tool):
-    name = "final_answer"
-    description = """Return only the code (which must be self-contained) allowing the user to re-execute it to obtain the answer to their question. If the code is OK and answers the user's question, return True to code_is_ok."""
-    inputs = {
-        "code_is_ok": {"type": "boolean", "description": "If the code is OK and answers the user's question, return True."},
-        "code": {"type": "string", "description": "Code to answer to the user problem."},
-    }
-    output_type = "object"
-    
-    def forward(
-        self,
-        code_is_ok: bool,
-        code: str
-    ) -> dict[bool, str]:
-        """
-        Code to the given problem.
-        """
-        return {"code_is_ok": code_is_ok, "code": code}
-
-    # try:
-    #     int(final_answer)
-    #     return True
-    # except ValueError:
-    #     return False
 
 class Data2DWorker:
     """Worker that receives a Data2D object and works with it. """
@@ -137,7 +97,7 @@ class Data2DWorker:
             return self.reset()
         
         @tool
-        def get_numpy() -> numpy:
+        def get_numpy() -> np:
             """Returns the numpy module
             """
             return self.get_numpy()
@@ -156,37 +116,26 @@ class Data2DWorker:
             """
             return self.execute_code(code_to_execute)
 
-        print(f"Building AI server with model {llm_model_id}\n")
-
-        self.aiServer = OpenAIServerModel(model_id = llm_model_id,
-                                          api_base = llm_api_base,
-                                          api_key = llm_api_key)
-
         with open(Path(__file__).parent / "instructions.md", "r") as f:
             instructions = f.read()
 
-        # self.smoll_agent = CodeAgent(
-        #                 tools=[FinalAnswerTool(), check_valid, get_values, set_alpha, reset, get_numpy],  # List of tools available to the agent
+        print(f"\nLLM used by agent :\n\n- {ai_server.client_kwargs['base_url']}\n- {ai_server.model_id}\n")
+
         self.smoll_agent = CodeAgent(
                         tools=[execute_code, 
                                check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy
                                ],  # List of tools available to the agent
                         # final_answer_checks=[code_is_ok],
-                        model=self.aiServer, 
+                        model=ai_server, 
                         additional_authorized_imports=["numpy"],
                         verbosity_level=2,  # Show detailed agent reasoning
                         instructions=instructions,
                         use_structured_outputs_internally=True,
                         planning_interval=None)
         
+        self.smoll_agent.python_executor.send_tools(self.smoll_agent.tools)
+        
         self.python_executor = self.smoll_agent.python_executor
-
-        # self.smoll_agent = ToolCallingAgent(
-        #                 tools=[PythonInterpreterTool(authorized_imports = [check_valid, get_values, set_alpha, reset, get_numpy, "numpy"]), FinalAnswerTool()],  # List of tools available to the agent
-        #                 model=self.aiServer, 
-        #                 verbosity_level=2,  # Show detailed agent reasoning
-        #                 instructions=instructions,
-        #                 planning_interval=None)        
 
     def extract_exectute_code(self, text:str):
         if not "execute_code" in text:
@@ -204,26 +153,21 @@ class Data2DWorker:
 
         with open(Path(__file__).parent / "instructions.md", "r") as f:
             instructions = f.read()
-        input_messages = instructions + question
+        input_messages = question
 
-        self.smoll_agent.python_executor.send_tools(self.smoll_agent.tools)
         step = 0
 
         while self.executed_code is None and step < max_steps:
             print(f"Executing step {step}")
-            llmOpt = llm_Options()
 
-            #### Test llm
-            sC = sendToChat(llModel = "qwen3:30b-a3b-instruct-2507-q4_K_M")
-            sC(input_messages)
-            
-            code = extract_python_code(sC.history[-1]['content'])
+            msg = call_llm(input_messages, instructions)
+            code = extract_python_code(msg)
 
             if code is None:
                 input_messages += 'Returned value not containing a code block respecting the format """python your code here """'
             else:
                 try:
-                    execution_output = self.smoll_agent.python_executor.__call__(code)
+                    _, execution_output = self.execute_code(code)
                     self.executed_code = code
                 except Exception as e:
                     execution_output = e
@@ -364,7 +308,8 @@ class Data2DWorker:
             "reset", 
             "get_numpy"
             ])
-        exec(context_string+"\n"+code_to_execute)
+        
+        self.smoll_agent.python_executor.__call__(code_to_execute)
 
         try:
             self.check_valid()
@@ -406,22 +351,6 @@ if __name__ == "__main__":
         {}
     )
     set_colors_list(data_2d, med, "INTEGRATED_POWER", "viridis", False, {})
-
-    if False:
-        win = 0
-        ag_codes = []
-        for i in range(10):
-            dw = Data2DWorker(data_2d)
-            code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
-            # code_is_ok, code = dw("color in red the highest value cell.")
-            ag_codes.append((code_is_ok, code))
-            if code_is_ok:
-                win +=1
-
-        for code_is_ok, code in ag_codes:
-            print(f"agent_output\n - share_code_is_ok: {code_is_ok}\n - code \n'''\n{code}\n'''")
-
-        print(f"ratio win: {win*10}%")
 
     dw = Data2DWorker(data_2d)
     code_is_ok, code = dw("highlight the highest value cell, hide zero values, dim the rest")
