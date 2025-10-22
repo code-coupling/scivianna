@@ -2,7 +2,10 @@
 import pytest
 import numpy as np
 
-from scivianna.agent.data_2d_worker import Data2DWorker
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from scivianna.agent.data_2d_worker import Data2DWorker
+
 from scivianna.data import Data2D
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 
@@ -32,6 +35,7 @@ def data2d():
 @pytest.fixture
 def worker(data2d):
     """Provide a Data2DWorker instance initialized with a copy of data2d."""
+    from scivianna.agent.data_2d_worker import Data2DWorker
     worker = Data2DWorker(data2d)
     return worker
 
