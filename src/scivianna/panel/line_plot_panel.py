@@ -59,7 +59,7 @@ class LineVisualisationPanel:
         self.copy_index = 0
         
         self.slave = slave
-        self.fields = self.slave.get_label_list()
+        self.fields = self.slave.get_labels()
 
         self.bounds_row = None
 
@@ -92,7 +92,7 @@ class LineVisualisationPanel:
                 self.field_change_callback(self.field_color_selector.value[0])
             recompute_cb(event)
 
-        fields_list = self.slave.get_label_list()
+        fields_list = self.slave.get_labels()
         self.field_color_selector = pn.widgets.MultiChoice(
             name="Color field",
             options=fields_list,

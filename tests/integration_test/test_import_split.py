@@ -42,4 +42,4 @@ def test_import_split():
     """Test importing the split layout and make the panel without opening it
     """
     get_panel()
-    return True
+    assert True

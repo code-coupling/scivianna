@@ -6,11 +6,12 @@ from scivianna.plotter_2d.generic_plotter import Plotter2D
 import matplotlib
 import matplotlib.axes
 import matplotlib.pyplot as plt
-from matplotlib import cm, colormaps
+from matplotlib import cm
 from matplotlib import colors as plt_colors
+from matplotlib.colors import LinearSegmentedColormap
 
 from scivianna.constants import POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
-from scivianna.utils.color_tools import get_edges_colors
+from scivianna.utils.color_tools import get_edges_colors, beautiful_color_maps
 
 from shapely import Polygon
 import geopandas as gpd
@@ -133,6 +134,7 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
             facecolor=volume_colors.tolist(),
             edgecolor=volume_edge_colors.tolist(),
             ax=axes,
+            linewidth = self.line_width,
             **plot_options
         )
 
@@ -142,7 +144,7 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
                     norm=plt_colors.Normalize(
                         self.colorbar_range[0], self.colorbar_range[1]
                     ),
-                    cmap=colormaps[self.colormap_name],
+                    cmap=LinearSegmentedColormap.from_list(self.colormap_name, (np.array(beautiful_color_maps[self.colormap_name])/255).tolist(), N=len(beautiful_color_maps[self.colormap_name]))
                 ),
                 ax=axes,
             )

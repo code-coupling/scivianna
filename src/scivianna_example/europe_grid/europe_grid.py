@@ -265,7 +265,6 @@ class EuropeGridInterface(Geometry2DPolygon):
         VisualizationMode
             Coloring mode
         """
-        print("Requested : " + label)
         if label == MESH:
             return VisualizationMode.NONE
         if label in [MATERIAL, "Europe"]:

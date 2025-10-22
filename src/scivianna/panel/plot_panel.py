@@ -110,9 +110,6 @@ class VisualizationPanel:
             Widget To send the input file
         """
 
-        if not os.path.isdir("jdd"):
-            os.makedirs("jdd")
-
         self.file_browsers: Dict[str, ServerFileBrowser] = {}
         load_files_label = """
             Load input files
@@ -138,7 +135,7 @@ class VisualizationPanel:
 
                 self.field_color_selector.options = list(
                     set(
-                        self.field_color_selector.options + self.slave.get_label_list()
+                        self.field_color_selector.options + self.slave.get_labels()
                     )
                 )
 
@@ -155,7 +152,7 @@ class VisualizationPanel:
         select_coloring_label = """
             Color field
         """
-        fields_list = self.slave.get_label_list()
+        fields_list = self.slave.get_labels()
         self.field_color_selector = pn.widgets.MultiChoice(
             name="Color field",
             options=fields_list,
@@ -597,7 +594,7 @@ class VisualizationPanel:
         self.center_colormap_on_zero_tick.param.watch(recompute_cb, "value")
 
         options_widgets: List[pn.widgets.Widget] = [
-            self.__get_option_widget(e) for e in slave.get_options()
+            self.__get_option_widget(e) for e in slave.get_options_list()
         ]
 
         for w in options_widgets:
@@ -799,7 +796,7 @@ class VisualizationPanel:
         if self.bounds_row is None:
             options = {
                 e.name: e.default
-                for e in self.slave.get_options()
+                for e in self.slave.get_options_list()
                 if hasattr(e, "default")
             }
         else:

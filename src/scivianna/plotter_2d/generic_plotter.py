@@ -12,6 +12,8 @@ class Plotter2D:
     """Function to call when the mouse is moved on the geometry"""
     on_clic_callback = None
     """Function to call when the mouse is clicked on the geometry"""
+    line_width = 1.
+    """Width of the line separating the different cells"""
 
 
     def display_borders(self, display: bool):
@@ -149,3 +151,13 @@ class Plotter2D:
             Normal vector coordinate
         """
         raise NotImplementedError()
+    
+    def enable_highlight(self, enable: bool = True):
+        """Enable hover highlight
+
+        Parameters
+        ----------
+        enable : bool, optional
+            Highlight enabled, by default True
+        """
+        pass

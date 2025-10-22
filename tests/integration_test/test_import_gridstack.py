@@ -45,7 +45,7 @@ def test_import_gridstack():
     """Test importing the gridstack layout and make the panel without opening it
     """
     get_template()
-    return True
+    assert True
 
 if __name__ == "__main__":
     print("Starting")

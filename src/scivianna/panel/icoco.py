@@ -138,7 +138,7 @@ class GridStackProblem(Problem):
 
         #             new_panel = VisualizationPanel(slave, name=panel.name)
         #             self.gridstack.set_panel(panel_name, new_panel)
-        #             new_panel.field_color_selector.options = list(set(slave.get_label_list()))
+        #             new_panel.field_color_selector.options = list(set(slave.get_labels()))
         #             new_panel.field_color_selector.value = [new_panel.field_color_selector.options[-1]]
         #             new_panel.recompute()
 
@@ -461,9 +461,9 @@ class GridStackProblem(Problem):
 
         slave = self.gridstack.get_panel(visualization_panel).get_slave()
 
-        if field_name not in slave.get_label_list():
+        if field_name not in slave.get_labels():
             raise ValueError(
-                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_label_list())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
+                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
             )
 
         return slave.getInputMEDDoubleFieldTemplate(field_name)
@@ -504,9 +504,9 @@ class GridStackProblem(Problem):
         panel = self.gridstack.get_panel(visualization_panel)
         slave = panel.get_slave()
 
-        if field_name not in slave.get_label_list():
+        if field_name not in slave.get_labels():
             raise ValueError(
-                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_label_list())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
+                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
             )
 
         #   The time is set before the field
