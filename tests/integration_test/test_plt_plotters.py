@@ -6,7 +6,7 @@ import scivianna
 from scivianna.constants import GEOMETRY, MATERIAL, X, Y
 from scivianna.interface.med_interface import MEDInterface
 from scivianna.slave import set_colors_list
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 from scivianna.plotter_2d.grid.matplotlib import Matplotlib2DGridPlotter
 

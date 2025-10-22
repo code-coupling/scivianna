@@ -8,7 +8,7 @@ from scivianna.slave import ComputeSlave
 from scivianna.panel.plot_panel import VisualizationPanel
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.interface.option_element import IntOption, OptionElement
 from scivianna.layout.split import SplitDirection, SplitItem, SplitLayout
 

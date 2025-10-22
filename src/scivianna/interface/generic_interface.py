@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple, Dict, Union
 
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.interface.option_element import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import VisualizationMode, GeometryType, DataType

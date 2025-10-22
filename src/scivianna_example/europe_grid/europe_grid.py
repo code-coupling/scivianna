@@ -15,7 +15,7 @@ from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
 from scivianna.panel.line_plot_panel import LineVisualisationPanel
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 
 from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface
 

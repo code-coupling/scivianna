@@ -30,6 +30,7 @@ setup(
         "scivianna": [
             "agent/*.py",
             "components/*.py",
+            "data/*.py",
             "default_jdd/*",
             "interface/*.py",
             "layout/*.py",

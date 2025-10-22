@@ -10,7 +10,7 @@ import pandas as pd
 from typing import Any, List, Dict, Tuple, Type, Union
 
 from scivianna.constants import OUTSIDE
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.utils.color_tools import interpolate_cmap_at_values
 
 from scivianna.interface.generic_interface import (

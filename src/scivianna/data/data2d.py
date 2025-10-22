@@ -183,3 +183,5 @@ class Data2D:
 
         if any(isinstance(item, str) for item in self.cell_values):
             assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
+
+

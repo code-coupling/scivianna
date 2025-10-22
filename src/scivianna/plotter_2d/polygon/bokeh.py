@@ -2,7 +2,7 @@ import functools
 from typing import IO, Callable, List, Tuple, Union
 import bokeh.events
 import panel as pn
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.utils.color_tools import get_edges_colors

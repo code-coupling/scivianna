@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from typing import List, Union
 
-from scivianna.data import Data2D, DataType
+from scivianna.data.data2d import Data2D, DataType
 from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.utils.polygonize_tools import PolygonElement, PolygonCoords
 

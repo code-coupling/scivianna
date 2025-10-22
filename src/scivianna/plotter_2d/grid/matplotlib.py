@@ -1,5 +1,5 @@
 from typing import IO, Any, Dict, List, Tuple, Union
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 

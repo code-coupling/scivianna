@@ -2,7 +2,7 @@
 from typing import List, Union
 
 import numpy as np
-from scivianna.data import Data2D, DataType
+from scivianna.data.data2d import Data2D, DataType
 
 
 class PolygonSorter:

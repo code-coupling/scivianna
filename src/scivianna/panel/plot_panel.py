@@ -18,7 +18,7 @@ except ValueError as e:
     has_agent = False
     print(f"Warning : Agent not loaded, received error {e}")
 
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2D
 from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
 from scivianna.components.overlay_component import Overlay

@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import multiprocessing as mp
 
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
 from scivianna.interface.option_element import IntOption
 from scivianna.slave import OptionElement

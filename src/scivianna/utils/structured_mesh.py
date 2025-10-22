@@ -219,7 +219,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
-    from scivianna.data import Data2D
+    from scivianna.data.data2d import Data2D
     from scivianna.utils.color_tools import interpolate_cmap_at_values
 
     print("Computing carthesian mesh")
