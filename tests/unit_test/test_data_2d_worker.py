@@ -40,12 +40,12 @@ def worker(data2d):
     return worker
 
 @pytest.mark.agent
-def test_has_changed_no_change(worker: Data2DWorker):
+def test_has_changed_no_change(worker: "Data2DWorker"):
     """Test that has_changed returns False when no change occurred."""
     assert not worker.has_changed()
 
 @pytest.mark.agent
-def test_has_changed_after_set_colors(worker: Data2DWorker):
+def test_has_changed_after_set_colors(worker: "Data2DWorker"):
     """Test that has_changed returns True after modifying cell_colors."""
     original_colors = np.array(worker.data2d.cell_colors)
     new_colors = np.array(original_colors) - 10
@@ -53,7 +53,7 @@ def test_has_changed_after_set_colors(worker: Data2DWorker):
     assert worker.has_changed()
 
 @pytest.mark.agent
-def test_has_changed_after_set_alphas(worker: Data2DWorker):
+def test_has_changed_after_set_alphas(worker: "Data2DWorker"):
     """Test that has_changed returns True after modifying alphas."""
     original_alphas = np.array([c[-1] for c in worker.data2d.cell_colors])
     new_alphas = original_alphas - 10
@@ -61,7 +61,7 @@ def test_has_changed_after_set_alphas(worker: Data2DWorker):
     assert worker.has_changed()
 
 @pytest.mark.agent
-def test_has_changed_after_set_values(worker: Data2DWorker):
+def test_has_changed_after_set_values(worker: "Data2DWorker"):
     """Test that has_changed returns True after changing cell_values."""
     original_values = np.array(worker.data2d.cell_values)
     new_values = original_values + 1.0
@@ -69,26 +69,26 @@ def test_has_changed_after_set_values(worker: Data2DWorker):
     assert worker.has_changed()
 
 @pytest.mark.agent
-def test_has_changed_no_change_after_reset(worker: Data2DWorker):
+def test_has_changed_no_change_after_reset(worker: "Data2DWorker"):
     """Test that has_changed returns False after reset."""
     worker.set_colors(np.array(worker.data2d.cell_colors) - 10)
     worker.reset()
     assert not worker.has_changed()
 
 @pytest.mark.agent
-def test_check_valid(worker: Data2DWorker):
+def test_check_valid(worker: "Data2DWorker"):
     """Test that check_valid passes when valid."""
     worker.check_valid()  # Should not raise
 
 @pytest.mark.agent
-def test_check_valid_invalid_data2d(worker: Data2DWorker):
+def test_check_valid_invalid_data2d(worker: "Data2DWorker"):
     """Test that check_valid raises AssertionError when invalid."""
     worker.data2d.cell_values = [1.]
     with pytest.raises(AssertionError):
         worker.check_valid()
 
 @pytest.mark.agent
-def test_get_values(worker: Data2DWorker):
+def test_get_values(worker: "Data2DWorker"):
     """Test that get_values returns a numpy array."""
     values = worker.get_values()
     assert isinstance(values, np.ndarray)
@@ -96,7 +96,7 @@ def test_get_values(worker: Data2DWorker):
     assert np.allclose(values, np.cos(np.arange(10)))
 
 @pytest.mark.agent
-def test_get_colors(worker: Data2DWorker):
+def test_get_colors(worker: "Data2DWorker"):
     """Test that get_colors returns correct shape and values."""
     colors = worker.get_colors()
     assert isinstance(colors, np.ndarray)
@@ -104,44 +104,44 @@ def test_get_colors(worker: Data2DWorker):
     assert np.allclose(colors, 255)
 
 @pytest.mark.agent
-def test_set_colors_valid(worker: Data2DWorker):
+def test_set_colors_valid(worker: "Data2DWorker"):
     """Test setting valid colors."""
     new_colors = np.ones((10, 4)) * 128
     assert worker.set_colors(new_colors)
     assert np.allclose(worker.data2d.cell_colors, new_colors.tolist())
 
 @pytest.mark.agent
-def test_set_colors_invalid_type(worker: Data2DWorker):
+def test_set_colors_invalid_type(worker: "Data2DWorker"):
     """Test that set_colors raises with invalid type."""
     with pytest.raises(AssertionError, match="A numpy array is expected"):
         worker.set_colors("not an array")
 
 @pytest.mark.agent
-def test_set_colors_invalid_shape(worker: Data2DWorker):
+def test_set_colors_invalid_shape(worker: "Data2DWorker"):
     """Test that set_colors raises with wrong shape."""
     with pytest.raises(AssertionError, match="A 2D numpy array is expected"):
         worker.set_colors(np.array([1, 2, 3]))
 
 @pytest.mark.agent
-def test_set_colors_wrong_size(worker: Data2DWorker):
+def test_set_colors_wrong_size(worker: "Data2DWorker"):
     """Test that set_colors raises when shape doesn't match."""
     with pytest.raises(AssertionError, match="We expect the same number of elements"):
         worker.set_colors(np.ones((5, 4)))
 
 @pytest.mark.agent
-def test_set_colors_out_of_bounds(worker: Data2DWorker):
+def test_set_colors_out_of_bounds(worker: "Data2DWorker"):
     """Test that set_colors raises when values > 255."""
     with pytest.raises(AssertionError, match="The values must be lower than 255"):
         worker.set_colors(np.ones((10, 4)) * 256)
 
 @pytest.mark.agent
-def test_set_colors_negative_values(worker: Data2DWorker):
+def test_set_colors_negative_values(worker: "Data2DWorker"):
     """Test that set_colors raises when values < 0."""
     with pytest.raises(AssertionError, match="The values must be greater than 0"):
         worker.set_colors(np.ones((10, 4)) * -1)
 
 @pytest.mark.agent
-def test_set_alphas_valid(worker: Data2DWorker):
+def test_set_alphas_valid(worker: "Data2DWorker"):
     """Test setting valid alphas."""
     alphas = np.arange(10) * 25
     assert worker.set_alphas(alphas)
@@ -149,37 +149,37 @@ def test_set_alphas_valid(worker: Data2DWorker):
     assert np.allclose(updated_colors[:, -1], alphas)
 
 @pytest.mark.agent
-def test_set_alphas_invalid_type(worker: Data2DWorker):
+def test_set_alphas_invalid_type(worker: "Data2DWorker"):
     """Test that set_alphas raises with invalid type."""
     with pytest.raises(AssertionError, match="A numpy array is expected"):
         worker.set_alphas("not an array")
 
 @pytest.mark.agent
-def test_set_alphas_invalid_shape(worker: Data2DWorker):
+def test_set_alphas_invalid_shape(worker: "Data2DWorker"):
     """Test that set_alphas raises with wrong shape."""
     with pytest.raises(AssertionError, match="A 1D numpy array is expected"):
         worker.set_alphas(np.ones((10, 4)))
 
 @pytest.mark.agent
-def test_set_alphas_wrong_size(worker: Data2DWorker):
+def test_set_alphas_wrong_size(worker: "Data2DWorker"):
     """Test that set_alphas raises when size doesn't match."""
     with pytest.raises(AssertionError, match="We expect the same number of elements"):
         worker.set_alphas(np.arange(5))
 
 @pytest.mark.agent
-def test_set_alphas_out_of_bounds(worker: Data2DWorker):
+def test_set_alphas_out_of_bounds(worker: "Data2DWorker"):
     """Test that set_alphas raises when values > 255."""
     with pytest.raises(AssertionError, match="The values must be lower than 255"):
         worker.set_alphas(np.array([256] + [0]*9))
 
 @pytest.mark.agent
-def test_set_alphas_negative_values(worker: Data2DWorker):
+def test_set_alphas_negative_values(worker: "Data2DWorker"):
     """Test that set_alphas raises when values < 0."""
     with pytest.raises(AssertionError, match="The values must be greater than 0"):
         worker.set_alphas(np.array([-1] + [0]*9))
 
 @pytest.mark.agent
-def test_reset(worker: Data2DWorker):
+def test_reset(worker: "Data2DWorker"):
     """Test that reset restores original data."""
     # Modify data
     worker.data2d.cell_values = [0] * 10
@@ -191,12 +191,12 @@ def test_reset(worker: Data2DWorker):
     assert np.allclose(worker.data2d.cell_colors, 255)
 
 @pytest.mark.agent
-def test_get_numpy(worker: Data2DWorker):
+def test_get_numpy(worker: "Data2DWorker"):
     """Test that get_numpy returns numpy."""
     assert worker.get_numpy() is np
 
 @pytest.mark.agent
-def test_execute_code_valid(worker: Data2DWorker):
+def test_execute_code_valid(worker: "Data2DWorker"):
     """Test that execute_code runs valid code and returns success."""
     code = """
 np = get_numpy()
@@ -212,7 +212,7 @@ set_colors(new_colors)
     assert np.allclose(np.array(worker.data2d.cell_colors), 0)
 
 @pytest.mark.agent
-def test_execute_code_invalid_code(worker: Data2DWorker):
+def test_execute_code_invalid_code(worker: "Data2DWorker"):
     """Test that execute_code fails when code produces invalid Data2D."""
     code = """
 cell_values = None
@@ -221,7 +221,7 @@ cell_values = None
     assert not success
 
 @pytest.mark.agent
-def test_execute_code_no_change(worker: Data2DWorker):
+def test_execute_code_no_change(worker: "Data2DWorker"):
     """Test that execute_code returns no change if data unchanged."""
     code = "get_values()"
     success, msg = worker.execute_code(code)
@@ -229,7 +229,7 @@ def test_execute_code_no_change(worker: Data2DWorker):
     assert "did not change the Data2D" in msg
 
 @pytest.mark.agent
-def test_execute_code_with_import(worker: Data2DWorker):
+def test_execute_code_with_import(worker: "Data2DWorker"):
     """Test that import numpy is handled correctly."""
     code = """
 import numpy as np

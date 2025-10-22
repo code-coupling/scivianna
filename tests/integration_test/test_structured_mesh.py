@@ -5,12 +5,12 @@ import numpy as np
 import pytest
 
 from scivianna.constants import X, Y
-from scivianna.utils.structured_mesh import CarthesianStructuredMesh, CylindricalStructuredMesh, SphericalStructuredMesh
 from scivianna.slave import ComputeSlave
 from scivianna.plotter_2d.api import plot_frame_in_axes
 
 @pytest.fixture
 def conditional_module(request):
+    from scivianna.utils.structured_mesh import CarthesianStructuredMesh, CylindricalStructuredMesh, SphericalStructuredMesh
     from scivianna.interface.structured_mesh_interface import StructuredMeshInterface
 
     class CarthesianInterface(StructuredMeshInterface):
