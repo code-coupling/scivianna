@@ -9,8 +9,14 @@ import functools
 try:
     from scivianna.agent.data_2d_worker import Data2DWorker
     has_agent = True
-except ImportError:
+    
+except ImportError as e:
     has_agent = False
+    print(f"Warning : Agent not loaded, received error {e}")
+
+except ValueError as e:
+    has_agent = False
+    print(f"Warning : Agent not loaded, received error {e}")
 
 from scivianna.data import Data2D
 from scivianna.interface.generic_interface import Geometry2D
