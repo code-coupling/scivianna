@@ -6,7 +6,12 @@ import os
 import functools
 
 
-from scivianna.agent.data_2d_worker import Data2DWorker
+try:
+    from scivianna.agent.data_2d_worker import Data2DWorker
+    has_agent = True
+except ImportError:
+    has_agent = False
+
 from scivianna.data import Data2D
 from scivianna.interface.generic_interface import Geometry2D
 from scivianna.interface.option_element import OptionElement, BoolOption, FloatOption, IntOption, SelectOption, StringOption
@@ -446,62 +451,62 @@ class VisualizationPanel:
             file_loader_list.append(pn.pane.Markdown(f"{fi} file browser", margin=(0, 0, 0, 0)))
             file_loader_list.append(self.file_browsers[fi])
 
-
-        self.prompt_text_input = pmui.TextInput(
-            label="Prompt",
-            placeholder='Type your prompt ...',
-            enter_pressed=True,
-            size="small",
-            variant="outlined",
-            sizing_mode="stretch_width",
-            margin=1,
-        )
-        prompt_clear_button = pmui.IconButton(
-            label="Clear",
-            icon='clear',            
-            variant="outlined",
-            description='Clear the prompt text',
-            margin=1,
+        if has_agent:
+            self.prompt_text_input = pmui.TextInput(
+                label="Prompt",
+                placeholder='Type your prompt ...',
+                enter_pressed=True,
+                size="small",
+                variant="outlined",
+                sizing_mode="stretch_width",
+                margin=1,
             )
-        prompt_run_button = pmui.IconButton(
-            label="Run",
-            icon='auto_fix_high',
-            variant="contained",
-            description='Apply to the geometry',
-            margin=1,
-        )
-        def clear_prompt(*args, **kwargs):
-            self.prompt_text_input.value = ""
-            self.llm_code = ""
-            self.recompute()
-            if pn.state.curdoc is not None:
-                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
-            
-        def exec_prompt(*args, **kwargs):
-            if self.prompt_text_input.value != "":
-                dw = Data2DWorker(self.current_data)
-                valid, llm_code = dw(self.prompt_text_input.value)
+            prompt_clear_button = pmui.IconButton(
+                label="Clear",
+                icon='clear',            
+                variant="outlined",
+                description='Clear the prompt text',
+                margin=1,
+                )
+            prompt_run_button = pmui.IconButton(
+                label="Run",
+                icon='auto_fix_high',
+                variant="contained",
+                description='Apply to the geometry',
+                margin=1,
+            )
+            def clear_prompt(*args, **kwargs):
+                self.prompt_text_input.value = ""
+                self.llm_code = ""
+                self.recompute()
+                if pn.state.curdoc is not None:
+                    pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+                
+            def exec_prompt(*args, **kwargs):
+                if self.prompt_text_input.value != "":
+                    dw = Data2DWorker(self.current_data)
+                    valid, llm_code = dw(self.prompt_text_input.value)
 
-                if valid and isinstance(llm_code, str):
-                    self.code_editor.value = llm_code
-                    self.dialog.param.update(open=True)
-                else:
-                    exec_prompt()
+                    if valid and isinstance(llm_code, str):
+                        self.code_editor.value = llm_code
+                        self.dialog.param.update(open=True)
+                    else:
+                        exec_prompt()
 
-        prompt_clear_button.on_click(clear_prompt)
-        prompt_run_button.on_click(exec_prompt)
+            prompt_clear_button.on_click(clear_prompt)
+            prompt_run_button.on_click(exec_prompt)
 
-        agent_row = pn.Row(
-            self.prompt_text_input, 
-            prompt_clear_button, 
-            prompt_run_button, 
-            align=("start", "center"),
-            margin = (10, 5),
-        )
+            agent_row = pn.Row(
+                self.prompt_text_input, 
+                prompt_clear_button, 
+                prompt_run_button, 
+                align=("start", "center"),
+                margin = (10, 5),
+            )
         
         self.side_bar = pn.layout.WidgetBox(
             # Agent text box
-            agent_row,
+            (agent_row if has_agent else None),
 
             # File loaders
             pn.Card(
@@ -620,40 +625,44 @@ class VisualizationPanel:
             pn.pane.Markdown(f"## {self.name}", align="center"),
         )
 
-        self.llm_code = ""
-        self.llm_comment = pn.pane.Markdown("")
-        self.code_editor = pn.widgets.CodeEditor(value="", language='python', theme='monokai')
-        self.code_valid_button = pmui.IconButton(icon="check")
-        self.code_invalid_button = pmui.IconButton(icon="clear")
-        self.dialog = pmui.Dialog(
-            pn.Column(
-                self.llm_comment, 
-                self.code_editor, 
-                pn.Row(self.code_valid_button, self.code_invalid_button, align="end"), 
-            ), 
-            open=False, 
-            full_screen=False, 
-            show_close_button=True, 
-            close_on_click=False, 
-        )
-
-        def valid_code(e):
-            self.llm_code = self.code_editor.value
-            self.code_editor.value = ""
-            self.recompute()
-            if pn.state.curdoc is not None:
-                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
-
-        def invalid_code(e):
+        if has_agent:
             self.llm_code = ""
-            self.code_editor.value = ""
+            self.llm_comment = pn.pane.Markdown("")
+            self.code_editor = pn.widgets.CodeEditor(value="", language='python', theme='monokai')
+            self.code_valid_button = pmui.IconButton(icon="check")
+            self.code_invalid_button = pmui.IconButton(icon="clear")
+            self.dialog = pmui.Dialog(
+                pn.Column(
+                    self.llm_comment, 
+                    self.code_editor, 
+                    pn.Row(self.code_valid_button, self.code_invalid_button, align="end"), 
+                ), 
+                open=False, 
+                full_screen=False, 
+                show_close_button=True, 
+                close_on_click=False, 
+            )
 
-        self.code_valid_button.on_click(valid_code) 
-        self.code_invalid_button.on_click(invalid_code) 
-        self.code_valid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false")
-        self.code_invalid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false") 
+            def valid_code(e):
+                self.llm_code = self.code_editor.value
+                self.code_editor.value = ""
+                self.recompute()
+                if pn.state.curdoc is not None:
+                    pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-        self.main_frame = pn.Column(self.fig_overlay, self.dialog, margin=0, sizing_mode = "stretch_both")
+            def invalid_code(e):
+                self.llm_code = ""
+                self.code_editor.value = ""
+
+            self.code_valid_button.on_click(valid_code) 
+            self.code_invalid_button.on_click(invalid_code) 
+            self.code_valid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false")
+            self.code_invalid_button.js_on_click(args={'dialog': self.dialog}, code="dialog.data.open = false") 
+
+        self.main_frame = pn.Column(self.fig_overlay, 
+                                    (self.dialog if has_agent else None), 
+                                    margin=0, 
+                                    sizing_mode = "stretch_both")
 
         self.periodic_recompute_added = False
         """Coupling periodic update"""
@@ -681,7 +690,7 @@ class VisualizationPanel:
             if "data" in self.__new_data:
                 self.current_data:Data2D = self.__new_data["data"]
 
-                if self.llm_code != "":
+                if has_agent and self.llm_code != "":
                     data_worker = Data2DWorker(self.current_data.copy())
                     try:
                         data_worker.execute_code(self.llm_code)

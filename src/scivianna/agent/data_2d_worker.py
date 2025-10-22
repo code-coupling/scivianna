@@ -2,7 +2,11 @@
 import numpy as np
 from pathlib import Path
 import re
-from smolagents import tool, CodeAgent
+
+try:
+    from smolagents import tool, CodeAgent
+except ImportError as e:
+    raise ImportError(e, "To install the dependancies to use an agent, install scivianna using the command pip install scivianna[agent]")
 
 from scivianna.data import Data2D
 from scivianna.agent.llm_model import call_llm, ai_server
