@@ -124,8 +124,6 @@ class Data2DWorker(Data2DWorker):
         with open(Path(__file__).parent / "instructions.md", "r") as f:
             instructions = f.read()
 
-        print(f"\nLLM used by agent :\n\n- {ai_server.client_kwargs['base_url']}\n- {ai_server.model_id}\n")
-
         self.smoll_agent = CodeAgent(
                         tools=[execute_code, 
                                check_valid, get_values, set_alphas, get_colors, set_colors, reset, get_numpy
@@ -154,6 +152,9 @@ class Data2DWorker(Data2DWorker):
     
 
     def __call__(self, question, reset=False, images=[], max_steps=15, additional_args={}):
+        
+        print(f"\nLLM used by agent :\n\n- {ai_server.client_kwargs['base_url']}\n- {ai_server.model_id}\n")
+
         self.executed_code = None
 
         with open(Path(__file__).parent / "instructions.md", "r") as f:

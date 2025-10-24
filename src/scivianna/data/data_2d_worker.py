@@ -90,6 +90,13 @@ class Data2DWorker:
         self.data2d.cell_colors = colors.tolist()
         self.data2d.cell_edge_colors = get_edges_colors(colors).tolist()
 
+        edge_colors = np.array(self.data2d.cell_edge_colors)
+
+        if not isinstance(self.data2d.cell_values[0], str):
+            edge_colors[:, 3] = np.where(np.isnan(np.array(self.data2d.cell_values)), 255, edge_colors[:, 3])
+
+        self.data2d.cell_edge_colors = edge_colors.tolist()
+
         return True
     
     def set_alphas(self, alphas:np.ndarray) -> bool:

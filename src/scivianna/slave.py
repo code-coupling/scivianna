@@ -152,8 +152,8 @@ def set_colors_list(
         """
         The color is got from a color map set in the range (-max, max)
         """
-        cell_values = np.array(cell_values).astype(float)
-        no_nan_values = cell_values[~np.isnan(cell_values)]
+        normalized_cell_values = np.array(cell_values).astype(float)
+        no_nan_values = normalized_cell_values[~np.isnan(normalized_cell_values)]
 
         if profile_time:
             print(f"extracting no nan {time.time() - start_time}")
@@ -167,7 +167,7 @@ def set_colors_list(
             else:
                 minmax = max(abs(no_nan_values.min()), no_nan_values.max())
 
-            cell_values = (cell_values + minmax) / (2 * minmax)
+            normalized_cell_values = (normalized_cell_values + minmax) / (2 * minmax)
         else:
             if (
                 len(no_nan_values) == 0 or max(abs(no_nan_values.min()), no_nan_values.max()) == 0.0
@@ -181,14 +181,14 @@ def set_colors_list(
                 minmax = no_nan_values.max() - no_nan_values.min()
                 min_val = no_nan_values.min()
 
-            cell_values = (cell_values - min_val) / minmax
+            normalized_cell_values = (normalized_cell_values - min_val) / minmax
 
         if profile_time:
             print(f"Rescaling data {time.time() - start_time}")
             start_time = time.time()
 
         volume_colors = interpolate_cmap_at_values(
-            color_map, cell_values
+            color_map, normalized_cell_values
         )
 
         if profile_time:
@@ -214,6 +214,8 @@ def set_colors_list(
             f"Visualization mode {coloring_mode} not implemented."
         )
     
+    print("SLAVE", cell_values)
+
     data.cell_values = cell_values
     data.cell_colors = volume_colors.tolist()
 
