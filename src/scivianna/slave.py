@@ -214,8 +214,6 @@ def set_colors_list(
             f"Visualization mode {coloring_mode} not implemented."
         )
     
-    print("SLAVE", cell_values)
-
     data.cell_values = cell_values
     data.cell_colors = volume_colors.tolist()
 
