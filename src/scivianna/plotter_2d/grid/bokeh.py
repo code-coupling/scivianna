@@ -209,8 +209,14 @@ class Bokeh2DGridPlotter(Plotter2D):
         self.figure.toolbar.active_drag = pan_tool
         
         if self.dim_hovered_cell:
+            def on_mouse_enter(event):
+                self.active = True
             self.figure.on_event(bokeh.events.MouseMove, 
                                     self.on_mouse_move)
+            self.figure.on_event(bokeh.events.MouseEnter, 
+                                    on_mouse_enter)
+            self.figure.on_event(bokeh.events.MouseLeave, 
+                                    self.reset_hover)
 
             self.last_update_cell = None
             self.save_data = True
@@ -355,7 +361,7 @@ class Bokeh2DGridPlotter(Plotter2D):
             
             borders = np.concatenate([borders, borders, borders, borders], axis=1)
 
-            edge_color_array = data.cell_edge_colors
+            edge_color_array = np.array(data.cell_edge_colors)
 
             edge_colors = edge_color_array[inv]  # shape (n, m, 4)
 
@@ -573,7 +579,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         """
         i_, j_ = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
 
-        if i == i_ and j == j_:
+        if self.active and i == i_ and j == j_:
             if self.volume_name_grid is not None:
                 hovered_cell = self.volume_name_grid[j, i]
                 
@@ -588,7 +594,12 @@ class Bokeh2DGridPlotter(Plotter2D):
                     self.last_update_cell = hovered_cell
                     self.save_data = True
                 
-
+    def reset_hover(self,):
+        self.active = False
+        self.save_data = False
+        self.update_2d_frame(self.data)
+        self.last_update_cell = None
+        self.save_data = True
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
