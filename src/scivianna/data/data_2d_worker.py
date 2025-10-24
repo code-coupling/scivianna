@@ -2,6 +2,7 @@
 import numpy as np
 
 from scivianna.data.data2d import Data2D
+from scivianna.utils.color_tools import get_edges_colors
 
 class Data2DWorker:
     """Worker that receives a Data2D object and works with it. """
@@ -87,6 +88,7 @@ class Data2DWorker:
         assert colors.flatten().min() >= 0, f"The values must be greater than 0, found in array {colors.flatten().min()}."
 
         self.data2d.cell_colors = colors.tolist()
+        self.data2d.cell_edge_colors = get_edges_colors(colors).tolist()
 
         return True
     
@@ -113,8 +115,12 @@ class Data2DWorker:
 
         colors = np.array(self.data2d.cell_colors)
         colors[:, -1] = alphas.astype(int)
+        
+        edge_colors = np.array(self.data2d.cell_edge_colors)
+        edge_colors[:, -1] = alphas.astype(int)
 
         self.data2d.cell_colors = colors.tolist()
+        self.data2d.cell_edge_colors = edge_colors.tolist()
 
         return True
 
