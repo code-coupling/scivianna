@@ -26,6 +26,8 @@ class Data2D:
     """List of contained cell values"""
     cell_colors:List[Tuple[int, int, int]]
     """List of contained cell colors"""
+    cell_edge_colors:List[Tuple[int, int, int]]
+    """List of contained cell edge colors"""
     
     simplify:bool
     """Simplify the polygons when converting from grid to polygon list"""
@@ -41,6 +43,7 @@ class Data2D:
         self.cell_ids = []
         self.cell_values = []
         self.cell_colors = []
+        self.cell_edge_colors = []
         self.simplify = None
 
     @classmethod
@@ -61,7 +64,7 @@ class Data2D:
         data_.polygons = polygon_list
 
         data_.cell_ids = [p.volume_id for p in polygon_list]
-        data_.cell_values = [np.NaN]*len(polygon_list)
+        data_.cell_values = [np.nan]*len(polygon_list)
         
         data_.data_type = DataType.POLYGONS
 
@@ -94,7 +97,7 @@ class Data2D:
         data_.v_values = v_values
 
         data_.cell_ids = np.unique(grid.flatten())
-        data_.cell_values = [np.NaN]*len(data_.cell_ids)
+        data_.cell_values = [np.nan]*len(data_.cell_ids)
 
         data_.simplify = simplify
         data_.data_type = DataType.GRID
@@ -112,10 +115,12 @@ class Data2D:
             # The polygons count will become different than the number of cell values, so we update and change the data_type
             id_to_value = dict(zip(self.cell_ids, self.cell_values))
             id_to_color = dict(zip(self.cell_ids, self.cell_colors))
+            id_to_edge_color = dict(zip(self.cell_ids, self.cell_edge_colors))
 
             self.cell_ids = [p.volume_id for p in self.polygons]
             self.cell_values = [id_to_value[e] for e in self.cell_ids]
             self.cell_colors = [id_to_color[e] for e in self.cell_ids]
+            self.cell_edge_colors = [id_to_edge_color[e] for e in self.cell_ids]
 
             self.data_type = DataType.POLYGONS
 
@@ -169,6 +174,7 @@ class Data2D:
         data2D.cell_ids = np.array(self.cell_ids).tolist()
         data2D.cell_values = np.array(self.cell_values).tolist()
         data2D.cell_colors = np.array(self.cell_colors).tolist()
+        data2D.cell_edge_colors = np.array(self.cell_edge_colors).tolist()
         data2D.simplify = self.simplify
 
         return data2D
@@ -178,6 +184,7 @@ class Data2D:
         """
         assert len(self.cell_ids) == len(self.cell_colors), "The Data2D object must have the same number of cell id and colors"
         assert len(self.cell_values) == len(self.cell_colors), "The Data2D object must have the same number of cell values and colors"
+        assert len(self.cell_values) == len(self.cell_edge_colors), "The Data2D object must have the same number of cell values and edge colors"
         if self.data_type == DataType.POLYGONS:
             assert len(self.cell_values) == len(self.polygons), "The Data2D object must have the same number of cell values and polygons"
 

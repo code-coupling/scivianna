@@ -27,6 +27,7 @@ class Data2DWorker:
         """
         try:
             np.testing.assert_equal(np.array(self.data2d.cell_colors), np.array(self.data2d_save.cell_colors))
+            np.testing.assert_equal(np.array(self.data2d.cell_edge_colors), np.array(self.data2d_save.cell_edge_colors))
             np.testing.assert_equal(np.array(self.data2d.cell_ids), np.array(self.data2d_save.cell_ids))
             np.testing.assert_equal(np.array(self.data2d.cell_values), np.array(self.data2d_save.cell_values))
         except AssertionError:

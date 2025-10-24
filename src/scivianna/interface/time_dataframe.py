@@ -68,7 +68,7 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
             self.df = pd.concat([
                 self.df,
                 pd.DataFrame({
-                    col:[np.NaN] for col in self.df.columns
+                    col:[np.nan] for col in self.df.columns
                 }, index = [self.time])
             ])
 
@@ -92,7 +92,7 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
             exception if called before initialize() or after terminate().
         """
         if not name in self.df.columns:
-            self.df.loc[:,name] = pd.Series([np.NaN]*len(self.df), index=self.df.index)
+            self.df.loc[:,name] = pd.Series([np.nan]*len(self.df), index=self.df.index)
 
         self.df.loc[self.time, name] = val
 

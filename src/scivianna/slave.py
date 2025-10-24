@@ -11,7 +11,7 @@ from typing import Any, List, Dict, Tuple, Type, Union
 
 from scivianna.constants import OUTSIDE
 from scivianna.data.data2d import Data2D
-from scivianna.utils.color_tools import interpolate_cmap_at_values
+from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values
 
 from scivianna.interface.generic_interface import (
     GenericInterface,
@@ -216,6 +216,13 @@ def set_colors_list(
     
     data.cell_values = cell_values
     data.cell_colors = volume_colors.tolist()
+
+    edge_colors = get_edges_colors(volume_colors)
+    
+    if not isinstance(cell_values[0], str):
+        edge_colors[:, 3] = np.where(np.isnan(np.array(cell_values)), 255, edge_colors[:, 3])
+
+    data.cell_edge_colors = edge_colors.tolist()
 
 
 def worker(

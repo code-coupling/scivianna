@@ -28,6 +28,7 @@ def data2d():
 
     data2d.cell_values = np.cos(np.arange(10)).tolist()
     data2d.cell_colors = (np.ones((10, 4))*255).astype(int).tolist()
+    data2d.cell_edge_colors = (np.ones((10, 4))*235).astype(int).tolist()
 
     return data2d
 

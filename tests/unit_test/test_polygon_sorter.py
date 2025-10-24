@@ -46,6 +46,7 @@ def mock_data()->Data2D:
     ])
     data.cell_values = ["C", "A", "B", "D"]
     data.cell_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    data.cell_edge_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)]
     return data
 
 
@@ -68,6 +69,7 @@ def test_sort_polygon_list_sorts_by_cell_values(mock_data:Data2D):
 
     # Check that associated data is sorted in same order
     np.testing.assert_equal(mock_data.cell_colors, [(255, 0, 0), (0, 255, 0), (255, 255, 255), (0, 0, 255)])
+    np.testing.assert_equal(mock_data.cell_edge_colors, [(255, 0, 0), (0, 255, 0), (255, 255, 255), (0, 0, 255)])
     np.testing.assert_equal(mock_data.cell_ids, [102, 103, 101, 104])
     np.testing.assert_equal(len(mock_data.polygons), 4)
 
@@ -123,6 +125,7 @@ def test_sort_list_preserves_order(mock_data:Data2D):
     ])
     new_data.cell_values = ["D", "C", "B", "A"]
     new_data.cell_colors = [(0, 0, 255), (255, 255, 255), (0, 255, 0), (255, 0, 0)]
+    new_data.cell_edge_colors = [(0, 0, 255), (255, 255, 255), (0, 255, 0), (255, 0, 0)]
     new_data.cell_ids = [104, 101, 103, 102]
 
     # Apply sort_list
@@ -131,6 +134,7 @@ def test_sort_list_preserves_order(mock_data:Data2D):
     # Should now be sorted: A, B, C, D
     np.testing.assert_equal(new_data.cell_values, ['C', 'B', 'D', 'A'])
     np.testing.assert_equal(new_data.cell_colors, [(255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0)])
+    np.testing.assert_equal(new_data.cell_edge_colors, [(255, 255, 255), (0, 255, 0), (0, 0, 255), (255, 0, 0)])
     np.testing.assert_equal(new_data.cell_ids, [101, 103, 104, 102])
 
 
@@ -144,6 +148,7 @@ def test_sort_list_with_different_length_raises(mock_data:Data2D):
     new_data = Data2D.from_polygon_list([PolygonElement(exterior_polygon=PolygonCoords(x_coords=[0.0, 1.0, 1.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=101)])
     new_data.cell_values = ["A"]
     new_data.cell_colors = [(255, 0, 0)]
+    new_data.cell_edge_colors = [(255, 0, 0)]
     new_data.cell_ids = [101]
 
     with pytest.raises(AssertionError):
@@ -154,14 +159,15 @@ def test_sort_list_with_different_length_raises(mock_data:Data2D):
 @pytest.mark.default
 def test_sort_polygon_list_with_nan_in_values(mock_data:Data2D):
     """Test that values are sorted with a nan in the values."""
-    mock_data.cell_values = [0., 3., np.NaN, 1.]
+    mock_data.cell_values = [0., 3., np.nan, 1.]
 
     sorter = PolygonSorter()
     sorter.sort_from_value(mock_data)  
 
     # Should preserve the previous order
-    np.testing.assert_equal(mock_data.cell_values, [0.0, 1.0, 3.0, np.NaN]) 
+    np.testing.assert_equal(mock_data.cell_values, [0.0, 1.0, 3.0, np.nan]) 
     np.testing.assert_equal(mock_data.cell_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
+    np.testing.assert_equal(mock_data.cell_edge_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
 
 
         
@@ -176,19 +182,22 @@ def test_sort_polygon_list_with_float_values(mock_data:Data2D):
     # Should preserve the previous order
     np.testing.assert_equal(mock_data.cell_values, [0.0, 1.0, 3.0, 12.])  
     np.testing.assert_equal(mock_data.cell_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
+    np.testing.assert_equal(mock_data.cell_edge_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
 
     mock_data.cell_values = [2., 7., 3., 1.]
     mock_data.cell_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    mock_data.cell_edge_colors = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)]
     sorter.sort_list(mock_data)  
     
     np.testing.assert_equal(mock_data.cell_values, [2., 1., 7., 3.])  
     np.testing.assert_equal(mock_data.cell_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
+    np.testing.assert_equal(mock_data.cell_edge_colors, [(255, 255, 255), (0, 0, 255), (255, 0, 0), (0, 255, 0)])
 
         
 @pytest.mark.default
 def test_sort_polygon_list_with_both_string_float(mock_data:Data2D):
     """Test that values are sorted with a nan in the values."""
-    mock_data.cell_values = ["0.", 3., np.NaN, 1.]
+    mock_data.cell_values = ["0.", 3., np.nan, 1.]
 
     sorter = PolygonSorter()
     

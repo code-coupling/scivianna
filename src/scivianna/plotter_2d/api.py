@@ -190,7 +190,7 @@ def plot_frame_in_axes(
             compos = np.unique(compo_list)
             volume_color_list = np.array(volume_color_list).astype(float)
 
-            edge_color_list = get_edges_colors(volume_color_list)
+            edge_color_list = np.array(data.cell_edge_colors)
 
             colors = []
             edge_colors = []

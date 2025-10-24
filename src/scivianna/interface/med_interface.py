@@ -295,7 +295,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         if profile_time:
             start_time = time.time()
         if value_label == MESH:
-            return {str(v): np.NaN for v in volumes}
+            return {str(v): np.nan for v in volumes}
 
         field_np_array = None
 

@@ -177,8 +177,8 @@ class BokehPlotter1D(Plotter1D):
         Tuple[float, float]
             Displayed data Y bounds
         """
-        min_val = np.NaN
-        max_val = np.NaN
+        min_val = np.nan
+        max_val = np.nan
 
         y_mins = [np.nanmin(self.source_data_dict[name].data["y"]) 
                     for name in self.visible 
@@ -207,8 +207,8 @@ class BokehPlotter1D(Plotter1D):
         Tuple[float, float]
             Displayed data X bounds
         """
-        min_val = np.NaN
-        max_val = np.NaN
+        min_val = np.nan
+        max_val = np.nan
 
         x_mins = [np.nanmin(self.source_data_dict[name].data["x"])
                     for name in self.visible 

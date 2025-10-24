@@ -34,7 +34,7 @@ def get_country_category(country_code: str):
     for cat in country_cat:
         if country_code in country_cat[cat]:
             return cat
-    return np.NaN
+    return np.nan
 
 
 class EuropeGridInterface(Geometry2DPolygon):
@@ -214,9 +214,9 @@ class EuropeGridInterface(Geometry2DPolygon):
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.NaN for v in volumes}
+            dict_compo = {str(v): np.nan for v in volumes}
             if -1 in dict_compo:
-                dict_compo[-1] = np.NaN
+                dict_compo[-1] = np.nan
 
             return dict_compo
 

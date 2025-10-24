@@ -1,38 +1,20 @@
-
 from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import multiprocessing as mp
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon
-from scivianna.slave import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement
-from scivianna.enums import GeometryType, VisualizationMode
-from scivianna.utils.structured_mesh import CarthesianStructuredMesh, StructuredMesh
-
+from scivianna.slave import OptionElement, set_colors_list
+from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
+from scivianna.enums import VisualizationMode
 from scivianna.constants import MESH
 
+from scivianna.utils.color_tools import interpolate_cmap_at_values, get_edges_colors
 
-class StructuredMeshInterface(Geometry2DPolygon):
-    """ StructuredMesh generic interface. This interface is not usable as such as it can't load a file. 
-    To use it, the developper mush implement another interface inheriting from it implementing the read_file function.
-    """
-
-    polygons: List[PolygonElement]
-    """Polygons computed at the previous iteration"""
-
-    mesh: StructuredMesh
-    """Mesh read from the .med file."""
-
-    fields: Dict[str, np.ndarray]
-    """Dictionnary containing the list of per cell value for each read field."""
-
-    geometry_type=GeometryType._3D
-
+class ColorTestInterface(Geometry2DPolygon):
     def __init__(self, ):
-        """StructuredMesh interface constructor."""
-        self.data: List[PolygonElement] = []
-        self.last_computed_frame = []
+        """Interface built to test color tools."""
+        pass
 
     def read_file(self, file_path: str, file_label: str):
         """Read a file and store its content in the interface
@@ -44,7 +26,7 @@ class StructuredMeshInterface(Geometry2DPolygon):
         file_label : str
             Label to define the file type
         """
-        raise NotImplementedError()
+        pass
 
     def compute_2D_data(
         self,
@@ -94,22 +76,17 @@ class StructuredMeshInterface(Geometry2DPolygon):
         bool
             Were the polygons updated compared to the past call
         """
-        if (self.data is not None) and (
-            self.last_computed_frame == [*u, *v, w_value]
-        ):
-            print("Skipping polygon computation.")
-            return self.data, False
-
-        self.last_computed_frame = [*u, *v, w_value]
-
-        u = np.array(u)
-        v = np.array(v)
-        vec = np.cross(u, v)
-        origin = u_min * u + v_min * v + w_value * vec
-
-        self.data = Data2D.from_polygon_list(self.mesh.compute_2D_slice(origin, u, v))
-
-        return self.data, True
+        return Data2D.from_polygon_list([
+            PolygonElement(
+                exterior_polygon=PolygonCoords(
+                    x_coords = [],
+                    y_coords = []
+                ),
+                holes = [],
+                volume_id = i
+            )
+            for i in range(5)
+        ]), True
 
     def get_labels(
         self,
@@ -121,8 +98,7 @@ class StructuredMeshInterface(Geometry2DPolygon):
         List[str]
             List of fields names
         """
-        labels = [MESH] + list(self.mesh.grids.keys())
-        return labels
+        return [MESH, "str", "float"]
 
     def get_value_dict(
         self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
@@ -145,8 +121,12 @@ class StructuredMeshInterface(Geometry2DPolygon):
         """
         if value_label == MESH:
             return {v: np.nan for v in volumes}
-
-        return dict(zip(volumes, self.mesh.get_cells_values(value_label, volumes)))
+        elif value_label == "str":
+            return {v: str(v) for v in volumes}
+        elif value_label == "float":
+            return {v: float(v) if v < 2 else np.nan for v in volumes}
+        else:
+            raise ValueError(f"Value label {value_label} not implemented. Keys available : MESH, str, and float.")
 
 
     def get_label_coloring_mode(self, label: str) -> VisualizationMode:
@@ -164,8 +144,13 @@ class StructuredMeshInterface(Geometry2DPolygon):
         """
         if label == MESH:
             return VisualizationMode.NONE
+        elif label == "str":
+            return VisualizationMode.FROM_STRING
+        elif label == "float":
+            return VisualizationMode.FROM_VALUE
+        else:
+            raise ValueError(f"Label {label} not implemented. Keys available : MESH, str, and float.")
 
-        return VisualizationMode.FROM_VALUE
 
     def get_file_input_list(self) -> List[Tuple[str, str]]:
         """Returns a list of file label and its description for the GUI
@@ -186,35 +171,63 @@ class StructuredMeshInterface(Geometry2DPolygon):
             List of option objects.
         """
         return []
-
-if __name__ == "__main__":
-    from scivianna.slave import ComputeSlave
-    from scivianna.panel.plot_panel import VisualizationPanel
-    from scivianna.notebook_tools import _show_panel
-
-    class MyMeshInterface(StructuredMeshInterface):
-        def read_file(self, file_path: str, file_label: str):
-            """Read a file and store its content in the interface
-
-            Parameters
-            ----------
-            file_path : str
-                File to read
-            file_label : str
-                Label to define the file type
-            """
-            size = 40
-            self.mesh = CarthesianStructuredMesh(
-                np.linspace(0, 4, size),
-                np.linspace(0, 4, size),
-                np.linspace(0, 4, size),
-            )
-            self.mesh.set_values("id", np.arange(size*size*size).reshape(size, size, size))
     
-    slave = ComputeSlave(MyMeshInterface)
-    slave.read_file(
-        None,
-        None,
-    )
 
-    _show_panel(VisualizationPanel(slave, name="StructuredMesh visualizer"))
+def test_interpolate_cmap_gray():
+    colors = interpolate_cmap_at_values("gray", [0, 0.5, 1.])
+
+    white = np.array((255, 255, 255, 255))
+    black = np.array((0, 0, 0, 255))
+
+    np.testing.assert_equal(colors, [black, (0.5*(black+white+np.array((1., 1., 1., 0.)))).astype(int), white])
+
+def test_interpolate_cmap_blues():
+    colors = interpolate_cmap_at_values("Blues", [0, 0.4, 1.])
+
+    value_0 = np.array((247, 251, 255, 255))
+    value_05 = np.array((147, 196, 222, 255))
+    value_1 = np.array((8, 48, 107, 255))
+
+    np.testing.assert_equal(colors, [value_0, value_05, value_1])
+
+def test_color_list_none():
+    interface = ColorTestInterface()
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    set_colors_list(data2D, interface, MESH, "gray", False, {})
+
+    print(data2D.cell_colors)
+    print(data2D.cell_edge_colors)
+    raise ValueError()
+
+def test_color_list_none():
+    interface = ColorTestInterface()
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    set_colors_list(data2D, interface, MESH, "gray", False, {})
+
+    np.testing.assert_equal(data2D.cell_colors, [(200, 200, 200, 0)]*5)
+    np.testing.assert_equal(data2D.cell_edge_colors, [(180, 180, 180, 255)]*5)
+
+def test_color_list_str():
+    interface = ColorTestInterface()
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    set_colors_list(data2D, interface, "str", "gray", False, {})
+
+    np.testing.assert_equal(data2D.cell_edge_colors, get_edges_colors(np.array(data2D.cell_colors)))
+
+def test_color_list_float():
+    interface = ColorTestInterface()
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    set_colors_list(data2D, interface, "float", "gray", False, {})
+
+    white = np.array((255, 255, 255, 255))
+    black = np.array((0, 0, 0, 255))
+    transparent = np.array((200, 200, 200, 0))
+    
+    np.testing.assert_equal(data2D.cell_colors, [black, white, transparent, transparent, transparent])
+    np.testing.assert_equal(data2D.cell_edge_colors, [
+        (0, 0, 0, 255),
+        (235, 235, 235, 255),
+        [180, 180, 180, 255], 
+        [180, 180, 180, 255], 
+        [180, 180, 180, 255]
+    ])

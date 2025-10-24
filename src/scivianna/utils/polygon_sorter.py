@@ -37,12 +37,7 @@ class PolygonSorter:
         # Check if both sort and sort_indexes is None in case a slave is used for different panels.
         self.sort_indexes = np.argsort(values_list)
         
-        data.cell_ids = np.array(data.cell_ids)[self.sort_indexes].tolist()
-        data.cell_values = np.array(values_list)[self.sort_indexes].tolist()
-        data.cell_colors = np.array(data.cell_colors)[self.sort_indexes].tolist()
-        
-        if data.data_type == DataType.POLYGONS:
-            data.polygons = [data.polygons[i] for i in self.sort_indexes]
+        self.sort_list(data)
 
     def sort_list(self, data:Data2D):
         """Sort the value and color list of a Data2D object in the same order as the past sort_polygon_list order. 
@@ -63,6 +58,7 @@ class PolygonSorter:
         data.cell_ids = np.array(data.cell_ids)[self.sort_indexes].tolist()
         data.cell_colors = np.array(data.cell_colors)[self.sort_indexes].tolist()
         data.cell_values = np.array(data.cell_values)[self.sort_indexes].tolist()
+        data.cell_edge_colors = np.array(data.cell_edge_colors)[self.sort_indexes].tolist()
         
         if data.data_type == DataType.POLYGONS:
             data.polygons = [data.polygons[i] for i in self.sort_indexes]

@@ -104,7 +104,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
                         val += self.df[column].sum()
                 output.append(val)
             else:
-                output.append(np.NaN)
+                output.append(np.nan)
         return output
 
     def get_1D_value(
@@ -144,7 +144,7 @@ class CountryTimeSeriesInterface(ValueAtLocation, Value1DAtLocation):
 
         if output is None:         
             output = self.df["Time"].copy()*0.
-            output.replace(0., np.NaN)
+            output.replace(0., np.nan)
 
         output.rename(f"{volume_index}_{field}")
 

@@ -109,7 +109,7 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
         volume_list: List[Union[str, int]] = data.cell_ids
 
         volume_colors: np.ndarray = np.array(data.cell_colors).astype(float)
-        volume_edge_colors: np.ndarray = get_edges_colors(volume_colors)
+        volume_edge_colors: np.ndarray = np.array(data.cell_edge_colors).astype(float)
 
         polygons: List[Polygon] = [
             Polygon(

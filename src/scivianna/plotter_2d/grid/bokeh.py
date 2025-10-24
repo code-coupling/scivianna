@@ -355,7 +355,7 @@ class Bokeh2DGridPlotter(Plotter2D):
             
             borders = np.concatenate([borders, borders, borders, borders], axis=1)
 
-            edge_color_array = get_edges_colors(color_array)
+            edge_color_array = data.cell_edge_colors
 
             edge_colors = edge_color_array[inv]  # shape (n, m, 4)
 

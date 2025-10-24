@@ -120,7 +120,7 @@ class CSVInterface(ValueAtLocation):
                 list_volumes = list(volume_indexes.copy())
                 list_volumes.remove("-1")
                 vals = new_df[field][list_volumes].to_list()
-                vals.insert(list(volume_indexes.copy()).index("-1"), np.NaN)
+                vals.insert(list(volume_indexes.copy()).index("-1"), np.nan)
 
                 return vals
             else:
@@ -136,7 +136,7 @@ class CSVInterface(ValueAtLocation):
                 list_materials.remove("Out of geometry")
                 vals = new_df[field][list_materials].to_list()
                 vals.insert(
-                    list(material_names.copy()).index("Out of geometry"), np.NaN
+                    list(material_names.copy()).index("Out of geometry"), np.nan
                 )
 
                 return vals

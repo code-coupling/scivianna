@@ -168,7 +168,7 @@ class MandelBrotInterface(Geometry2DGrid):
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.NaN for v in volumes}
+            dict_compo = {str(v): np.nan for v in volumes}
 
             return dict_compo
 

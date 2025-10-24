@@ -144,7 +144,7 @@ class VisuProblem(GridStackProblem):
                     slave_result = ComputeSlave(TimeDataFrame)
                     
                     slave_result.setTime(-1.)
-                    slave_result.setInputDoubleValue(name, np.NaN)
+                    slave_result.setInputDoubleValue(name, np.nan)
 
                     visualisation_panels[name] = LineVisualisationPanel(slave_result, name)
 
@@ -152,7 +152,7 @@ class VisuProblem(GridStackProblem):
                     slave_result = ComputeSlave(TimeDataFrame)
                     
                     slave_result.setTime(-1.)
-                    slave_result.setInputDoubleValue(name, np.NaN)
+                    slave_result.setInputDoubleValue(name, np.nan)
 
                     visualisation_panels[name] = LineVisualisationPanel(slave_result, name)
                     self._field_values[name] = element.reduction_type

@@ -5,7 +5,6 @@ import panel as pn
 from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
-from scivianna.utils.color_tools import get_edges_colors
 from scivianna.panel.styles import customize_axis
 
 import bokeh
@@ -25,7 +24,7 @@ from bokeh import events
 
 import numpy as np
 
-from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY, ALPHA
+from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY, EDGE_ALPHA, FILL_ALPHA
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -265,8 +264,9 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             VOLUME_NAMES: data.cell_ids,
             COMPO_NAMES: data.cell_values,
             COLORS: np.array(data.cell_colors)[:, :-1].tolist(),
-            ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
-            EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
+            FILL_ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
+            EDGE_COLORS: np.array(data.cell_edge_colors)[:, :-1].tolist(),
+            EDGE_ALPHA: (np.array(data.cell_edge_colors)[:, -1]/255).tolist(),
         }
 
         self.hovered_glyph = self.figure.multi_polygons(
@@ -276,9 +276,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             source=self.source_polygons,
             color=COLORS,
             line_color=EDGE_COLORS,
-            fill_alpha = ALPHA,
-            line_alpha = ALPHA,
-            hatch_alpha = ALPHA,
+            fill_alpha = FILL_ALPHA,
+            line_alpha = EDGE_ALPHA,
             hover_line_alpha=0.6,
             hover_fill_alpha=0.6,
         )
@@ -302,9 +301,10 @@ class Bokeh2DPolygonPlotter(Plotter2D):
                 YS: ys,
                 VOLUME_NAMES: data.cell_ids,
                 COMPO_NAMES: data.cell_values,
-                COLORS: np.array(data.cell_colors)[:, :-1].tolist(),
-                EDGE_COLORS: get_edges_colors(np.array(data.cell_colors)).tolist(),
-                ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
+                COLORS: np.array(data.cell_colors).tolist(),
+                EDGE_COLORS: np.array(data.cell_edge_colors).tolist(),
+                FILL_ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
+                EDGE_ALPHA: (np.array(data.cell_edge_colors)[:, -1]/255).tolist(),
             }
         )
 
@@ -325,10 +325,13 @@ class Bokeh2DPolygonPlotter(Plotter2D):
                 COMPO_NAMES: [(slice(0, cell_count), data.cell_values)],
                 COLORS: [(slice(0, cell_count), np.array(data.cell_colors)[:, :-1].tolist())],
                 EDGE_COLORS: [
-                    (slice(0, cell_count), get_edges_colors(np.array(colors)).tolist())
+                    (slice(0, cell_count), np.array(data.cell_edge_colors).tolist())
                 ],
-                ALPHA: [
+                FILL_ALPHA: [
                     (slice(0, cell_count), (np.array(data.cell_colors)[:, -1]/255).tolist())
+                ],
+                EDGE_ALPHA: [
+                    (slice(0, cell_count), (np.array(data.cell_edge_colors)[:, -1]/255).tolist())
                 ],
             }
         )
