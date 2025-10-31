@@ -6,6 +6,7 @@ import rasterio
 import rasterio.features
 from rasterio.transform import Affine 
 
+import shapely
 from shapely.geometry.polygon import Polygon
 from shapely.geometry import shape
 
@@ -141,6 +142,48 @@ class PolygonElement:
         self.exterior_polygon.rotate(origin, angle)
         for poly in self.holes:
             poly.rotate(origin, angle)
+
+    def to_shapely(self, z_coord: float = None) -> shapely.Polygon:
+        """Returns a shapely Polygon version of self at the vertical coordinate z_coord
+
+        Parameters
+        ----------
+        z_coord : float, optional
+            If provided, the polygon is 3D at the given height, by default None
+
+        Returns
+        -------
+        shapely.Polygon
+            Shapely polygon
+        """
+        if z_coord is None:
+            return shapely.Polygon(
+                np.array([
+                    self.exterior_polygon.x_coords, 
+                    self.exterior_polygon.y_coords
+                ]),
+                [
+                    np.array([
+                        h.x_coords, 
+                        h.y_coords
+                    ]) for h in self.holes
+                ]
+            )
+        else:
+            return shapely.Polygon(
+                np.array([
+                    self.exterior_polygon.x_coords, 
+                    self.exterior_polygon.y_coords,
+                    [z_coord] * len(self.exterior_polygon.y_coords)
+                ]).T,
+                [
+                    np.array([
+                        h.x_coords, 
+                        h.y_coords,
+                        [z_coord] * len(h.y_coords)
+                    ]).T for h in self.holes
+                ]
+            )
 
 def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray], 
                                     y:Union[List[float], np.ndarray], 
