@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Tuple
 import numpy as np
+from scivianna.interface.generic_interface import Geometry2D
 from scivianna.utils.color_tools import get_edges_colors
 import shapely
 
@@ -13,7 +14,7 @@ except ImportError:
 
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 
-class ExtrudedStructuredMesh:
+class ExtrudedStructuredMesh(Geometry2D):
     """Structured mesh build from a set of PolygonElement on the XY plane, extruded at a set of Z values
     """
     def __init__(

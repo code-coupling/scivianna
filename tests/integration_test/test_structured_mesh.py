@@ -68,6 +68,7 @@ try:
                 np.linspace(0, 4, size),
             )
             self.mesh.set_values("id", np.arange(size*size*size).reshape(size, size, size))
+
 except ImportError:
     class CarthesianInterface:
         pass
@@ -106,6 +107,7 @@ def test_plot_carthesian():
     )
 
     slave.terminate()
+    plt.close()
 
     assert True
 @pytest.mark.pyvista
@@ -138,6 +140,7 @@ def test_plot_cylindrical():
     )
 
     slave.terminate()
+    plt.close()
 
     assert True
 
@@ -171,6 +174,7 @@ def test_plot_spherical():
     )
 
     slave.terminate()
+    plt.close()
 
     assert True
 
