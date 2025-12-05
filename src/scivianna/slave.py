@@ -1,4 +1,5 @@
 import atexit
+from pathlib import Path
 import numpy as np
 import os
 import multiprocessing as mp
@@ -495,7 +496,11 @@ class ComputeSlave:
         file_label : str
             File label
         """
-        print("Reading file", file_path)
+        if type(file_path) in [str, Path]:
+            print(f"Reading file {file_path} as {file_label}")
+        else:
+            print(f"Reading object of type {type(file_path)} as {file_label}")
+            
         file_path = self.code_interface.serialize(file_path, file_label)
 
         unpicklables = dill.detect.baditems(file_path)

@@ -1,8 +1,10 @@
+import time
 from typing import Any, Dict, List, Tuple
 import numpy as np
 from scivianna.interface.generic_interface import Geometry2D
 from scivianna.utils.color_tools import get_edges_colors
 import shapely
+import shapely.coords
 
 try:
     import pyvista as pv
@@ -44,46 +46,76 @@ class ExtrudedStructuredMesh(Geometry2D):
     def build_pyvista_geometry(self,):
         """Builds the PyVista geometry from the list of polygons
         """
-        polys = {}
-
         count_cells = len(self.base_polygons)
 
-        for i in range(len(self.z_coords)-1):
-            z = self.z_coords[i]
-            polygons = [p.to_shapely(z_coord=z) for p in self.base_polygons]
+        # Preparing point and face per base polygon
 
-            for k in range(count_cells):
-                # Convert to PyVista mesh
-                cell_id = k + i*count_cells
+        polygons = [p.to_shapely(z_coord=0) for p in self.base_polygons]
+        polygon_points:List[shapely.coords.CoordinateSequence] = []
+        polygon_faces = []
+        cell_ids = []
+
+        for k in range(count_cells):
+            if (len(polygons[k].interiors) == 0):
+                poly = polygons[k]
+                points = poly.exterior.coords
+                faces = [len(points)] + list(range(len(points)))
+                cell_ids += [k]
+            else:
+                triangulated = shapely.constrained_delaunay_triangles(polygons[k])
                 points = []
                 faces = []
+                for triangle in triangulated.geoms:
+                    points.extend(np.array(triangle.exterior.coords))
 
-                if (len(polygons[k].interiors) == 0):
-                    poly = polygons[k]
-                    points = poly.exterior.coords
-                    faces = [len(points)] + list(range(len(points)))
-                else:
-                    triangulated = shapely.constrained_delaunay_triangles(polygons[k])
-                    for triangle in triangulated.geoms:
-                        tri_points = np.array(triangle.exterior.coords)
-                        points.extend(tri_points)
+                    # Create face indices (3 for triangle)
+                    face = [3] + [len(points) - 3 + i for i in range(3)]
+                    faces.extend(face)
+                    cell_ids += [k]
 
-                        # Create face indices (3 for triangle)
-                        face = [3] + [len(points) - 3 + i for i in range(3)]
-                        faces.extend(face)
+            polygon_points.append(points)
+            polygon_faces.append(faces)
 
-                # Create PyVista mesh
-                mesh = pv.PolyData(
-                    np.array(points),
-                    np.array(faces, dtype=np.int32),
-                ).clean()
+        all_points = []
+        all_cells = []
+        points_ids = []
+        current_point_count = 0
 
-                mesh["cell_id"] = [cell_id] * mesh.n_points
-                mesh.extrude(vector=(0, 0, self.z_coords[i+1] - z), inplace=True, capping=True).clean()
+        for k in range(count_cells):
+            all_points += polygon_points[k]
+            faces = np.array(polygon_faces[k])
+            faces[1:] += current_point_count
+            all_cells += [faces]
 
-                polys[cell_id] = mesh
-                
-        self.blocks = pv.MultiBlock(list(polys.values()))
+            current_point_count += len(polygon_points[k])
+
+            points_ids += [k for _ in range(len(polygon_points[k]))]
+
+        all_cells = np.concatenate(all_cells, axis=0)
+
+        mesh = pv.PolyData(
+                np.array(all_points),
+                all_cells,
+            )#.clean()
+
+        mesh.cell_data["cell_id"] = cell_ids
+
+        extruded_cells = [
+            mesh.copy(deep=True)
+                .translate([0., 0., self.z_coords[i]])
+                .extrude_trim((0, 0, 1), pv.Plane(center=(0, 0, self.z_coords[i+1]), direction=(0, 0, 1), i_size=1e6, j_size=1e6), inplace=True)
+            for i in range(len(self.z_coords)-1)
+        ]
+
+        for i in range(len(extruded_cells)):
+            extruded_cells[i].cell_data["cell_id"] += i*count_cells
+
+        full_mesh = pv.merge(
+            extruded_cells, 
+            merge_points = False
+        )
+
+        self.unstructured_mesh: pv.UnstructuredGrid = pv.UnstructuredGrid(full_mesh, deep = True)
 
     def set_values(self, name:str, grid:Dict[int, Any]):
         """Setting a Numpy array grid to the given name. The numpy array must be of size (nx, ny, nz) and the data are called in the XYZ order.
@@ -162,19 +194,21 @@ class ExtrudedStructuredMesh(Geometry2D):
         
         w /= np.linalg.norm(w)
 
-        mesh_slice: core.MultiBlock = self.blocks.slice(
-            origin=origin, normal=w
-        )
-
-        blocks = [mesh_slice.get_block(i) for i in range(mesh_slice.n_blocks)]
+        mesh_slice: pv.PolyData = self.unstructured_mesh.slice(normal = w, origin = origin)
 
         polygon_elements = {}
 
-        for b in blocks:
+        cell_per_id = {i: [] for i in set(mesh_slice.cell_data["cell_id"])}
+
+        ids = mesh_slice.cell_data["cell_id"]
+        
+        for j in range(len(ids)):
+            cell_per_id[ids[j]].append(mesh_slice.get_cell(j).point_ids)
+            
+        for cell_id in cell_per_id:
             rings = []
 
-            coords = np.array(b.points)
-            edges = [c.point_ids for c in b.cell]
+            edges = cell_per_id[cell_id]
             current_loop = []
             found = False
 
@@ -209,18 +243,18 @@ class ExtrudedStructuredMesh(Geometry2D):
             for loop in rings:
                 ids = np.array([e[0] for e in loop] + [loop[-1][1]] + [loop[0][0]])
 
-                polys.append(shapely.Polygon(shell=np.array([coords[ids].dot(u), coords[ids].dot(v)]).T, holes=[]))
+                polys.append(shapely.Polygon(shell=np.array([mesh_slice.points[ids].dot(u), mesh_slice.points[ids].dot(v)]).T, holes=[]))
 
             if len(polys) == 0:
                 continue
                 
             if len(polys) == 1:
-                polygon_elements[b["cell_id"][0]] = PolygonElement(
+                polygon_elements[cell_id] = PolygonElement(
                     PolygonCoords(
                         np.array(polys[0].exterior.coords)[:, 0], np.array(polys[0].exterior.coords)[:, 1]
                     ),
                     [],
-                    b["cell_id"][0],
+                    cell_id,
                 )
             else:
                 main = polys[0]
@@ -232,16 +266,15 @@ class ExtrudedStructuredMesh(Geometry2D):
                         holes.append(main)
                         main = poly
                         
-                polygon_elements[b["cell_id"][0]] = PolygonElement(
+                polygon_elements[cell_id] = PolygonElement(
                     PolygonCoords(
                         np.array(main.exterior.coords)[:, 0], np.array(main.exterior.coords)[:, 1]
                     ),
                     [PolygonCoords(
                         np.array(h.exterior.coords)[:, 0], np.array(h.exterior.coords)[:, 1]
                     ) for h in holes],
-                    b["cell_id"][0],
+                    cell_id,
                 )
-
         self.polygons = list(polygon_elements.values())
         self.past_computation == [*list(u), *list(v), *list(origin)]
         
