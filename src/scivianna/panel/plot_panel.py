@@ -12,11 +12,11 @@ try:
     
 except ImportError as e:
     has_agent = False
-    print(f"Warning : Agent not loaded, received error {e}")
+    print(f"Warning : Agent not loaded, received error : {e}")
 
 except ValueError as e:
     has_agent = False
-    print(f"Warning : Agent not loaded, received error {e}")
+    print(f"Warning : Agent not loaded, received error : {e}")
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2D
@@ -497,7 +497,8 @@ class VisualizationPanel:
                         self.code_editor.value = llm_code
                         self.dialog.param.update(open=True)
                     else:
-                        exec_prompt()
+                        if self.prompt_text_input.value != "":
+                            exec_prompt()
 
             prompt_clear_button.on_click(clear_prompt)
             prompt_run_button.on_click(exec_prompt)
