@@ -55,7 +55,7 @@ import socket
 
 from scivianna.interface.generic_interface import IcocoInterface
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.panel_1d import LineVisualisationPanel
 
 
 class Value:

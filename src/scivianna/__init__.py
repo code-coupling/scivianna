@@ -1,5 +1,5 @@
 from .agent import *
-from .components import *
+from .component import *
 from .data import *
 from .interface import *
 from .layout import *

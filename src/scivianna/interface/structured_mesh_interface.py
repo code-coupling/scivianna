@@ -189,7 +189,7 @@ class StructuredMeshInterface(Geometry2DPolygon):
 
 if __name__ == "__main__":
     from scivianna.slave import ComputeSlave
-    from scivianna.panel.plot_panel import VisualizationPanel
+    from scivianna.panel.visualisation_panel import VisualizationPanel
     from scivianna.notebook_tools import _show_panel
 
     class MyMeshInterface(StructuredMeshInterface):

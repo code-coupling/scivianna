@@ -7,14 +7,16 @@ from bokeh.plotting import curdoc
 from scivianna.enums import UpdateEvent
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.slave import ComputeSlave
-from scivianna.panel.plot_panel import VisualizationPanel
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
+from scivianna.panel.panel_1d import LineVisualisationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
     get_interface_default_panel,
     load_available_interfaces,
 )
-from scivianna.panel.styles import card_style
+
+
+card_style = {}
 
 
 class GenericLayout:
@@ -84,18 +86,6 @@ class GenericLayout:
         self.interface_selector.param.watch(self.change_code_interface, "value")
 
         self.frame_selector.param.watch(self.change_current_frame, "value")
-
-        """
-            Adding a button to the overlays to switch to the frame
-        """
-        for key in self.visualisation_panels:
-            self.visualisation_panels[key].fig_overlay.button_3 = self._make_button_icon()
-            self.visualisation_panels[key].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=key))
-
-            if hasattr(self.visualisation_panels[key].bounds_row[0], "value"):
-                self.visualisation_panels[key].bounds_row[0].param.watch(
-                    functools.partial(self.set_to_frame, frame_name=key), "value"
-                )
 
         """
             ButtonIcon to split the frames
@@ -197,36 +187,17 @@ class GenericLayout:
             pn.Row(
                 self.duplicate_horizontally_button, self.duplicate_vertitally_button
             ),
-            width=350,
+            width=300,
             title="Arrangement parameters",
             margin=0,
             styles=card_style,
         )
 
-        self.panel_param_cards = {
-            frame.name: pn.Card(
-                frame.side_bar,
-                width=350,
-                margin=0,
-                styles=card_style,
-                title=f"{frame.name} parameters",
-            )
-            for frame in self.visualisation_panels.values()
-        }
-
         self.side_bar = pn.Column(
             self.layout_param_card,
-            *self.panel_param_cards.values(),
             margin=-10,
-            width=350,
+            width=300,
         )
-        self.bounds_row = pn.Row(
-            *[frame.bounds_row for frame in self.visualisation_panels.values()]
-        )
-
-        if self.run_button is not None:
-            self.bounds_row.insert(0, self.run_button)
-
         self.change_current_frame(None)
 
         self.panels_to_recompute: List[str] = []
@@ -279,15 +250,8 @@ class GenericLayout:
             else:
                 self.visualisation_panels[current_frame] = default_panel
 
-            self.visualisation_panels[current_frame].fig_overlay.button_3 = self._make_button_icon()
-            self.visualisation_panels[current_frame].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=current_frame))
-
             self.visualisation_panels[current_frame].provide_on_clic_callback(self.on_clic_callback)
             self.visualisation_panels[current_frame].provide_on_mouse_move_callback(self.mouse_move_callback)
-
-            self.visualisation_panels[current_frame].bounds_row[0].param.watch(
-                functools.partial(self.set_to_frame, frame_name=current_frame), "value"
-            )
 
     def change_current_frame(self, event):
         """Swap the the active panel
@@ -298,14 +262,6 @@ class GenericLayout:
             Event to make the function linkable to the gridstack
         """
         current_frame = self.frame_selector.value
-
-        print("Changing to ", current_frame)
-
-        for frame in self.panel_param_cards:
-            self.panel_param_cards[frame].visible = frame == current_frame
-            self.visualisation_panels[frame].bounds_row.visible = (
-                frame == current_frame
-            )
 
     @pn.io.hold()
     def set_to_frame(self, event, frame_name: str):
@@ -442,20 +398,6 @@ class GenericLayout:
             visible=False,
             description="Change side bar and coordinate bar to current plot."
         )
-
-    def get_bounds_row(self, ) -> pn.Row:
-        """Makes the layout bounds_row, if the run button exists, it will be added to the row.
-
-        Returns
-        -------
-        pn.Row
-            Widget row
-        """
-
-        if self.run_button is not None:
-            return pn.Row(self.run_button, *[e.bounds_row for e in self.visualisation_panels.values()])
-        else:
-            return pn.Row(*[e.bounds_row for e in self.visualisation_panels.values()])
 
     def on_clic_callback(self, position: Tuple[float, float, float], volume_id: str):
         """Function calling panels update on mouse clic in a 2D panel

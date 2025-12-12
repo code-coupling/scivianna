@@ -6,16 +6,17 @@ from dataclasses import dataclass
 
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.layout.generic_layout import GenericLayout
-from scivianna.panel.plot_panel import ComputeSlave, VisualizationPanel
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
-from scivianna.panel.styles import card_style
+from scivianna.panel.visualisation_panel import ComputeSlave, VisualizationPanel
+from scivianna.panel.panel_1d import LineVisualisationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
 )
-from scivianna.components.splitjs_component import (
+from scivianna.component.splitjs_component import (
     SplitJSVertical,
     SplitJSHorizontal,
 )
+
+card_style = {}
 
 class SplitDirection(Enum):
     """
@@ -289,7 +290,7 @@ class SplitLayout(GenericLayout):
             self.bounds_row.append(self.visualisation_panels[key].bounds_row)
             self.panel_param_cards[key] = pn.Card(
                 self.visualisation_panels[key].side_bar,
-                width=350,
+                width=300,
                 margin=0,
                 styles=card_style,
                 title=f"{key} parameters",

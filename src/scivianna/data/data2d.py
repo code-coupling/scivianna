@@ -65,6 +65,9 @@ class Data2D:
 
         data_.cell_ids = [p.volume_id for p in polygon_list]
         data_.cell_values = [np.nan]*len(polygon_list)
+
+        data_.cell_colors = np.zeros((len(polygon_list), 4)) + 255
+        data_.cell_edge_colors = np.zeros((len(polygon_list), 4)) + 50
         
         data_.data_type = DataType.POLYGONS
 
@@ -99,6 +102,9 @@ class Data2D:
         data_.cell_ids = np.unique(grid.flatten())
         data_.cell_values = [np.nan]*len(data_.cell_ids)
 
+        data_.cell_colors = np.zeros((len(data_.cell_ids), 4)) + 1
+        data_.cell_edge_colors = np.zeros((len(data_.cell_ids), 4)) + 1
+        
         data_.simplify = simplify
         data_.data_type = DataType.GRID
 

@@ -5,16 +5,16 @@ import holoviews as hv
 
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.layout.generic_layout import GenericLayout
-from scivianna.panel.plot_panel import ComputeSlave, VisualizationPanel
-from scivianna.panel.styles import card_style
+from scivianna.panel.visualisation_panel import ComputeSlave, VisualizationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
 )
-from scivianna.components.gridstack_component import CustomGridStack
+from scivianna.component.gridstack_component import CustomGridStack
 
 pn.extension()
 hv.extension("bokeh")
 
+card_style = {}
 
 class GridStackLayout(GenericLayout):
     """Displayable that lets arranging several VisualizationPanel"""
@@ -322,7 +322,7 @@ class GridStackLayout(GenericLayout):
                 self.bounds_row.objects = self.get_bounds_row().objects
                 self.panel_param_cards[key] = pn.Card(
                     self.visualisation_panels[key].side_bar,
-                    width=350,
+                    width=300,
                     margin=0,
                     styles=card_style,
                     title=f"{key} parameters",

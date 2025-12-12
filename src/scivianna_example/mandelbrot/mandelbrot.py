@@ -5,7 +5,7 @@ import numpy as np
 from scivianna.interface.generic_interface import Geometry2DGrid
 from scivianna.constants import MATERIAL, MESH
 from scivianna.slave import ComputeSlave
-from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.data.data2d import Data2D

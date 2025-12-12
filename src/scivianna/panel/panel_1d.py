@@ -2,7 +2,7 @@ from typing import Callable, Dict, List, Tuple, Union
 import panel as pn
 import os
 import pandas as pd
-from scivianna.components.overlay_component import Overlay
+from scivianna.component.overlay_component import Overlay
 
 from scivianna.enums import UpdateEvent
 from scivianna.plotter_1d.bokeh_1d_plotter import BokehPlotter1D
@@ -121,7 +121,7 @@ class LineVisualisationPanel:
         self.side_bar = pn.layout.WidgetBox(
             self.field_color_selector,
             # Column parameters
-            max_width=350,
+            max_width=300,
             sizing_mode="stretch_width",
             margin=(0, 0, 0, 0),
         )

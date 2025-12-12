@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Union
 
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.panel_1d import LineVisualisationPanel
 from scivianna.interface.time_dataframe import TimeDataFrame
 from scivianna.slave import ComputeSlave
 from scivianna.notebook_tools import get_med_panel
 
-from scivianna.panel.icoco import GridStackProblem
+from scivianna.coupling.icoco import GridStackProblem
 
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat, PositiveFloat, model_validator
 

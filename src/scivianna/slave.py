@@ -1,6 +1,6 @@
 import atexit
+import panel as pn
 from pathlib import Path
-import numpy as np
 import os
 import multiprocessing as mp
 import dill
@@ -10,9 +10,7 @@ import time
 import pandas as pd
 from typing import Any, List, Dict, Tuple, Type, Union
 
-from scivianna.constants import OUTSIDE
 from scivianna.data.data2d import Data2D
-from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values
 
 from scivianna.interface.generic_interface import (
     GenericInterface,
@@ -34,6 +32,8 @@ if TYPE_CHECKING:
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
 if profile_time:
     import time
+
+pn.extension(notifications=True)
 
 
 class SlaveCommand:
@@ -82,150 +82,6 @@ class SlaveCommand:
     """Sets the current time"""
 
 
-def set_colors_list(
-    data: Data2D,
-    code_interface: GenericInterface,
-    coloring_label: str,
-    color_map: str,
-    center_colormap_on_zero: bool,
-    options: Dict[str, Any],
-):
-    """Sets in a Data2D the list of colors for a field per polygon.
-
-    Parameters
-    ----------
-    data : Data2D
-        Geometry data
-    code_interface : GenericInterface
-        Code interface to request the field values
-    coloring_label : str
-        Field to color
-    color_map : str
-        Colormap in which select colors
-    center_colormap_on_zero : bool
-        Center the color map on zero
-    options : Dict[str, Any]
-        Plot extra options
-
-    Raises
-    ------
-    NotImplementedError
-        The field visualisation mode is not implemented.
-    """
-    if profile_time:
-        start_time = time.time()
-
-    if not isinstance(code_interface, Geometry2D):
-        raise TypeError("get_color_list can only be called with a Geometry2D code interface.")
-        
-    coloring_mode = code_interface.get_label_coloring_mode(coloring_label)
-
-    dict_value_per_volume = code_interface.get_value_dict(
-        coloring_label, data.cell_ids, options
-    )
-    
-    cell_values = [dict_value_per_volume[v] for v in data.cell_ids]
-    
-    if profile_time:
-        print(f"get color list prepare time {time.time() - start_time}")
-        start_time = time.time()
-
-    if coloring_mode == VisualizationMode.FROM_STRING:
-        """
-        A random color is given for each string value.
-        """
-        sorted_values = np.sort(np.unique(list(dict_value_per_volume.values())))
-        map_to = np.array([hash(c)%255 for c in sorted_values]) / 255
-
-        value_list = np.array(cell_values)
-
-        _, inv = np.unique(value_list, return_inverse=True)
-
-        volume_colors = interpolate_cmap_at_values(
-            color_map, map_to[inv].astype(float)
-        )
-        
-        if OUTSIDE in data.cell_ids:
-            for index_ in np.where(data.cell_ids == OUTSIDE):
-                volume_colors[index_] = (255, 255, 255, 0)
-
-    elif coloring_mode == VisualizationMode.FROM_VALUE:
-        """
-        The color is got from a color map set in the range (-max, max)
-        """
-        normalized_cell_values = np.array(cell_values).astype(float)
-        no_nan_values = normalized_cell_values[~np.isnan(normalized_cell_values)]
-
-        if profile_time:
-            print(f"extracting no nan {time.time() - start_time}")
-            start_time = time.time()
-
-        if center_colormap_on_zero:
-            if (
-                len(no_nan_values) == 0 or max(abs(no_nan_values.min()), no_nan_values.max()) == 0.0
-            ):
-                minmax = 1.0
-            else:
-                minmax = max(abs(no_nan_values.min()), no_nan_values.max())
-
-            normalized_cell_values = (normalized_cell_values + minmax) / (2 * minmax)
-        else:
-            if (
-                len(no_nan_values) == 0 or max(abs(no_nan_values.min()), no_nan_values.max()) == 0.0
-            ):
-                minmax = 1.0
-                min_val = 0.0
-            elif no_nan_values.min() == no_nan_values.max():
-                minmax = 1.0
-                min_val = no_nan_values.min()
-            else:
-                minmax = no_nan_values.max() - no_nan_values.min()
-                min_val = no_nan_values.min()
-
-            normalized_cell_values = (normalized_cell_values - min_val) / minmax
-
-        if profile_time:
-            print(f"Rescaling data {time.time() - start_time}")
-            start_time = time.time()
-
-        volume_colors = interpolate_cmap_at_values(
-            color_map, normalized_cell_values
-        )
-
-        if profile_time:
-            print(f"Extracting colors {time.time() - start_time}")
-            start_time = time.time()
-
-        # Changing the main color from black to gray in case of Nan
-        for c in range(len(volume_colors)):
-            if volume_colors[c, 3] == 0.0:
-                volume_colors[c] = (200, 200, 200, 0)
-
-        if profile_time:
-            print(f"Fixing nans {time.time() - start_time}")
-            start_time = time.time()
-
-    elif coloring_mode == VisualizationMode.NONE:
-        """
-        No color, mesh displayed only
-        """
-        volume_colors = np.array([(200, 200, 200, 0)] * (len(data.cell_ids)))
-    else:
-        raise NotImplementedError(
-            f"Visualization mode {coloring_mode} not implemented."
-        )
-    
-    data.cell_values = cell_values
-    data.cell_colors = volume_colors.tolist()
-
-    edge_colors = get_edges_colors(volume_colors)
-    
-    if not isinstance(cell_values[0], str):
-        edge_colors[:, 3] = np.where(np.isnan(np.array(cell_values)), 255, edge_colors[:, 3])
-
-    data.cell_edge_colors = edge_colors.tolist()
-
-
 def worker(
     q_tasks: mp.Queue,
     q_returns: mp.Queue,
@@ -245,8 +101,8 @@ def worker(
     """
     code_: GenericInterface = code_interface()
 
-    try:
-        while True:
+    while True:
+        try:
             if not q_tasks.empty():
                 task, data = q_tasks.get()
 
@@ -275,8 +131,6 @@ def worker(
 
                 #   Geometry2D functions
                 elif task == SlaveCommand.COMPUTE_2D_DATA:
-                    if profile_time:
-                        st = time.time()
                     (
                         u,
                         v,
@@ -288,8 +142,6 @@ def worker(
                         v_steps,
                         w_value,
                         coloring_label,
-                        color_map,
-                        center_colormap_on_zero,
                         options,
                     ) = data
 
@@ -297,6 +149,7 @@ def worker(
                         raise TypeError(
                             f"The requested panel is not associated to an Geometry2D, found class {type(code_)}."
                         )
+                    data: Data2D
                     data, polygons_updated = code_.compute_2D_data(
                         u,
                         v,
@@ -311,22 +164,11 @@ def worker(
                         options,
                     )
 
-                    if profile_time:
-                        print(f"Code compute 2D time : {time.time() - st}")
-                        st = time.time()
-
-                    set_colors_list(
-                        data,
-                        code_,
-                        coloring_label,
-                        color_map,
-                        center_colormap_on_zero,
-                        options,
+                    dict_value_per_volume = code_.get_value_dict(
+                        coloring_label, data.cell_ids, options
                     )
 
-                    if profile_time:
-                        print(f"Color list building time : {time.time() - st}")
-                        st = time.time()
+                    data.cell_values = [dict_value_per_volume[v] for v in data.cell_ids]
 
                     q_returns.put(
                         [
@@ -425,9 +267,9 @@ def worker(
             else:
                 time.sleep(0.1)
 
-    except Exception as e:
-        traceback.print_exc()
-        q_errors.put(e)
+        except Exception as e:
+            traceback.print_exc()
+            q_errors.put(e)
 
 
 class ComputeSlave:
@@ -586,8 +428,6 @@ class ComputeSlave:
         v_steps: int,
         w_value: float,
         coloring_label: str,
-        color_map: str,
-        center_colormap_on_zero: bool,
         options: Dict[str, Any],
     ) -> Tuple[
         Data2D, bool
@@ -616,10 +456,6 @@ class ComputeSlave:
             Value along the u ^ v axis
         coloring_label : str
             Field label to display
-        color_map : str
-            Colormap in which select colors
-        center_colormap_on_zero : bool
-            Center the color map on zero
         options : Dict[str, Any]
             Additional options for frame computation.
 
@@ -642,8 +478,6 @@ class ComputeSlave:
                     v_steps,
                     w_value,
                     coloring_label,
-                    color_map,
-                    center_colormap_on_zero,
                     options,
                 ],
             ]
@@ -651,20 +485,26 @@ class ComputeSlave:
 
         return self.get_result_or_error()
     
-    def get_value_dict(self, field_name: str) -> VisualizationMode:
-        """Returns the coloring mode of the plot
+    def get_value_dict(
+        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+    ) -> Dict[Union[int, str], str]:
+        """Returns a volume name - field value map for a given field name
 
         Parameters
         ----------
-        field_name : str
-            Name of the displayed field
+        value_label : str
+            Field name to get values from
+        volumes : List[Union[int,str]]
+            List of volumes names
+        options : Dict[str, Any]
+            Additional options for frame computation.
 
         Returns
         -------
-        VisualizationMode
-            Coloring mode
+        Dict[Union[int,str], str]
+            Field value for each requested volume names
         """
-        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, field_name])
+        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, [value_label, volumes, options]])
 
         return self.get_result_or_error()
 
@@ -932,15 +772,16 @@ class ComputeSlave:
             Any error sent by the slave
         """
         while (not self.p._closed) and (self.q_errors.empty() and self.q_returns.empty()):
-            time.sleep(0.1)
+            time.sleep(.05)
 
         if not self.running:
             return
         
         if not self.q_errors.empty():
             error:Exception = self.q_errors.get()
-            self.terminate()
-            raise error
+            pn.state.notifications.error(f"Error {error}, restoring data.")
+
+            return None
         else:
             return self.q_returns.get()
 

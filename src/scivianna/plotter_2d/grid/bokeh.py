@@ -6,7 +6,6 @@ from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
-from scivianna.panel.styles import customize_axis
 import bokeh
 from bokeh.colors import RGB
 from bokeh.plotting import figure as Figure
@@ -176,8 +175,8 @@ class Bokeh2DGridPlotter(Plotter2D):
         self.figure.min_border_top = 0
         self.figure.min_border_bottom = 0
 
-        customize_axis(self.figure.xaxis)
-        customize_axis(self.figure.yaxis, vertical=True)
+        self.figure.xaxis.visible = False
+        self.figure.yaxis.visible = False
 
         self.figure.add_tools(hover_tool)
 

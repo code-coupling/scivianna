@@ -9,12 +9,12 @@ import numpy as np
 from scivianna.interface.generic_interface import GenericInterface, Geometry2DPolygon
 from scivianna.constants import CSV, GEOMETRY, MATERIAL, MESH
 from scivianna.slave import ComputeSlave
-from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.interface import csv_result
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.panel_1d import LineVisualisationPanel
 from scivianna.data.data2d import Data2D
 
 from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface

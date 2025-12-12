@@ -171,7 +171,6 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         if profile_time:
             start_time = time.time()
 
-        self.last_computed_frame = [*u, *v, w_value]
         mesh_dimension = self.mesh.getMeshDimension()
 
         use_cell_id = True
@@ -182,7 +181,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         elif mesh_dimension == 3:
             vec = [float(e) for e in np.cross(u, v)]
             origin = [u_min * u[i] + v_min * v[i] + w_value * vec[i] for i in range(3)]
-
+            
             try:
                 eps = 0.0
                 mesh: medcoupling.MEDCouplingUMesh = self.mesh.buildSlice3D(
@@ -194,9 +193,11 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 cell_ids = [int(c) for c in cells_ids]
             except:
                 eps = 1e-7
+
                 mesh: medcoupling.MEDCouplingUMesh = self.mesh.buildSlice3D(
                     origin, vec, eps
                 )[0]
+                
                 cell_ids = [
                     int(c) for c in self.mesh.getCellIdsCrossingPlane(origin, vec, eps)
                 ]
@@ -257,6 +258,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 f"Gathering cells id time: {time.time() - start_time} using cell id {use_cell_id}"
             )
 
+        self.last_computed_frame = [*u, *v, w_value]
         self.data = Data2D.from_polygon_list(self.data)
         return self.data, True
 
@@ -421,7 +423,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
 if __name__ == "__main__":
     from scivianna.slave import ComputeSlave
-    from scivianna.panel.plot_panel import VisualizationPanel
+    from scivianna.panel.visualisation_panel import VisualizationPanel
     from scivianna.notebook_tools import _show_panel
 
     slave = ComputeSlave(MEDInterface)

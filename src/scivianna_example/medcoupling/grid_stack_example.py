@@ -1,6 +1,6 @@
 from typing import Dict
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.notebook_tools import (
     get_med_panel
 )

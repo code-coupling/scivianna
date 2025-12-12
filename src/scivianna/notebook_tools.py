@@ -3,7 +3,7 @@ from typing import Any, Callable
 from pathlib import Path
 import panel as pn
 
-from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.slave import ComputeSlave
 from scivianna.constants import GEOMETRY
 
@@ -38,6 +38,7 @@ def _get_panel(panel: VisualizationPanel, title="") -> pn.viewable.Viewable:
 
 def _make_template(panel: VisualizationPanel, title: str = ""):
 
+    return panel.main_frame
     custom_css = """
     #main {
         padding: 0 !important;
@@ -51,13 +52,11 @@ def _make_template(panel: VisualizationPanel, title: str = ""):
     return pn.template.BootstrapTemplate(
         main=[
             pn.Column(
-                panel.bounds_row,
                 panel.main_frame,
                 sizing_mode="stretch_both",
                 margin=0,
             )
         ],
-        sidebar=[panel.side_bar],
         title=title,
     )
 
