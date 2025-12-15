@@ -47,12 +47,6 @@ class SplitLayout(GenericLayout):
     """ Name - Intricated SplitItem defining the displayed panels
     """
 
-    side_bar: pn.Column
-    """ Side bar containing the options of the grid stack and of the active panel
-    """
-    bounds_row: pn.Row
-    """ Bounds row of the active panel
-    """
     main_frame: pn.Column
     """ Main frame : gridstack of different VisualizationPanel main_frame
     """
@@ -91,10 +85,9 @@ class SplitLayout(GenericLayout):
         """
             Building interface
         """
-        self.main_frame = pn.Column(
+        self.main_frame = pn.Row(
+            self.gui.make_panel(),
             self.build_split_item(split_item),
-            # height_policy="max",
-            # width_policy="max",
             sizing_mode="stretch_both",
             margin=0,
             scroll=False,
@@ -103,7 +96,7 @@ class SplitLayout(GenericLayout):
 
     def change_code_interface(self, event):
         super().change_code_interface(event)
-        current_frame = self.frame_selector.value
+        current_frame = self.current_frame
     
         self.update_interface_in_split_item(current_frame, self.visualisation_panels[current_frame], self.split_item)
 
@@ -146,7 +139,7 @@ class SplitLayout(GenericLayout):
                     index_2 = 2
                 return item_2, index_2
 
-        elif type(item) in (VisualizationPanel, LineVisualisationPanel):
+        elif isinstance(item, VisualizationPanel):
             if item.name == panel_name:
                 return item, None
         else:
@@ -192,8 +185,8 @@ class SplitLayout(GenericLayout):
                     sizing_mode="stretch_both",
                     margin=0,
                 )
-        if type(split_item) in (VisualizationPanel, LineVisualisationPanel):
-            return split_item.main_frame
+        if isinstance(split_item, VisualizationPanel):
+            return split_item.figure
         else:
             raise TypeError(
                 f"SplitItem, VisualizationPanel or LineVisualisationPanel expected, found {type(split_item)}"
@@ -227,7 +220,7 @@ class SplitLayout(GenericLayout):
                 self.update_interface_in_split_item(panel_name, new_panel, split_item.panel_1)
                 self.update_interface_in_split_item(panel_name, new_panel, split_item.panel_2)
 
-        elif type(split_item) in (VisualizationPanel, LineVisualisationPanel):
+        elif isinstance(split_item, VisualizationPanel):
             if split_item.name == panel_name:
                 split_item = new_panel
         else:
@@ -278,16 +271,11 @@ class SplitLayout(GenericLayout):
             o.visible = False
         self.main_frame.objects += [self.build_split_item(self.split_item)]
 
-        self.bounds_row.clear()
         self.panel_param_cards.clear()
 
         self.frame_selector.options = list(self.visualisation_panels.keys())
 
-        if self.run_button is not None:
-            self.bounds_row.append(self.run_button)
-
         for key in self.visualisation_panels:
-            self.bounds_row.append(self.visualisation_panels[key].bounds_row)
             self.panel_param_cards[key] = pn.Card(
                 self.visualisation_panels[key].side_bar,
                 width=300,
@@ -299,8 +287,6 @@ class SplitLayout(GenericLayout):
         self.side_bar.objects = [self.layout_param_card,
             *self.panel_param_cards.values()]
             
-        self.bounds_row.objects = [frame.bounds_row for frame in self.visualisation_panels.values()]
-    
     @pn.io.hold()
     def duplicate(self, horizontal: bool):
         """Split the panel, the new panel is a copy of the first, all panels are duplicated.
@@ -310,7 +296,7 @@ class SplitLayout(GenericLayout):
         horizontal : bool
             Whether the cut should be horizontal or vertical
         """
-        current_frame = self.frame_selector.value
+        current_frame = self.current_frame
 
         new_frame = self.visualisation_panels[current_frame].duplicate()
 
@@ -321,9 +307,6 @@ class SplitLayout(GenericLayout):
                 f" - {new_frame.copy_index + 1}", f" - {new_frame.copy_index + 2}"
             )
 
-        new_frame.fig_overlay.button_3 = self._make_button_icon()
-        new_frame.fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=new_frame.name))
-        
         self.visualisation_panels[new_frame.name] = new_frame
         self.visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
         self.visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)

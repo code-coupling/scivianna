@@ -158,14 +158,12 @@ class GridStackProblem(Problem):
             pn.template.BootstrapTemplate(
                 main=[
                     pn.Column(
-                        self.gridstack.bounds_row,
                         self.gridstack.main_frame,
                         height_policy="max",
                         width_policy="max",
                         margin=0,
                     )
                 ],
-                sidebar=[self.gridstack.side_bar],
                 title=self.title,
             ),
             address=ip_adress,

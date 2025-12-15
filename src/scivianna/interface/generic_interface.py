@@ -20,6 +20,10 @@ from scivianna.constants import MESH, MATERIAL
 class GenericInterface:
     """ Generic interface class that implement basic functions. This class mutualises functions that are shared between its child classes.
     """
+
+    extensions = []
+    """Extensions associated to this interface."""
+
     def read_file(self, file_path: str, file_label: str) -> None:
         """Read a file and store its content in the interface
 

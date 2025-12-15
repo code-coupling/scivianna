@@ -29,12 +29,6 @@ class GridStackLayout(GenericLayout):
     """ Name - position in the gridstack along the vertical axis dictionnary
     """
 
-    side_bar: pn.Column
-    """ Side bar containing the options of the grid stack and of the active panel
-    """
-    bounds_row: pn.Row
-    """ Bounds row of the active panel
-    """
     main_frame: pn.Column
     """ Main frame : gridstack of different VisualizationPanel main_frame
     """
@@ -113,7 +107,7 @@ class GridStackLayout(GenericLayout):
         self.make_grid_stack()
         self.enable_disable_pan()
 
-        self.layout_param_card.objects.append(self.allow_resize_box)
+        self.layout_extension.add_widget(self.allow_resize_box)
 
 
     @pn.io.hold()
@@ -133,16 +127,16 @@ class GridStackLayout(GenericLayout):
             Event to make the function linkable to the gridstack
         """
         super().change_current_frame(event)
-        current_frame = self.frame_selector.value
+        current_frame = self.current_frame
         if self.bounds_x[current_frame][1] - self.bounds_x[current_frame][0] > 1:
-            self.duplicate_horizontally_button.disabled = False
+            self.layout_extension.duplicate_horizontally_button.disabled = False
         else:
-            self.duplicate_horizontally_button.disabled = True
+            self.layout_extension.duplicate_horizontally_button.disabled = True
 
         if self.bounds_y[current_frame][1] - self.bounds_y[current_frame][0] > 1:
-            self.duplicate_horizontally_button.disabled = False
+            self.layout_extension.duplicate_horizontally_button.disabled = False
         else:
-            self.duplicate_horizontally_button.disabled = True
+            self.layout_extension.duplicate_horizontally_button.disabled = True
 
     def get_grid(self) -> CustomGridStack:
         """Returns the gridstack object
@@ -224,8 +218,6 @@ class GridStackLayout(GenericLayout):
         self.enable_disable_pan()
         self.side_bar.objects = [self.layout_param_card,
             *self.panel_param_cards.values()]
-            
-        self.bounds_row.objects = self.get_bounds_row().objects
     
 
     def disable_figures_pan(self):
@@ -247,7 +239,7 @@ class GridStackLayout(GenericLayout):
         horizontal : bool
             Whether the cut should be horizontal or vertical
         """
-        current_frame = self.frame_selector.value
+        current_frame = self.current_frame
         if horizontal:
             cut_possible = (
                 self.bounds_y[current_frame][1] - self.bounds_y[current_frame][0] > 1
@@ -279,10 +271,6 @@ class GridStackLayout(GenericLayout):
                 )
 
             new_visualisation_panels[new_frame.name] = new_frame
-            new_visualisation_panels[new_frame.name].fig_overlay.button_3 = self._make_button_icon()
-            new_visualisation_panels[new_frame.name].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=new_frame.name))
-            new_visualisation_panels[new_frame.name].bounds_row[0].param.watch(functools.partial(self.set_to_frame, frame_name=new_frame.name), "value")
-
             new_visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
             new_visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)
 
@@ -302,10 +290,6 @@ class GridStackLayout(GenericLayout):
                     panel_name
                 ].duplicate(keep_name=True)
                 
-                new_visualisation_panels[panel_name].fig_overlay.button_3 = self._make_button_icon()
-                new_visualisation_panels[panel_name].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=panel_name))
-                new_visualisation_panels[panel_name].bounds_row[0].param.watch(functools.partial(self.set_to_frame, frame_name=panel_name), "value")
-
                 new_visualisation_panels[panel_name].provide_on_clic_callback(self.on_clic_callback)
                 new_visualisation_panels[panel_name].provide_on_mouse_move_callback(self.mouse_move_callback)
 
@@ -313,23 +297,17 @@ class GridStackLayout(GenericLayout):
 
             self.make_grid_stack()
 
-            self.bounds_row.clear()
             self.panel_param_cards.clear()
 
             self.frame_selector.options = list(self.visualisation_panels.keys())
 
             for key in self.visualisation_panels:
-                self.bounds_row.objects = self.get_bounds_row().objects
                 self.panel_param_cards[key] = pn.Card(
                     self.visualisation_panels[key].side_bar,
                     width=300,
                     margin=0,
                     styles=card_style,
                     title=f"{key} parameters",
-                )
-
-                self.visualisation_panels[key].bounds_row[0].param.watch(
-                    functools.partial(self.set_to_frame, frame_name=key), "value"
                 )
 
             self.change_current_frame(None)

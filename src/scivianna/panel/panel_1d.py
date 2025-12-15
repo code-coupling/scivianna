@@ -15,12 +15,6 @@ class LineVisualisationPanel:
     main_frame: Overlay
     """ Main frame displaying the geometry.
     """
-    side_bar: pn.Column
-    """ Side bar where select files to import, and the plot axes
-    """
-    bounds_row: pn.Row
-    """ Row with widgets to define the bounds of the plot and additional options
-    """
 
     name: str
     """ Panel name
@@ -60,8 +54,6 @@ class LineVisualisationPanel:
         
         self.slave = slave
         self.fields = self.slave.get_labels()
-
-        self.bounds_row = None
 
         self.__data_to_update: bool = False
         """Is it required to update the data, can be set on periodic event or on clic"""
@@ -117,16 +109,6 @@ class LineVisualisationPanel:
             height_policy="max",
             title=pn.pane.Markdown(f"## {self.name}", visible=False),
         )
-
-        self.side_bar = pn.layout.WidgetBox(
-            self.field_color_selector,
-            # Column parameters
-            max_width=300,
-            sizing_mode="stretch_width",
-            margin=(0, 0, 0, 0),
-        )
-
-        self.bounds_row = pn.Row(pn.pane.Markdown(f"## {self.name}", align="center"))
 
         self.main_frame = self.fig_overlay
 

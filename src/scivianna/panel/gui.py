@@ -1,6 +1,6 @@
 from functools import partial
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import panel_material_ui as pmui
 import panel as pn
@@ -9,7 +9,11 @@ from scivianna.extension.extension import Extension
 
 
 class GUI:
-    def __init__(self, figure: pn.viewable.Viewable, extensions: List[Extension]):
+    def __init__(
+        self, 
+        extensions: List[Extension], 
+        buttons_list: List[Tuple[pmui.IconButton, pn.Column]] = []
+    ):
         s = "6em"
         button_margin_x = 4
         button_margin_y = 10
@@ -28,10 +32,23 @@ class GUI:
                         description=extension.title,
                         margin=button_margin,
                     ),
-                    extension.make_gui(),
-                    extension.description
+                    pn.Column(
+                        pmui.Typography(
+                            "## "+extension.title,
+                            width_policy="max",
+                        ),
+                        pmui.Typography(
+                            extension.description,
+                            width_policy="max",
+                        ),
+                        extension.make_gui(),
+                    ),
+                    extension.description,
                 )
             )
+
+        self.buttons += buttons_list
+
         for e in self.buttons:
             e[1].visible = False
 
@@ -53,22 +70,12 @@ class GUI:
         )
 
         self.options_widget = pmui.Column(
-            self.open_button,
-            self.close_button,
-            *[e[0] for e in self.buttons]
+            self.open_button, self.close_button, *[e[0] for e in self.buttons]
         )
 
-        self.title = pmui.Typography(
-            "## " + self.active_extension[0].description,
-            width_policy="max",
+        self.drawer_column = pmui.Column(
+            *[e[1] for e in self.buttons], margin=0
         )
-
-        self.description = pmui.Typography(
-            self.active_extension[2],
-            width_policy="max",
-        )
-
-        self.drawer_column = pmui.Column(self.title, self.description, *[e[1] for e in self.buttons], margin=0)
 
         self.drawer = pmui.Drawer(self.drawer_column, size=300, variant="persistent")
 
@@ -77,8 +84,6 @@ class GUI:
 
         self.open_button.on_click(self.open_close_drawer)
         self.close_button.on_click(self.open_close_drawer)
-
-        self.background = pmui.Column(figure, sizing_mode = "stretch_both")
 
     @pn.io.hold()
     def update_colors(
@@ -96,8 +101,6 @@ class GUI:
         self.drawer.open = True
         self.open_button.visible = False
         self.close_button.visible = True
-        self.title.object = "## " + extension[0].description
-        self.description.object = extension[2]
 
         self.active_extension = extension
 
@@ -124,7 +127,6 @@ class GUI:
                 sizing_mode="stretch_height",
                 margin=0,
             ),
-            self.background,
             margin=0,
         )
 

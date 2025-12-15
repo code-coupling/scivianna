@@ -44,11 +44,6 @@ def make_demo(return_slaves=False) -> pmui.Page:
             pmui.Typography(f.read(), width=300),
             sizing_mode="stretch_both",
         )
-    sidebars = [
-        europe_panel.side_bar,
-        medcoupling_panel.side_bar,
-        mandelbrot_panel.side_bar,
-    ]
 
     tabs = pmui.Tabs(
         ("Europe example", europe_with_description),
@@ -56,16 +51,8 @@ def make_demo(return_slaves=False) -> pmui.Page:
         ("Mandelbrot example", mandelbrot_with_description),
     )
 
-    def change_active(e):
-        for sidebar in sidebars:
-            sidebar.visible = tabs.active == sidebars.index(sidebar)
-
-    tabs.param.watch(change_active, "active")
-    change_active(None)
-
     page = pmui.Page(
         main=[tabs],
-        sidebar=sidebars,
         sidebar_variant="temporary",
         sidebar_open=False,
         title="Scivianna demonstrator",

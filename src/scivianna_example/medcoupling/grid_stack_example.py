@@ -52,14 +52,12 @@ def get_template():
     return pn.template.BootstrapTemplate(
         main=[
             pn.Column(
-                panel.bounds_row,
                 panel.main_frame,
                 height_policy="max",
                 width_policy="max",
                 margin=0,
             )
         ],
-        sidebar=[panel.side_bar],
         title="Gridstack demo",
     )
 
@@ -88,10 +86,8 @@ if __name__ == "__main__":
 else:
     panel = get_panel()
     #   Providing servable panel, file executed with a command : "python -m panel serve my_file.py"
-    panel.side_bar.servable(target="sidebar")
 
     pn.Column(
-        panel.bounds_row,
         panel.main_frame,
         height_policy="max",
         width_policy="max",

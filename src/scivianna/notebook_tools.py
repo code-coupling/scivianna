@@ -3,6 +3,7 @@ from typing import Any, Callable
 from pathlib import Path
 import panel as pn
 
+from scivianna.panel.panel_2d import Panel2D
 from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.slave import ComputeSlave
 from scivianna.constants import GEOMETRY
@@ -29,7 +30,6 @@ def _get_panel(panel: VisualizationPanel, title="") -> pn.viewable.Viewable:
     """
 
     return pn.Column(
-        panel.bounds_row,
         panel.main_frame,
         width_policy="max",
         height_policy="max",
@@ -155,7 +155,7 @@ def get_med_panel(geo: str, title="") -> VisualizationPanel:
     else:
         raise TypeError(f"Provided type {type(geo)} not implemented")
 
-    return VisualizationPanel(slave, name=title)
+    return Panel2D(slave, name=title)
 
 
 def show_med_geometry(geo, title: str = "MED Field visualizer"):
