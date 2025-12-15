@@ -1,11 +1,14 @@
 import functools
-from typing import Callable, Dict
+from typing import Dict, TYPE_CHECKING
 import panel as pn
 from scivianna.component.server_file_browser import ServerFileBrowser
 from scivianna.constants import GEOMETRY
 from scivianna.extension.extension import Extension
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
+
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
 
 
 class FileLoader(Extension):
@@ -15,12 +18,9 @@ class FileLoader(Extension):
         self,
         slave: ComputeSlave,
         plotter: Plotter2D,
-        set_coordinates_callback: Callable,
-        set_field_callback: Callable,
-        set_color_map_callback: Callable,
-        trigger_update_callback: Callable,
+        panel: "VisualizationPanel"
     ):
-        """Constructor of the extension, saves the slave and the callbacks
+        """Constructor of the extension, saves the slave and the panel
 
         Parameters
         ----------
@@ -28,24 +28,15 @@ class FileLoader(Extension):
             Slave computing the displayed data
         plotter : Plotter2D
             Figure plotter
-        set_coordinates_callback : Callable
-            Callback to request a coordinate/range/axes change to the visualisation panel
-        set_field_callback : Callable
-            Callback to set the display field
-        set_color_map_callback : Callable
-            Callback to set the color map
-        trigger_update_callback : Callable
-            Callback to trigger a plot update
+        panel : VisualizationPanel
+            Panel to which the extension is attached
         """
         super().__init__(
             "Load new files",
             "file_open",
             slave,
             plotter,
-            set_coordinates_callback,
-            set_field_callback,
-            set_color_map_callback,
-            trigger_update_callback,
+            panel,
         )
 
         self.description = """
@@ -73,7 +64,7 @@ The file loader extension lets you browse files on the server file system to pro
 
                 self.slave.read_file(file_path, browser_name)
 
-                self.trigger_update_callback()
+                self.panel.recompute()
 
         file_input_list = self.slave.get_file_input_list()
 

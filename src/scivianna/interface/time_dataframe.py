@@ -27,18 +27,18 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
     def get_1D_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ) -> Union[pd.Series, List[pd.Series]]:
-        """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the 1D value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str

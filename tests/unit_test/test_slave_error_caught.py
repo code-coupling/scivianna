@@ -15,18 +15,18 @@ class ThrowingErrorInterface(ValueAtLocation):
     def get_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ):
-        """Provides the result value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the result value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str
@@ -42,18 +42,18 @@ class ThrowingErrorInterface(ValueAtLocation):
     def get_values(
         self,
         positions: List[Tuple[float, float, float]],
-        volume_indexes: List[str],
+        cell_indexes: List[str],
         material_names: List[str],
         field: str,
     ) -> List[Union[str, float]]:
-        """Provides the result values at different positions from either the (x, y, z) positions, the volume indexes, or the material names.
+        """Provides the result values at different positions from either the (x, y, z) positions, the cell indexes, or the material names.
 
         Parameters
         ----------
         positions : List[Tuple[float, float, float]]
             List of position at which the value is requested
-        volume_indexes : List[str]
-            Indexes of the requested volumes
+        cell_indexes : List[str]
+            Indexes of the requested cells
         material_names : List[str]
             Names of the requested materials
         field : str

@@ -1,5 +1,5 @@
 
-from typing import Callable, Dict, Tuple
+from typing import TYPE_CHECKING
 import panel as pn
 import panel_material_ui as pmui
 from scivianna.data.data2d import Data2D
@@ -9,6 +9,8 @@ from scivianna.slave import ComputeSlave
 
 from scivianna.agent.data_2d_worker import Data2DWorker
 
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
 
 class AIAssistant(Extension):
     """Extension to load files and send them to the slave."""
@@ -17,12 +19,9 @@ class AIAssistant(Extension):
         self,
         slave: ComputeSlave,
         plotter: Plotter2D,
-        set_coordinates_callback: Callable,
-        set_field_callback: Callable,
-        set_color_map_callback: Callable,
-        trigger_update_callback: Callable,
+        panel: "VisualizationPanel"
     ):
-        """Constructor of the extension, saves the slave and the callbacks
+        """Constructor of the extension, saves the slave and the panel
 
         Parameters
         ----------
@@ -30,24 +29,15 @@ class AIAssistant(Extension):
             Slave computing the displayed data
         plotter : Plotter2D
             Figure plotter
-        set_coordinates_callback : Callable
-            Callback to request a coordinate/range/axes change to the visualisation panel
-        set_field_callback : Callable
-            Callback to set the display field
-        set_color_map_callback : Callable
-            Callback to set the color map
-        trigger_update_callback : Callable
-            Callback to trigger a plot update
+        panel : VisualizationPanel
+            Panel to which the extension is attached
         """
         super().__init__(
             "AI assistant",
             "auto_fix_high",
             slave,
             plotter,
-            set_coordinates_callback,
-            set_field_callback,
-            set_color_map_callback,
-            trigger_update_callback,
+            panel,
         )
 
         self.description = """
@@ -87,7 +77,7 @@ You can for example request:
         def clear_prompt(*args, **kwargs):
             self.prompt_text_input.value = ""
             self.llm_code = ""
-            self.trigger_update_callback()
+            self.panel.recompute()
             
         def exec_prompt(*args, **kwargs):
             if self.prompt_text_input.value != "":
@@ -132,7 +122,7 @@ You can for example request:
         def valid_code(e):
             self.llm_code = self.code_editor.value
             self.code_editor.value = ""
-            self.trigger_update_callback()
+            self.panel.recompute()
 
         def invalid_code(e):
             self.llm_code = ""

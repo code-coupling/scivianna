@@ -15,7 +15,7 @@ def test_numpy_2D_array_to_polygons_basic():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((1, 2))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((1, 2))
 
 
 @pytest.mark.default
@@ -33,7 +33,7 @@ def test_numpy_2D_array_to_polygons_with_holes():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((1, 0))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((1, 0))
 
     # One of them has a hole
     assert len(result[0].holes) + len(result[1].holes) == 1
@@ -49,7 +49,7 @@ def test_numpy_2D_array_to_polygons_simplify():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=True)
 
     assert len(result) == 1
-    assert result[0].volume_id == 1
+    assert result[0].cell_id == 1
 
 @pytest.mark.default
 def test_numpy_2D_array_to_polygons_with_outside():
@@ -61,7 +61,7 @@ def test_numpy_2D_array_to_polygons_with_outside():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((5, OUTSIDE))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((5, OUTSIDE))
 
 
 @pytest.mark.default
@@ -74,8 +74,8 @@ def test_numpy_2D_array_to_polygons_non_integer_values():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert result[0].volume_id == 1.5
-    assert result[1].volume_id == 2.0
+    assert result[0].cell_id == 1.5
+    assert result[1].cell_id == 2.0
 
 @pytest.mark.default
 def test_numpy_2D_array_to_polygons_non_number_values():
@@ -87,8 +87,8 @@ def test_numpy_2D_array_to_polygons_non_number_values():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert result[0].volume_id == "1.5"
-    assert result[1].volume_id == "2.0"
+    assert result[0].cell_id == "1.5"
+    assert result[1].cell_id == "2.0"
 
 
 @pytest.mark.default

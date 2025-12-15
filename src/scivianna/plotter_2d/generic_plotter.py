@@ -118,7 +118,7 @@ class Plotter2D:
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -129,7 +129,7 @@ class Plotter2D:
 
     def provide_on_clic_callback(self, callback:Callable):
         """Stores a function to call everytime the user clics on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------

@@ -1,9 +1,12 @@
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Dict, Tuple, Union, TYPE_CHECKING
 import panel as pn
 
 from scivianna.data.data2d import Data2D
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
+
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
 
 
 class Extension:
@@ -19,12 +22,8 @@ class Extension:
     """Slave computing the displayed data"""
     plotter: Plotter2D
     """Figure plotter"""
-    set_coordinates_callback: Callable
-    """Callback to request a coordinate/range/axes change to the visualisation panel"""
-    set_field_callback: Callable
-    """Callback to set the display field"""
-    trigger_update_callback: Callable
-    """Callback to trigger a plot update"""
+    panel: "VisualizationPanel"
+    """Panel to which the extension is attached"""
     iconsize: str = "6em"
 
 
@@ -34,12 +33,9 @@ class Extension:
         icon: str,
         slave: ComputeSlave,
         plotter: Plotter2D,
-        set_coordinates_callback: Callable,
-        set_field_callback: Callable,
-        set_color_map_callback: Callable,
-        trigger_update_callback: Callable,
+        panel: "VisualizationPanel",
     ):
-        """Constructor of the extension, saves the slave and the callbacks
+        """Constructor of the extension, saves the slave and the panel
 
         Parameters
         ----------
@@ -51,23 +47,14 @@ class Extension:
             Slave computing the displayed data
         plotter : Plotter2D
             Figure plotter
-        set_coordinates_callback : Callable
-            Callback to request a coordinate/range/axes change to the visualisation panel
-        set_field_callback : Callable
-            Callback to set the display field
-        set_color_map_callback : Callable
-            Callback to set the color map
-        trigger_update_callback : Callable
-            Callback to trigger a plot update
+        panel : VisualizationPanel
+            Panel to which the extension is attached
         """
         self.title = title
         self.icon = icon
         self.slave = slave
         self.plotter = plotter
-        self.set_coordinates_callback = set_coordinates_callback
-        self.set_field_callback = set_field_callback
-        self.set_color_map_callback = set_color_map_callback
-        self.trigger_update_callback = trigger_update_callback
+        self.panel = panel
 
     def on_file_load(self, file_path: str, file_key: str):
         """Function called when the user requests a change of field on the GUI

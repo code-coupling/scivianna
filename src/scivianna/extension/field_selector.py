@@ -1,5 +1,5 @@
 
-from typing import Any, Callable, Dict
+from typing import Any, Dict, TYPE_CHECKING
 import numpy as np
 import panel as pn
 import panel_material_ui as pmui
@@ -10,9 +10,11 @@ from scivianna.data.data2d import Data2D
 from scivianna.enums import VisualizationMode
 from scivianna.extension.extension import Extension
 from scivianna.plotter_2d.generic_plotter import Plotter2D
-from scivianna.interface.generic_interface import GenericInterface, Geometry2D
 from scivianna.slave import ComputeSlave
 from scivianna.utils.color_tools import beautiful_color_maps, get_edges_colors, interpolate_cmap_at_values
+
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
 
 profile_time = False
 
@@ -68,13 +70,13 @@ def set_colors_list(
 
         _, inv = np.unique(value_list, return_inverse=True)
 
-        volume_colors = interpolate_cmap_at_values(
+        cell_colors = interpolate_cmap_at_values(
             color_map, map_to[inv].astype(float)
         )
         
         if OUTSIDE in data.cell_ids:
             for index_ in np.where(data.cell_ids == OUTSIDE):
-                volume_colors[index_] = (255, 255, 255, 0)
+                cell_colors[index_] = (255, 255, 255, 0)
 
     elif coloring_mode == VisualizationMode.FROM_VALUE:
         """
@@ -115,7 +117,7 @@ def set_colors_list(
             print(f"Rescaling data {time.time() - start_time}")
             start_time = time.time()
 
-        volume_colors = interpolate_cmap_at_values(
+        cell_colors = interpolate_cmap_at_values(
             color_map, normalized_cell_values
         )
 
@@ -124,9 +126,9 @@ def set_colors_list(
             start_time = time.time()
 
         # Changing the main color from black to gray in case of Nan
-        for c in range(len(volume_colors)):
-            if volume_colors[c, 3] == 0.0:
-                volume_colors[c] = (200, 200, 200, 0)
+        for c in range(len(cell_colors)):
+            if cell_colors[c, 3] == 0.0:
+                cell_colors[c] = (200, 200, 200, 0)
 
         if profile_time:
             print(f"Fixing nans {time.time() - start_time}")
@@ -136,15 +138,15 @@ def set_colors_list(
         """
         No color, mesh displayed only
         """
-        volume_colors = np.array([(200, 200, 200, 0)] * (len(data.cell_ids)))
+        cell_colors = np.array([(200, 200, 200, 0)] * (len(data.cell_ids)))
     else:
         raise NotImplementedError(
             f"Visualization mode {coloring_mode} not implemented."
         )
     
-    data.cell_colors = volume_colors.tolist()
+    data.cell_colors = cell_colors.tolist()
 
-    edge_colors = get_edges_colors(volume_colors)
+    edge_colors = get_edges_colors(cell_colors)
     
     if not isinstance(cell_values[0], str):
         edge_colors[:, 3] = np.where(np.isnan(np.array(cell_values)), 255, edge_colors[:, 3])
@@ -160,12 +162,9 @@ class FieldSelector(Extension):
         self,
         slave: ComputeSlave,
         plotter: Plotter2D,
-        set_coordinates_callback: Callable,
-        set_field_callback: Callable,
-        set_color_map_callback: Callable,
-        trigger_update_callback: Callable,
+        panel: "VisualizationPanel"
     ):
-        """Constructor of the extension, saves the slave and the callbacks
+        """Constructor of the extension, saves the slave and the panel
 
         Parameters
         ----------
@@ -173,24 +172,15 @@ class FieldSelector(Extension):
             Slave computing the displayed data
         plotter : Plotter2D
             Figure plotter
-        set_coordinates_callback : Callable
-            Callback to request a coordinate/range/axes change to the visualisation panel
-        set_field_callback : Callable
-            Callback to set the display field
-        set_color_map_callback : Callable
-            Callback to set the color map
-        trigger_update_callback : Callable
-            Callback to trigger a plot update
+        panel : VisualizationPanel
+            Panel to which the extension is attached
         """
         super().__init__(
             "Color map",
             "palette",
             slave,
             plotter,
-            set_coordinates_callback,
-            set_field_callback,
-            set_color_map_callback,
-            trigger_update_callback,
+            panel,
         )
         
         self.description = """
@@ -232,18 +222,18 @@ If a color bar is used, you can decide to center it on zero.
         """Trigger a field change in the visualization panel
         """
         self.color_map_selector.visible=self.slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE
-        self.set_field_callback(self.field_color_selector.value)
+        self.panel.set_field(self.field_color_selector.value)
 
     def trigger_colormap_change(self, *args, **kwargs):
         """Trigger a field change in the visualization panel
         """
-        self.set_color_map_callback(self.color_map_selector.value_name)
-        self.trigger_update_callback()
+        self.panel.set_colormap(self.color_map_selector.value_name)
+        self.panel.recompute()
 
     def trigger_update(self, *args, **kwargs):
         """Trigger a color map change in the visualization panel
         """
-        self.trigger_update_callback()
+        self.panel.recompute()
 
     def on_file_load(self, file_path: str, file_key: str):
         """Function called when the user requests a change of field on the GUI

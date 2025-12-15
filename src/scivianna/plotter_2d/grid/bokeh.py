@@ -23,7 +23,7 @@ from scivianna.utils.color_tools import get_edges_colors
 
 import numpy as np
 
-from scivianna.constants import XS, YS, GRID, VOLUME_NAMES, COMPO_NAMES, GEOMETRY
+from scivianna.constants import XS, YS, GRID, CELL_NAMES, COMPO_NAMES, GEOMETRY
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -44,7 +44,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         self.source_grid = ColumnDataSource(
             {
                 GRID: [],
-                VOLUME_NAMES: [],
+                CELL_NAMES: [],
                 COMPO_NAMES: [],
             }
         )
@@ -140,7 +140,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         # Manifestement, ca ne marche pas avec un nom a plusieurs caracteres pour x ???
         TOOLTIPS = [
             ("Coordinates", "$coords{custom}"),
-            ("Volume ID", "@volume_names"),
+            ("Cell ID", "@cell_names"),
             ("Value", "@compo_names"),
         ]
 
@@ -283,7 +283,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         self.source_grid = ColumnDataSource(
             {
                 GRID: [img],
-                VOLUME_NAMES: [grid],
+                CELL_NAMES: [grid],
                 COMPO_NAMES: [val_grid],
             }
         )
@@ -312,7 +312,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         self.source_grid.update(
             data = {
                 GRID : [img],
-                VOLUME_NAMES : [grid],
+                CELL_NAMES : [grid],
                 COMPO_NAMES : [val_grid],
             }
         )
@@ -377,7 +377,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         
         if self.save_data:
             self.data = data
-            self.volume_name_grid = np.array(grid)
+            self.cell_name_grid = np.array(grid)
 
         return img, grid, val_grid
         
@@ -529,7 +529,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         return xs, ys
 
     def send_event(self, callback):
-        """Calling the callback to update the position and current volume_id to the layout
+        """Calling the callback to update the position and current cell_id to the layout
 
         Parameters
         ----------
@@ -542,15 +542,15 @@ class Bokeh2DGridPlotter(Plotter2D):
         if "i" in self.source_mouse.data:
             i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
 
-            if self.volume_name_grid is not None:
-                hovered_cell = self.volume_name_grid[j, i]
+            if self.cell_name_grid is not None:
+                hovered_cell = self.cell_name_grid[j, i]
 
         callback(position=(
                             self.source_mouse.data["x"][0], 
                             self.source_mouse.data["y"][0], 
                             self.source_mouse.data["z"][0]
                         ), 
-                volume_id=hovered_cell)
+                cell_id=hovered_cell)
 
     def on_mouse_move(self, _):
         """Callback called when the mouse is moved. The mouse location in the grid is saved, and an update is requested at the current location after a timeout.
@@ -579,8 +579,8 @@ class Bokeh2DGridPlotter(Plotter2D):
         i_, j_ = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
 
         if self.active and i == i_ and j == j_:
-            if self.volume_name_grid is not None:
-                hovered_cell = self.volume_name_grid[j, i]
+            if self.cell_name_grid is not None:
+                hovered_cell = self.cell_name_grid[j, i]
                 
                 if hovered_cell != self.last_update_cell:
                     self.save_data = False
@@ -602,7 +602,7 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -615,7 +615,7 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     def provide_on_clic_callback(self, callback:Callable):
         """Stores a function to call everytime the user clics on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------

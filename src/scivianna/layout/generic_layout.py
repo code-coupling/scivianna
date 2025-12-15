@@ -399,41 +399,53 @@ class GenericLayout:
             description="Change side bar and coordinate bar to current plot."
         )
 
-    def on_clic_callback(self, position: Tuple[float, float, float], volume_id: str):
-        """Function calling panels update on mouse clic in a 2D panel
+    def on_clic_callback(self, 
+        screen_location: Tuple[float, float],
+        space_location: Tuple[float, float, float],
+        cell_id: Union[str, int],
+    ):
+        """Function called when the mouse moves on the plot
 
         Parameters
         ----------
-        position : Tuple[float, float, float]
-            Clic location
-        volume_id : str
-            Clic volume ID
+        screen_location : Tuple[float, float]
+            Mouse location on screen
+        space_location : Tuple[float, float, float]
+            Mouse targeted location in space
+        cell_id : Union[str, int]
+            Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.CLIC or (isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event):
-                panel.recompute_at(position, volume_id)
+                panel.recompute_at(space_location, cell_id)
 
-    def mouse_move_callback(self, position: Tuple[float, float, float], volume_id: str):
-        """Function calling panels update on mouse move in a 2D panel
+    def mouse_move_callback(self, 
+        screen_location: Tuple[float, float],
+        space_location: Tuple[float, float, float],
+        cell_id: Union[str, int],
+    ):
+        """Function called when the mouse moves on the plot
 
         Parameters
         ----------
-        position : Tuple[float, float, float]
-            Mouse hovered location
-        volume_id : str
-            Move hovered volume id
+        screen_location : Tuple[float, float]
+            Mouse location on screen
+        space_location : Tuple[float, float, float]
+            Mouse targeted location in space
+        cell_id : Union[str, int]
+            Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
-                panel.recompute_at(position, volume_id)
+                panel.recompute_at(space_location, cell_id)
 
-            if volume_id != self.last_hover_id and\
+            if cell_id != self.last_hover_id and\
                     (
                         panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE
                         or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)
                     ):
-                self.last_hover_id = volume_id
-                panel.recompute_at(position, volume_id)
+                self.last_hover_id = cell_id
+                panel.recompute_at(space_location, cell_id)
 
     def field_change_callback(self, new_field: str):
         """Function calling panels update a field change

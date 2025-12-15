@@ -1,10 +1,13 @@
-from typing import Callable, Tuple
+from typing import Tuple, TYPE_CHECKING
 import numpy as np
 import panel as pn
 import panel_material_ui as pmui
 from scivianna.extension.extension import Extension
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
+
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
 
 icon_svg = """
 <svg
@@ -36,12 +39,9 @@ class Axes(Extension):
         self,
         slave: ComputeSlave,
         plotter: Plotter2D,
-        set_coordinates_callback: Callable,
-        set_field_callback: Callable,
-        set_color_map_callback: Callable,
-        trigger_update_callback: Callable,
+        panel: "VisualizationPanel"
     ):
-        """Constructor of the extension, saves the slave and the callbacks
+        """Constructor of the extension, saves the slave and the panel
 
         Parameters
         ----------
@@ -49,24 +49,15 @@ class Axes(Extension):
             Slave computing the displayed data
         plotter : Plotter2D
             Figure plotter
-        set_coordinates_callback : Callable
-            Callback to request a coordinate/range/axes change to the visualisation panel
-        set_field_callback : Callable
-            Callback to set the display field
-        set_color_map_callback : Callable
-            Callback to set the color map
-        trigger_update_callback : Callable
-            Callback to trigger a plot update
+        panel : VisualizationPanel
+            Panel to which the extension is attached
         """
         super().__init__(
             "Axes customization",
             icon_svg,
             slave,
             plotter,
-            set_coordinates_callback,
-            set_field_callback,
-            set_color_map_callback,
-            trigger_update_callback,
+            panel,
         )
 
         self.description = """
@@ -337,7 +328,7 @@ You can also hide/show the axes on the plot and force a plot update.
             
     def trigger_update(self, *args, **kwargs):
             u, v = self.get_uv()
-            self.set_coordinates_callback(
+            self.panel.set_coordinates(
                 u,
                 v,
                 self.x0_inp.value,

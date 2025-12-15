@@ -81,7 +81,7 @@ class PolygonElement:
     def __init__(self, 
                     exterior_polygon:PolygonCoords, 
                     holes:List[PolygonCoords], 
-                    volume_id:str):
+                    cell_id:str):
         """PolygonCoords object constructor.
 
         Parameters
@@ -90,8 +90,8 @@ class PolygonElement:
             Polygon that surrounds a polygonal object
         holes : List[PolygonCoords]
             List of polygonal holes in a polygon object
-        volume_id : str
-            Volume, associated to the polygon, id
+        cell_id : str
+            cell, associated to the polygon, id
         """
         if not isinstance(exterior_polygon, PolygonCoords):
             raise TypeError(f"exterior_polygon expects a PolygonCoords object, found {type(exterior_polygon)}")
@@ -108,8 +108,8 @@ class PolygonElement:
         self.holes:List[PolygonCoords] = holes
         """ List of polygonal holes in a polygon object
         """
-        self.volume_id:str = volume_id
-        """ Volume, associated to the polygon, id
+        self.cell_id:str = cell_id
+        """ Cell, associated to the polygon, id
         """
         self.compo:str = ""
         """ Composition in the polygon
@@ -189,7 +189,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
                                     y:Union[List[float], np.ndarray], 
                                     arr:np.ndarray, 
                                     simplify:bool) -> List[PolygonElement]:
-    """Converts a 2D array mapping the volume id to a list of PolygonElements using the python module rasterio
+    """Converts a 2D array mapping the cell id to a list of PolygonElements using the python module rasterio
 
     Parameters
     ----------
@@ -198,7 +198,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
     y : Union[List[float], np.ndarray]
         Points coordinates along the Y acis
     arr : np.ndarray
-        2D volume index mapping
+        2D cell index mapping
     simplify : bool
         Simplify the polygons to smoothen the edges
 
@@ -254,7 +254,7 @@ def numpy_2D_array_to_polygons(x:Union[List[float], np.ndarray],
                                         holes=[PolygonCoords(x_coords=np.array([vert[0] for vert in interior.coords]),
                                                              y_coords=np.array([vert[1] for vert in interior.coords])) 
                                                              for interior in s.interiors],
-                                        volume_id=values[int(val)])
+                                        cell_id=values[int(val)])
                     )
         
     return polygon_element_list

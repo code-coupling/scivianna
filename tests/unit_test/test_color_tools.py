@@ -83,7 +83,7 @@ class ColorTestInterface(Geometry2DPolygon):
                     y_coords = []
                 ),
                 holes = [],
-                volume_id = i
+                cell_id = i
             )
             for i in range(5)
         ]), True
@@ -101,30 +101,30 @@ class ColorTestInterface(Geometry2DPolygon):
         return [MESH, "str", "float"]
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if value_label == MESH:
-            return {v: np.nan for v in volumes}
+            return {v: np.nan for v in cells}
         elif value_label == "str":
-            return {v: str(v) for v in volumes}
+            return {v: str(v) for v in cells}
         elif value_label == "float":
-            return {v: float(v) if v < 2 else np.nan for v in volumes}
+            return {v: float(v) if v < 2 else np.nan for v in cells}
         else:
             raise ValueError(f"Value label {value_label} not implemented. Keys available : MESH, str, and float.")
 

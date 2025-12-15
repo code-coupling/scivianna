@@ -57,7 +57,7 @@ def test_extruded_mesh():
 
     data = Data2D.from_polygon_list(polygons)
 
-    data.cell_values = mesh.get_cells_values("id", [p.volume_id for p in polygons])
+    data.cell_values = mesh.get_cells_values("id", [p.cell_id for p in polygons])
     data.cell_colors = interpolate_cmap_at_values("viridis", np.array(data.cell_values)/(4*3))
     data.cell_edge_colors = get_edges_colors(data.cell_colors)
     
@@ -69,7 +69,7 @@ def test_extruded_mesh():
     polygons = mesh.compute_2D_slice((1., 1., 0.5), (1, 0, 0), (0, 0, 1))
     data = Data2D.from_polygon_list(polygons)
 
-    data.cell_values = mesh.get_cells_values("id", [p.volume_id for p in polygons])
+    data.cell_values = mesh.get_cells_values("id", [p.cell_id for p in polygons])
     data.cell_colors = interpolate_cmap_at_values("viridis", np.array(data.cell_values)/(4*3))
     data.cell_edge_colors = get_edges_colors(data.cell_colors)
 

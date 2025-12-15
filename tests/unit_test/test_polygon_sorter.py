@@ -17,7 +17,7 @@ def mock_data()->Data2D:
                 y_coords=[0.0, 0.0, 1.0]
             ),
             holes=[],
-            volume_id=101
+            cell_id=101
         ),
         PolygonElement(
             exterior_polygon=PolygonCoords(
@@ -25,7 +25,7 @@ def mock_data()->Data2D:
                 y_coords=[0.0, 0.0, 1.0]
             ),
             holes=[],
-            volume_id=102
+            cell_id=102
         ),
         PolygonElement(
             exterior_polygon=PolygonCoords(
@@ -33,7 +33,7 @@ def mock_data()->Data2D:
                 y_coords=[0.0, 0.0, 1.0]
             ),
             holes=[],
-            volume_id=103
+            cell_id=103
         ),
         PolygonElement(
             exterior_polygon=PolygonCoords(
@@ -41,7 +41,7 @@ def mock_data()->Data2D:
                 y_coords=[0.0, 0.0, 1.0]
             ),
             holes=[],
-            volume_id=104
+            cell_id=104
         )
     ])
     data.cell_values = ["C", "A", "B", "D"]
@@ -118,10 +118,10 @@ def test_sort_list_preserves_order(mock_data:Data2D):
 
     # Create new data with same structure but different order
     new_data = Data2D.from_polygon_list([
-        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[0.0, 1.0, 1.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=101),
-        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[2.0, 3.0, 3.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=102),
-        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[4.0, 5.0, 5.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=103),
-        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[6.0, 7.0, 7.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=104)
+        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[0.0, 1.0, 1.0], y_coords=[0.0, 0.0, 1.0]), holes=[], cell_id=101),
+        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[2.0, 3.0, 3.0], y_coords=[0.0, 0.0, 1.0]), holes=[], cell_id=102),
+        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[4.0, 5.0, 5.0], y_coords=[0.0, 0.0, 1.0]), holes=[], cell_id=103),
+        PolygonElement(exterior_polygon=PolygonCoords(x_coords=[6.0, 7.0, 7.0], y_coords=[0.0, 0.0, 1.0]), holes=[], cell_id=104)
     ])
     new_data.cell_values = ["D", "C", "B", "A"]
     new_data.cell_colors = [(0, 0, 255), (255, 255, 255), (0, 255, 0), (255, 0, 0)]
@@ -145,7 +145,7 @@ def test_sort_list_with_different_length_raises(mock_data:Data2D):
     sorter.sort_from_value(mock_data)
 
     # Create data with mismatched length
-    new_data = Data2D.from_polygon_list([PolygonElement(exterior_polygon=PolygonCoords(x_coords=[0.0, 1.0, 1.0], y_coords=[0.0, 0.0, 1.0]), holes=[], volume_id=101)])
+    new_data = Data2D.from_polygon_list([PolygonElement(exterior_polygon=PolygonCoords(x_coords=[0.0, 1.0, 1.0], y_coords=[0.0, 0.0, 1.0]), holes=[], cell_id=101)])
     new_data.cell_values = ["A"]
     new_data.cell_colors = [(255, 0, 0)]
     new_data.cell_edge_colors = [(255, 0, 0)]

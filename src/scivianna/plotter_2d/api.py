@@ -148,7 +148,7 @@ def plot_frame_in_axes(
         and coloring_label in custom_colors
     ):
         compo_list = data.cell_values
-        volume_color_list = data.cell_colors
+        cell_color_list = data.cell_colors
 
         compos = np.unique(compo_list)
 
@@ -165,16 +165,16 @@ def plot_frame_in_axes(
                     * len(compo_list)
                 )
                 compo_array = np.repeat(np.expand_dims(compo_list, axis=1), 4, axis=1)
-                volume_color_list = np.where(
-                    compo_array == compo, color_array, volume_color_list
+                cell_color_list = np.where(
+                    compo_array == compo, color_array, cell_color_list
                 )
 
         data.cell_values = compo_list
-        data.cell_colors = volume_color_list
+        data.cell_colors = cell_color_list
 
     if display_colorbar:
         compo_list = data.cell_values
-        volume_color_list = data.cell_colors
+        cell_color_list = data.cell_colors
         if (
             slave.get_label_coloring_mode(coloring_label)
             == VisualizationMode.FROM_VALUE
@@ -188,7 +188,7 @@ def plot_frame_in_axes(
             slave.get_label_coloring_mode(coloring_label) == VisualizationMode.FROM_STRING
         ):
             compos = np.unique(compo_list)
-            volume_color_list = np.array(volume_color_list).astype(float)
+            cell_color_list = np.array(cell_color_list).astype(float)
 
             edge_color_list = np.array(data.cell_edge_colors)
 
@@ -196,7 +196,7 @@ def plot_frame_in_axes(
             edge_colors = []
             legend_compos = []
 
-            volume_color_list /= 255.0
+            cell_color_list /= 255.0
             edge_color_list /= 255.0
 
             for compo in compos:
@@ -213,7 +213,7 @@ def plot_frame_in_axes(
                     legend_compos.append(compo)
 
                 if add_in_legend:
-                    colors.append(volume_color_list[location])
+                    colors.append(cell_color_list[location])
                     edge_colors.append(edge_color_list[location])
             
             legend_elements = [

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps
 from matplotlib import colors as plt_colors
 
-from scivianna.constants import GRID, POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
+from scivianna.constants import GRID, POLYGONS, CELL_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
 from scivianna.utils.color_tools import get_edges_colors
 
 from shapely import Polygon

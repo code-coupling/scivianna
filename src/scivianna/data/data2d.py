@@ -2,9 +2,9 @@ from typing import Callable, Dict, List, Any, Tuple, Union
 import numpy as np
 from scivianna.utils.polygonize_tools import PolygonElement, numpy_2D_array_to_polygons
 from scivianna.enums import DataType
+from scivianna.data.data_container import DataContainer
 
-
-class Data2D:
+class Data2D(DataContainer):
     """Data class containing the 2D geometry data"""
 
     data_type:DataType
@@ -63,7 +63,7 @@ class Data2D:
         data_ = Data2D()
         data_.polygons = polygon_list
 
-        data_.cell_ids = [p.volume_id for p in polygon_list]
+        data_.cell_ids = [p.cell_id for p in polygon_list]
         data_.cell_values = [np.nan]*len(polygon_list)
 
         data_.cell_colors = np.zeros((len(polygon_list), 4)) + 255
@@ -93,7 +93,7 @@ class Data2D:
         Data2D
             Requested Data2D
         """
-        assert len(grid.shape) == 2, f"Provided grid mush be of dimension 2, found shape {grid.shape}"
+        assert len(grid.shape) == 2, f"Provided grid must be of dimension 2, found shape {grid.shape}"
         data_ = Data2D()
         data_.grid = grid
         data_.u_values = u_values
@@ -123,7 +123,7 @@ class Data2D:
             id_to_color = dict(zip(self.cell_ids, self.cell_colors))
             id_to_edge_color = dict(zip(self.cell_ids, self.cell_edge_colors))
 
-            self.cell_ids = [p.volume_id for p in self.polygons]
+            self.cell_ids = [p.cell_id for p in self.polygons]
             self.cell_values = [id_to_value[e] for e in self.cell_ids]
             self.cell_colors = [id_to_color[e] for e in self.cell_ids]
             self.cell_edge_colors = [id_to_edge_color[e] for e in self.cell_ids]

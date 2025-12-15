@@ -37,8 +37,8 @@ class LineVisualisationPanel:
 
     position: Tuple[float, float, float] = None
     """Position where request the plot"""
-    volume_id: str = None
-    """Volume ID where request the plot"""
+    cell_id: str = None
+    """cell ID where request the plot"""
 
     def __init__(
             self,
@@ -187,7 +187,7 @@ class LineVisualisationPanel:
         key : str
             Field to request to the slave
         """
-        series = self.slave.get_1D_value(self.position, self.volume_id, None, key)
+        series = self.slave.get_1D_value(self.position, self.cell_id, None, key)
 
         if isinstance(series, list):
             for serie in series:
@@ -231,19 +231,19 @@ class LineVisualisationPanel:
     ):
         return self.slave
 
-    def recompute_at(self, position: Tuple[float, float, float], volume_id: str):
+    def recompute_at(self, position: Tuple[float, float, float], cell_id: str):
         """Triggers a panel recomputation at the provided location. Called by layout update event.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Location to provide to the slave
-        volume_id : str
-            Volume id to provide to the slave
+        cell_id : str
+            cell id to provide to the slave
         """
-        self.fig_overlay.show_temporary_message(f"Updating for position {position} and cell {volume_id}", 1000)
+        self.fig_overlay.show_temporary_message(f"Updating for position {position} and cell {cell_id}", 1000)
         self.position = position
-        self.volume_id = volume_id
+        self.cell_id = cell_id
         self.recompute()
 
     def set_field(self, field_names: List[str], allow_wrong_name: bool = False):

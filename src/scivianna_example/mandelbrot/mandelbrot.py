@@ -145,30 +145,30 @@ class MandelBrotInterface(Geometry2DGrid):
         return self.data, True
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if value_label == MATERIAL:
-            dict_compo = {v: v for v in volumes}
+            dict_compo = {v: v for v in cells}
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.nan for v in volumes}
+            dict_compo = {str(v): np.nan for v in cells}
 
             return dict_compo
 

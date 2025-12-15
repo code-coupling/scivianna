@@ -10,7 +10,7 @@ from matplotlib import cm
 from matplotlib import colors as plt_colors
 from matplotlib.colors import LinearSegmentedColormap
 
-from scivianna.constants import POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
+from scivianna.constants import POLYGONS, CELL_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
 from scivianna.utils.color_tools import get_edges_colors, beautiful_color_maps
 
 from shapely import Polygon
@@ -106,10 +106,10 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
         data.convert_to_polygons()
-        volume_list: List[Union[str, int]] = data.cell_ids
+        cell_list: List[Union[str, int]] = data.cell_ids
 
-        volume_colors: np.ndarray = np.array(data.cell_colors).astype(float)
-        volume_edge_colors: np.ndarray = np.array(data.cell_edge_colors).astype(float)
+        cell_colors: np.ndarray = np.array(data.cell_colors).astype(float)
+        cell_edge_colors: np.ndarray = np.array(data.cell_edge_colors).astype(float)
 
         polygons: List[Polygon] = [
             Polygon(
@@ -127,12 +127,12 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
 
         gdf = gpd.GeoDataFrame(geometry=polygons)
 
-        volume_colors /= 255.0
-        volume_edge_colors /= 255.0
+        cell_colors /= 255.0
+        cell_edge_colors /= 255.0
 
         gdf.normalize().plot(
-            facecolor=volume_colors.tolist(),
-            edgecolor=volume_edge_colors.tolist(),
+            facecolor=cell_colors.tolist(),
+            edgecolor=cell_edge_colors.tolist(),
             ax=axes,
             linewidth = self.line_width,
             **plot_options
@@ -151,10 +151,10 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
 
         self.last_plot = {
             POLYGONS: polygons,
-            VOLUME_NAMES: volume_list,
+            CELL_NAMES: cell_list,
             COMPO_NAMES: data.cell_values,
-            COLORS: volume_colors.tolist(),
-            EDGE_COLORS: volume_edge_colors.tolist(),
+            COLORS: cell_colors.tolist(),
+            EDGE_COLORS: cell_edge_colors.tolist(),
         }
 
     def update_2d_frame(

@@ -241,7 +241,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 PolygonElement(
                     exterior_polygon=PolygonCoords(x_coords=u_vals, y_coords=v_vals),
                     holes=[],
-                    volume_id=str(cell),
+                    cell_id=str(cell),
                 )
             )
 
@@ -276,28 +276,28 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         return labels
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if profile_time:
             start_time = time.time()
         if value_label == MESH:
-            return {str(v): np.nan for v in volumes}
+            return {str(v): np.nan for v in cells}
 
         field_np_array = None
 
@@ -341,9 +341,9 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         if field_np_array is not None:
             indexes = np.array(list(self.cell_dict.values())).astype(int)
-            values = field_np_array[indexes[np.array(volumes).astype(int)]]
+            values = field_np_array[indexes[np.array(cells).astype(int)]]
 
-            value_dict = dict(zip(np.array(volumes).astype(str), values))
+            value_dict = dict(zip(np.array(cells).astype(str), values))
 
             if profile_time:
                 print(f"Get value dict time: {time.time() - start_time}")

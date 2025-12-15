@@ -20,7 +20,7 @@ def data2d():
                     y_coords=[i, 1+i, 1+i, i]
                 ),
                 holes=[],
-                volume_id=i
+                cell_id=i
             )
             for i in range(10)
         ]

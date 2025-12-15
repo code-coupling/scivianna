@@ -1,0 +1,3 @@
+
+class DataContainer:
+    pass

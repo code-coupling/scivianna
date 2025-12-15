@@ -179,7 +179,7 @@ class EuropeGridInterface(Geometry2DPolygon):
                     PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1]))
                     for h in p.interiors
                 ],
-                volume_id=self.country_id[country],
+                cell_id=self.country_id[country],
             )
             for country in self.polygons_per_country
             for p in self.polygons_per_country[country]
@@ -189,32 +189,32 @@ class EuropeGridInterface(Geometry2DPolygon):
         return self.polygons, True
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if value_label == MATERIAL:
             dict_compo = {
-                vol: self.country_list[list(self.country_id.values).index(vol)] for vol in volumes
+                vol: self.country_list[list(self.country_id.values).index(vol)] for vol in cells
             }
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.nan for v in volumes}
+            dict_compo = {str(v): np.nan for v in cells}
             if -1 in dict_compo:
                 dict_compo[-1] = np.nan
 
@@ -222,14 +222,14 @@ class EuropeGridInterface(Geometry2DPolygon):
 
         if value_label == "Europe":
             dict_compo = {
-                vol: self.europe[list(self.country_id.values).index(vol)] for vol in volumes
+                vol: self.europe[list(self.country_id.values).index(vol)] for vol in cells
             }
             return dict_compo
 
         for res in self.results.values():
             if value_label in res.get_fields():
-                results = res.get_values([], volumes, [self.country_id[list(self.country_id.values).index(vol)] for vol in volumes], value_label)
-                return {volumes[i]: results[i] for i in range(len(volumes))}
+                results = res.get_values([], cells, [self.country_id[list(self.country_id.values).index(vol)] for vol in cells], value_label)
+                return {cells[i]: results[i] for i in range(len(cells))}
 
         raise NotImplementedError(
             f"The field {value_label} is not implemented, fields available : {self.get_labels()}"

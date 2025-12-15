@@ -139,10 +139,7 @@ class VisualizationPanel:
             e(
                 self.slave,
                 self.plotter,
-                self.set_coordinates,
-                self.set_field,
-                self.set_colormap,
-                self.recompute
+                self
             )
             for e in extensions
         ]
@@ -202,6 +199,10 @@ class VisualizationPanel:
         """Coupling periodic update"""
         self.marked_to_recompute = False
         """Recompute requested by a coordinates/field change on API side"""
+
+        for extension in self.extensions:
+            self.plotter.provide_on_clic_callback(extension.on_mouse_clic)
+            self.plotter.provide_on_mouse_move_callback(extension.on_mouse_move)
 
     @pn.io.hold()
     def async_update_data(
@@ -484,7 +485,7 @@ class VisualizationPanel:
 
     def provide_on_mouse_move_callback(self, callback: Callable):
         """Stores a function to call everytime the user moves the mouse on the plot.
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -495,7 +496,7 @@ class VisualizationPanel:
 
     def provide_on_clic_callback(self, callback: Callable):
         """Stores a function to call everytime the user clics on the plot.
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -515,15 +516,15 @@ class VisualizationPanel:
         """
         self.field_change_callback = callback
 
-    def recompute_at(self, position: Tuple[float, float, float], volume_id: str):
+    def recompute_at(self, position: Tuple[float, float, float], cell_id: str):
         """Triggers a panel recomputation at the provided location. Called by layout update event.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Location to provide to the slave
-        volume_id : str
-            Volume id to provide to the slave
+        cell_id : str
+            cell id to provide to the slave
         """
         u, v = self.get_uv()
 

@@ -15,7 +15,7 @@ from scivianna.constants import MESH
 
 class StructuredMeshInterface(Geometry2DPolygon):
     """ StructuredMesh generic interface. This interface is not usable as such as it can't load a file. 
-    To use it, the developper mush implement another interface inheriting from it implementing the read_file function.
+    To use it, the developper must implement another interface inheriting from it implementing the read_file function.
     """
 
     polygons: List[PolygonElement]
@@ -125,28 +125,28 @@ class StructuredMeshInterface(Geometry2DPolygon):
         return labels
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if value_label == MESH:
-            return {v: np.nan for v in volumes}
+            return {v: np.nan for v in cells}
 
-        return dict(zip(volumes, self.mesh.get_cells_values(value_label, volumes)))
+        return dict(zip(cells, self.mesh.get_cells_values(value_label, cells)))
 
 
     def get_label_coloring_mode(self, label: str) -> VisualizationMode:

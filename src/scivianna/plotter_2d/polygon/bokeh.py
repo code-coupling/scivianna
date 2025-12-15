@@ -23,7 +23,7 @@ from bokeh import events
 
 import numpy as np
 
-from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY, EDGE_ALPHA, FILL_ALPHA
+from scivianna.constants import XS, YS, CELL_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY, EDGE_ALPHA, FILL_ALPHA
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -42,7 +42,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
                 YS: [],
                 COLORS: [],
                 EDGE_COLORS: [],
-                VOLUME_NAMES: [],
+                CELL_NAMES: [],
                 COMPO_NAMES: [],
             }
         )
@@ -130,7 +130,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         # Manifestement, ca ne marche pas avec un nom a plusieurs caracteres pour x ???
         TOOLTIPS = [
             ("Coordinates", "$x{custom}"),
-            ("Volume ID", "@volume_names"),
+            ("Cell ID", "@cell_names"),
             ("Value", "@compo_names"),
         ]
 
@@ -260,7 +260,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         self.source_polygons.data = {
             XS: xs,
             YS: ys,
-            VOLUME_NAMES: data.cell_ids,
+            CELL_NAMES: data.cell_ids,
             COMPO_NAMES: data.cell_values,
             COLORS: np.array(data.cell_colors)[:, :-1].tolist(),
             FILL_ALPHA: (np.array(data.cell_colors)[:, -1]/255).tolist(),
@@ -298,7 +298,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             data={
                 XS: xs,
                 YS: ys,
-                VOLUME_NAMES: data.cell_ids,
+                CELL_NAMES: data.cell_ids,
                 COMPO_NAMES: data.cell_values,
                 COLORS: np.array(data.cell_colors).tolist(),
                 EDGE_COLORS: np.array(data.cell_edge_colors).tolist(),
@@ -476,18 +476,24 @@ class Bokeh2DPolygonPlotter(Plotter2D):
     def send_event(self, callback):
         # If the mouse is hovered while a range update triggered update is done, the self.source_polygons.data length is updated faster than the data coming from the mouse.
         #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
-        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[VOLUME_NAMES]):
-            callback(position=(
-                                self.source_mouse.data["x"][0], 
-                                self.source_mouse.data["y"][0], 
-                                self.source_mouse.data["z"][0]
-                            ), 
-                    volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
+        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[CELL_NAMES]):
+            callback(
+                screen_location=(
+                    self.source_mouse.data["sx"][0],
+                    self.source_mouse.data["sy"][0]
+                ),
+                space_location=(
+                            self.source_mouse.data["x"][0], 
+                            self.source_mouse.data["y"][0], 
+                            self.source_mouse.data["z"][0]
+                        ), 
+                cell_id=self.source_polygons.data[CELL_NAMES][int(self.source_mouse.data["index"][0])]
+            )
 
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -500,7 +506,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
 
     def provide_on_clic_callback(self, callback:Callable):
         """Stores a function to call everytime the user clics on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------

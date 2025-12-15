@@ -20,7 +20,7 @@ class CSVInterface(ValueAtLocation):
         ValueError
             File not found
         ValueError
-            Neither volume nor materials in the file columns
+            Neither cell nor materials in the file columns
         """
         path = Path(csv_file_path)
         self.basename = path.name.replace(".csv", "")
@@ -30,26 +30,26 @@ class CSVInterface(ValueAtLocation):
 
         self.df = pd.read_csv(path)
 
-        if not ("material" in self.df.columns or "volume" in self.df.columns):
+        if not ("material" in self.df.columns or "cell" in self.df.columns):
             raise ValueError(
-                f"Neither material nor volume was found in the csv columns. Found: {self.df.columns}."
+                f"Neither material nor cell was found in the csv columns. Found: {self.df.columns}."
             )
 
     def get_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ):
-        """Provides the result value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the result value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str
@@ -65,9 +65,9 @@ class CSVInterface(ValueAtLocation):
                 f"Field {field} not found in dataframe columns, found : {self.df.columns}."
             )
 
-        if "volume" in self.df.columns:
-            look_column = self.df["volume"]
-            line_index = look_column[look_column == volume_index].index[0]
+        if "cell" in self.df.columns:
+            look_column = self.df["cell"]
+            line_index = look_column[look_column == cell_index].index[0]
 
         elif "material" in self.df.columns:
             look_column = self.df["material"]
@@ -75,7 +75,7 @@ class CSVInterface(ValueAtLocation):
 
         else:
             raise ValueError(
-                f"Neither material nor volume was found in the csv columns. Found: {self.df.columns}."
+                f"Neither material nor cell was found in the csv columns. Found: {self.df.columns}."
             )
 
         return self.df.loc[field, line_index]
@@ -83,18 +83,18 @@ class CSVInterface(ValueAtLocation):
     def get_values(
         self,
         positions: List[Tuple[float, float, float]],
-        volume_indexes: List[str],
+        cell_indexes: List[str],
         material_names: List[str],
         field: str,
     ) -> List[Union[str, float]]:
-        """Provides the result values at different positions from either the (x, y, z) positions, the volume indexes, or the material names.
+        """Provides the result values at different positions from either the (x, y, z) positions, the cell indexes, or the material names.
 
         Parameters
         ----------
         positions : List[Tuple[float, float, float]]
             List of position at which the value is requested
-        volume_indexes : List[str]
-            Indexes of the requested volumes
+        cell_indexes : List[str]
+            Indexes of the requested cells
         material_names : List[str]
             Names of the requested materials
         field : str
@@ -111,20 +111,20 @@ class CSVInterface(ValueAtLocation):
                 f"Field {field} not found in dataframe columns, found : {self.df.columns}."
             )
 
-        if "volume" in self.df.columns:
+        if "cell" in self.df.columns:
             new_df = self.df.copy()
-            new_df["volume"] = new_df["volume"].astype(str)
-            new_df = new_df.set_index("volume")
+            new_df["cell"] = new_df["cell"].astype(str)
+            new_df = new_df.set_index("cell")
 
-            if "-1" in volume_indexes:
-                list_volumes = list(volume_indexes.copy())
-                list_volumes.remove("-1")
-                vals = new_df[field][list_volumes].to_list()
-                vals.insert(list(volume_indexes.copy()).index("-1"), np.nan)
+            if "-1" in cell_indexes:
+                list_cells = list(cell_indexes.copy())
+                list_cells.remove("-1")
+                vals = new_df[field][list_cells].to_list()
+                vals.insert(list(cell_indexes.copy()).index("-1"), np.nan)
 
                 return vals
             else:
-                return new_df[field][volume_indexes].to_list()
+                return new_df[field][cell_indexes].to_list()
 
         elif "material" in self.df.columns:
             new_df = self.df.copy()
@@ -145,7 +145,7 @@ class CSVInterface(ValueAtLocation):
 
         else:
             raise ValueError(
-                f"Neither material nor volume was found in the csv columns. Found: {self.df.columns}."
+                f"Neither material nor cell was found in the csv columns. Found: {self.df.columns}."
             )
 
     def get_fields(self) -> List[str]:
@@ -159,5 +159,5 @@ class CSVInterface(ValueAtLocation):
         return [
             self.basename + "_" + c
             for c in self.df.columns
-            if c not in ["volume", "material"]
+            if c not in ["cell", "material"]
         ]

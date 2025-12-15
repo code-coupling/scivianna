@@ -119,7 +119,7 @@ class StructuredMesh:
                     y_coords=[v_vals[j] for j in cells[i].point_ids],
                 ),
                 holes=[],
-                volume_id=mesh_slice["cell_id"][i],
+                cell_id=mesh_slice["cell_id"][i],
             )
             for i in range(len(cells))
         ]
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     data = Data2D.from_polygon_list(polygons)
 
-    data.cell_values = mesh.get_cells_values("id", [p.volume_id for p in polygons])
+    data.cell_values = mesh.get_cells_values("id", [p.cell_id for p in polygons])
     data.cell_colors = interpolate_cmap_at_values("viridis", data.cell_values/(4*4*4))
     
     plotter = Matplotlib2DPolygonPlotter()
@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
     data = Data2D.from_polygon_list(polygons)
 
-    data.cell_values = mesh.get_cells_values("id", [p.volume_id for p in polygons])
+    data.cell_values = mesh.get_cells_values("id", [p.cell_id for p in polygons])
     data.cell_colors = interpolate_cmap_at_values("viridis", data.cell_values/(4*16*4))
     
     plotter = Matplotlib2DPolygonPlotter()
@@ -275,7 +275,7 @@ if __name__ == "__main__":
 
     data = Data2D.from_polygon_list(polygons)
 
-    data.cell_values = mesh.get_cells_values("id", [p.volume_id for p in polygons])
+    data.cell_values = mesh.get_cells_values("id", [p.cell_id for p in polygons])
     data.cell_colors = interpolate_cmap_at_values("viridis", data.cell_values/(4*16*16))
     
     plotter = Matplotlib2DPolygonPlotter()
