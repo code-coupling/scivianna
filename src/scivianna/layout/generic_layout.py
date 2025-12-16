@@ -84,6 +84,8 @@ class GenericLayout:
         self.side_bars: Dict[str, pn.Column] = {}
 
         self.gui = GUI([self.layout_extension])
+
+        self.gui.drawer.param.watch(self.outline_panels, "open")
         
         for panel in self.visualisation_panels.values():
             self.register_panel(panel)
@@ -171,6 +173,7 @@ class GenericLayout:
                 s.visible = key == self.current_frame
         
         self.gui.change_drawer(None, self.gui.active_extension)
+        self.outline_panels()
 
     @pn.io.hold()
     def set_to_frame(self, frame_name: str):
@@ -198,6 +201,17 @@ class GenericLayout:
             raise ValueError(
                 f"Frame {frame_name} not in options, available keys : {list(self.visualisation_panels.keys())}"
             )
+        
+    def outline_panels(self, *args, **kwargs):
+        """Updates the figures outline colors
+        """
+        colorize = self.gui.drawer.open
+        for frame in self.visualisation_panels:
+            self.visualisation_panels[frame].outline_color(
+                "var(--design-primary-color, var(--panel-primary-color))" 
+                if (colorize and frame == self.current_frame) 
+                else "lightgray")
+                
 
     def duplicate(self, horizontal: bool):
         """Split the panel, the new panel is a copy of the first, all panels are duplicated.

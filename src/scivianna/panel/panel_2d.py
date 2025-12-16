@@ -551,16 +551,17 @@ class Panel2D(VisualizationPanel):
                 raise TypeError(f"v_max must be a number, found type {type(v_max)}")
             self.__new_data["y1"] = v_max
 
-        self.u_range = (u_min, u_max)
-        self.v_range = (v_min, v_max)
-
         if w is not None:
             if not type(w) in [float, int]:
                 raise TypeError(f"w must be a number, found type {type(w)}")
             self.w_value = w
 
-        for extension in self.extensions:
-            extension.on_range_change(self.u_range, self.v_range, self.w_value)
+        if not any(e is None for e in [u_min, u_max, v_min, v_max]):
+            self.u_range = (u_min, u_max)
+            self.v_range = (v_min, v_max)
+
+            for extension in self.extensions:
+                extension.on_range_change(self.u_range, self.v_range, self.w_value)
 
         self.marked_to_recompute = True
         if pn.state.curdoc is not None:

@@ -1,4 +1,6 @@
 from typing import Dict
+from scivianna.constants import X, Y, Z
+from scivianna.enums import UpdateEvent
 from scivianna.layout.gridstack import GridStackLayout
 from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.notebook_tools import (
@@ -11,56 +13,44 @@ import panel as pn
 def get_panel():
     visualisation_panels: Dict[str, VisualizationPanel] = {}
 
-    visualisation_panels["MEDCoupling visualizer 1"] = get_med_panel(
-        geo=None, title="MEDCoupling visualizer 1"
-    )
-    visualisation_panels["MEDCoupling visualizer 2"] = get_med_panel(
-        geo=None, title="MEDCoupling visualizer 2"
-    )
-    try:
-        visualisation_panels["MEDCoupling visualizer 3"] = get_med_panel(
-            geo=None, title="MEDCoupling visualizer 3"
-        )
 
-        bounds_x = {
-            "MEDCoupling visualizer 1": (0, 5),
-            "MEDCoupling visualizer 2": (0, 5),
-            "MEDCoupling visualizer 3": (5, 10),
-        }
+    med_1 = get_med_panel(geo=None, title="MEDCoupling visualizer XY")
+    med_2 = get_med_panel(geo=None, title="MEDCoupling visualizer XZ")
+    med_3 = get_med_panel(geo=None, title="MEDCoupling visualizer YZ")
 
-        bounds_y = {
-            "MEDCoupling visualizer 1": (0, 5),
-            "MEDCoupling visualizer 2": (5, 10),
-            "MEDCoupling visualizer 3": (0, 10),
-        }
-    except ImportError:
-        bounds_x = {
-            "MEDCoupling visualizer 1": (0, 10),
-            "MEDCoupling visualizer 2": (0, 10),
-        }
+    med_1.set_field("INTEGRATED_POWER")
+    med_2.set_field("INTEGRATED_POWER")
+    med_3.set_field("INTEGRATED_POWER")
 
-        bounds_y = {
-            "MEDCoupling visualizer 1": (0, 5),
-            "MEDCoupling visualizer 2": (5, 10),
-        }
+    med_1.update_event = UpdateEvent.CLIC
+
+    med_2.update_event = UpdateEvent.CLIC
+    med_2.set_coordinates(u=X, v=Z)
+
+    med_3.update_event = UpdateEvent.CLIC
+    med_3.set_coordinates(u=Y, v=Z)
+
+    for m in [med_1, med_2, med_3]:
+        visualisation_panels[m.name] = m
+        
+    bounds_x = {
+        "MEDCoupling visualizer XY": (0, 5),
+        "MEDCoupling visualizer YZ": (0, 5),
+        "MEDCoupling visualizer XZ": (5, 10),
+    }
+
+    bounds_y = {
+        "MEDCoupling visualizer XY": (0, 5),
+        "MEDCoupling visualizer YZ": (5, 10),
+        "MEDCoupling visualizer XZ": (0, 10),
+    }
 
     return GridStackLayout(visualisation_panels, bounds_y, bounds_x)
 
 
 def get_template():
     panel = get_panel()
-    return pn.template.BootstrapTemplate(
-        main=[
-            pn.Column(
-                panel.main_frame,
-                height_policy="max",
-                width_policy="max",
-                margin=0,
-            )
-        ],
-        title="Gridstack demo",
-    )
-
+    return panel.main_frame
 
 if __name__ == "__main__":
     #   Serving panel as main, file executed with a command : "python my_file.py"
@@ -89,7 +79,6 @@ else:
 
     pn.Column(
         panel.main_frame,
-        height_policy="max",
-        width_policy="max",
+        sizing_mode="stretch_both",
         margin=0,
     ).servable(target="main")

@@ -65,8 +65,8 @@ class GridStackLayout(GenericLayout):
         TypeError
             One of the additional interfaces classes does not inherit from GenericInterface
         """
-        assert set(bounds_x.keys()) == set(visualisation_panels.keys())
-        assert set(bounds_y.keys()) == set(visualisation_panels.keys())
+        assert set(bounds_x.keys()) == set(visualisation_panels.keys()), "arguments bounds_x keys are different than visualisation_panels keys"
+        assert set(bounds_y.keys()) == set(visualisation_panels.keys()), "arguments bounds_y keys are different than visualisation_panels keys"
 
         self.bounds_x = bounds_x
         self.bounds_y = bounds_y
@@ -97,11 +97,12 @@ class GridStackLayout(GenericLayout):
         """
             Building interface
         """
-        self.main_frame = pn.Column(
-            CustomGridStack(height_policy="max", width_policy="max", allow_resize=True),
-            height_policy="max",
-            width_policy="max",
+        self.main_frame = pn.Row(
+            self.gui.make_panel(),
+            CustomGridStack(sizing_mode="stretch_both", allow_resize=True),
+            sizing_mode="stretch_both",
             margin=0,
+            scroll=False,
         )
 
         self.make_grid_stack()
@@ -118,7 +119,7 @@ class GridStackLayout(GenericLayout):
         self.change_current_frame(None)
 
     @pn.io.hold()
-    def change_current_frame(self, event):
+    def change_current_frame(self, *args, **kwargs):
         """Swap the the active panel
 
         Parameters
@@ -126,7 +127,7 @@ class GridStackLayout(GenericLayout):
         event : Any
             Event to make the function linkable to the gridstack
         """
-        super().change_current_frame(event)
+        super().change_current_frame(*args, **kwargs)
         current_frame = self.current_frame
         if self.bounds_x[current_frame][1] - self.bounds_x[current_frame][0] > 1:
             self.layout_extension.duplicate_horizontally_button.disabled = False
@@ -174,12 +175,12 @@ class GridStackLayout(GenericLayout):
             #  As disgusting as it looks, sleeping here helps the python to sychronize with the Javascript while splitting and avoir throwing an error
 
             print(
-                f"Adding object {element} : {self.visualisation_panels[element].main_frame.name} - {id(self.visualisation_panels[element].main_frame)}"
+                f"Adding object {element} : {self.visualisation_panels[element].figure.name} - {id(self.visualisation_panels[element].figure)}"
             )
             if len(self.bounds_x[element]) == 0 and len(self.bounds_y[element]) == 0:
-                self.get_grid()[:, :] = self.visualisation_panels[element].main_frame
+                self.get_grid()[:, :] = self.visualisation_panels[element].figure
                 self.get_grid().add_object(
-                    self.visualisation_panels[element].main_frame,
+                    self.visualisation_panels[element].figure,
                     (0, size_x),
                     (0, size_y),
                 )
@@ -187,9 +188,9 @@ class GridStackLayout(GenericLayout):
             elif len(self.bounds_x[element]) == 0:
                 self.get_grid()[
                     self.bounds_y[element][0]: self.bounds_y[element][1], :
-                ] = self.visualisation_panels[element].main_frame
+                ] = self.visualisation_panels[element].figure
                 self.get_grid().add_object(
-                    self.visualisation_panels[element].main_frame,
+                    self.visualisation_panels[element].figure,
                     (self.bounds_y[element][0], self.bounds_y[element][1]),
                     (0, size_y),
                 )
@@ -197,9 +198,9 @@ class GridStackLayout(GenericLayout):
             elif len(self.bounds_y[element]) == 0:
                 self.get_grid()[
                     :, self.bounds_x[element][0]: self.bounds_x[element][1]
-                ] = self.visualisation_panels[element].main_frame
+                ] = self.visualisation_panels[element].figure
                 self.get_grid().add_object(
-                    self.visualisation_panels[element].main_frame,
+                    self.visualisation_panels[element].figure,
                     (0, size_x),
                     (self.bounds_x[element][0], self.bounds_x[element][1]),
                 )
@@ -208,16 +209,14 @@ class GridStackLayout(GenericLayout):
                 self.get_grid()[
                     self.bounds_y[element][0]: self.bounds_y[element][1],
                     self.bounds_x[element][0]: self.bounds_x[element][1],
-                ] = self.visualisation_panels[element].main_frame
+                ] = self.visualisation_panels[element].figure
                 self.get_grid().add_object(
-                    self.visualisation_panels[element].main_frame,
+                    self.visualisation_panels[element].figure,
                     (self.bounds_y[element][0], self.bounds_y[element][1]),
                     (self.bounds_x[element][0], self.bounds_x[element][1]),
                 )
 
         self.enable_disable_pan()
-        self.side_bar.objects = [self.layout_param_card,
-            *self.panel_param_cards.values()]
     
 
     def disable_figures_pan(self):
@@ -271,8 +270,7 @@ class GridStackLayout(GenericLayout):
                 )
 
             new_visualisation_panels[new_frame.name] = new_frame
-            new_visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
-            new_visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)
+            self.register_panel(new_frame)
 
             if horizontal:
                 self.bounds_x[new_frame.name] = (old_x_min, old_x_max)
@@ -290,25 +288,27 @@ class GridStackLayout(GenericLayout):
                     panel_name
                 ].duplicate(keep_name=True)
                 
-                new_visualisation_panels[panel_name].provide_on_clic_callback(self.on_clic_callback)
-                new_visualisation_panels[panel_name].provide_on_mouse_move_callback(self.mouse_move_callback)
+                self.register_panel(new_visualisation_panels[panel_name])
 
             self.visualisation_panels = new_visualisation_panels
 
             self.make_grid_stack()
 
-            self.panel_param_cards.clear()
+            self.reset_interface()
 
-            self.frame_selector.options = list(self.visualisation_panels.keys())
+            
+    @pn.io.hold()
+    def reset_interface(self,):
+        """Rebuilds the interface based on up-to-date SplitItem
+        """
 
-            for key in self.visualisation_panels:
-                self.panel_param_cards[key] = pn.Card(
-                    self.visualisation_panels[key].side_bar,
-                    width=300,
-                    margin=0,
-                    styles=card_style,
-                    title=f"{key} parameters",
-                )
+        #   We hide the history of objects in self.main_frame and adds a new one
+        #   This practice prevents the garbage collector to delete objects that are still to be used
+        # self.main_frame.objects = [
+        #     self.main_frame.objects[0],
+        #     self.get_grid()
+        # ]
 
-            self.change_current_frame(None)
-            print("Duplicate over")
+        self.set_to_frame(self.current_frame)
+        self.change_current_frame()
+            

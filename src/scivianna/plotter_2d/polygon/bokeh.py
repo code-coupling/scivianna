@@ -149,12 +149,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
 
         self.figure = Figure(
             name="plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             match_aspect=True,
-            # aspect_ratio="auto",
-            # aspect_scale = 1.,
-            # title = self.name,
             toolbar_location=None,
         )
         self.figure.xgrid.grid_line_color = None
@@ -360,11 +356,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
         return pn.pane.Bokeh(
             self.figure,
             name=GEOMETRY,
-            # width_policy="max",
-            # height_policy="max",
-            sizing_mode = "stretch_both",
+            sizing_mode="stretch_both",
             margin=0,
-            styles={"border": "2px solid lightgray"},
         )
 
     def _disable_interactions(self, disable: bool):

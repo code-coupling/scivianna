@@ -89,7 +89,8 @@ class SplitLayout(GenericLayout):
         self.main_frame = pn.Row(
             self.gui.make_panel(),
             self.build_split_item(split_item),
-            sizing_mode="stretch_both",
+            height_policy="max",
+            width_policy="max",
             margin=0,
             scroll=False,
         )
@@ -188,8 +189,10 @@ class SplitLayout(GenericLayout):
                     sizing_mode="stretch_both",
                     margin=0,
                 )
+            
         if isinstance(split_item, VisualizationPanel):
             return split_item.figure
+        
         else:
             raise TypeError(
                 f"SplitItem, VisualizationPanel or LineVisualisationPanel expected, found {type(split_item)}"

@@ -109,16 +109,11 @@ class VisualizationPanel:
         )
         self.gui_panel = self.gui.make_panel()
 
-
-        self.figure = pn.Column(self.plotter.make_panel(), sizing_mode="stretch_both")
+        self.figure = pn.Column(self.plotter.make_panel(),
+            sizing_mode="stretch_both",
+            styles={"border": "2px solid lightgray"})
         pn.io.push_notebook(self.figure)
 
-        self.main_frame = pn.Row(
-            self.gui_panel,
-            self.figure,
-            margin=0,
-            sizing_mode="stretch_both",
-        )
 
         self.periodic_recompute_added = False
         """Coupling periodic update"""
@@ -241,3 +236,13 @@ class VisualizationPanel:
             Color map name
         """
         raise NotImplementedError()
+
+    def outline_color(self, color: str = "lightgray"):
+        """Sets the color of the outlined plot
+
+        Parameters
+        ----------
+        color : str
+            HTML color
+        """
+        self.figure.styles = {"border": f"2px solid {color}"}
