@@ -1,8 +1,18 @@
 import os
-from typing import Any, Dict, List, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union, TYPE_CHECKING
 import numpy as np
 import multiprocessing as mp
+import panel as pn
+import panel_material_ui as pmui
 
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
+    from scivianna.slave import ComputeSlave
+    from scivianna.plotter_2d.generic_plotter import Plotter2D
+
+from scivianna.extension.extension import Extension
+import scivianna.icon
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
 from scivianna.interface.option_element import IntOption
@@ -17,6 +27,80 @@ from scivianna.constants import MESH, GEOMETRY, CSV
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
 if profile_time:
     import time
+
+with open(Path(scivianna.icon.__file__).parent / "salome.svg", "r") as f:
+    icon_svg = f.read()
+
+class MEDCouplingExtension(Extension):
+    """Extension to load files and send them to the slave."""
+
+    def __init__(
+        self,
+        slave: "ComputeSlave",
+        plotter: "Plotter2D",
+        panel: "VisualizationPanel"
+    ):
+        """Constructor of the extension, saves the slave and the panel
+
+        Parameters
+        ----------
+        slave : ComputeSlave
+            Slave computing the displayed data
+        plotter : Plotter2D
+            Figure plotter
+        panel : VisualizationPanel
+            Panel to which the extension is attached
+        """
+        super().__init__(
+            "MEDCoupling",
+            icon_svg,
+            slave,
+            plotter,
+            panel,
+        )
+
+        self.description = """
+This extension allows defining the medcoupling field display parameters.
+"""
+
+        self.iconsize = "1.0em"
+
+        self.iteration_input = pmui.IntInput(
+            label = "Iteration",
+            value=-1,
+            description="Med field iteration.",
+            width=280
+        )
+        self.order_input = pmui.IntInput(
+            label = "Order",
+            value=-1,
+            description="Med field order.",
+            width=280
+        )
+
+        self.iteration_input.param.watch(self.panel.recompute, "value")
+        self.order_input.param.watch(self.panel.recompute, "value")
+
+    def provide_options(self):
+        return {
+            "Iteration":self.iteration_input.value,
+            "Order":self.order_input.value,
+        }
+    
+    def make_gui(self,) -> pn.viewable.Viewable:
+        """Returns a panel viewable to display in the extension tab.
+
+        Returns
+        -------
+        pn.viewable.Viewable
+            Viewable to display in the extension tab
+        """
+        return pmui.Column(
+            self.iteration_input,
+            self.order_input,
+            margin=0
+        )
+
 
 
 class MEDInterface(Geometry2DPolygon, IcocoInterface):
@@ -49,6 +133,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
     """
     
     geometry_type=GeometryType._3D
+
+    extensions=[MEDCouplingExtension]
 
     def __init__(self):
         """MEDCoupling interface constructor."""

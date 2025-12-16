@@ -230,7 +230,7 @@ class Panel2D(VisualizationPanel):
         """
         options = {key:value for options in [
             e.provide_options() for e in self.extensions
-        ] for key, value in options}
+        ] for key, value in options.items()}
 
         computed_data = self.slave.compute_2D_data(
             u,

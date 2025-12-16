@@ -1,13 +1,11 @@
-from scivianna.constants import X, Y, Z
+
 from scivianna.enums import UpdateEvent
 from scivianna.layout.split import (
-    SplitItem,
-    SplitDirection,
     SplitLayout,
 )
 from scivianna.notebook_tools import get_med_panel, _serve_panel
 
-def get_panel(_, return_slaves = False) -> SplitLayout:
+def get_panel(*args, return_slaves = False, **kwargs) -> SplitLayout:
 
     med_1 = get_med_panel(geo=None, title="MEDCoupling visualizer XY")
 
@@ -20,4 +18,5 @@ def get_panel(_, return_slaves = False) -> SplitLayout:
         return SplitLayout(med_1)
 
 if __name__ == "__main__":
+    # get_panel().main_frame.show()
     _serve_panel(get_panel_function=get_panel)

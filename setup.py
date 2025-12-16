@@ -33,6 +33,7 @@ setup(
             "components/*.py",
             "data/*.py",
             "default_jdd/*",
+            "icon/*.svg",
             "interface/*.py",
             "layout/*.py",
             "panel/*.py",
