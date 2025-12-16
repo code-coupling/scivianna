@@ -11,8 +11,7 @@ from scivianna.extension.extension import Extension
 class GUI:
     def __init__(
         self, 
-        extensions: List[Extension], 
-        buttons_list: List[Tuple[pmui.IconButton, pn.Column]] = []
+        extensions: List[Extension]
     ):
         s = "6em"
         button_margin_x = 4
@@ -22,37 +21,6 @@ class GUI:
         self.extensions = extensions
 
         self.buttons = []
-
-        for extension in extensions:
-            self.buttons.append(
-                (
-                    pmui.IconButton(
-                        icon=extension.icon,
-                        size=extension.iconsize,
-                        description=extension.title,
-                        margin=button_margin,
-                    ),
-                    pn.Column(
-                        pmui.Typography(
-                            "## "+extension.title,
-                            width_policy="max",
-                        ),
-                        pmui.Typography(
-                            extension.description,
-                            width_policy="max",
-                        ),
-                        extension.make_gui(),
-                    ),
-                    extension.description,
-                )
-            )
-
-        self.buttons += buttons_list
-
-        for e in self.buttons:
-            e[1].visible = False
-
-        self.active_extension = self.buttons[0]
 
         self.open_button = pmui.IconButton(
             icon="keyboard_double_arrow_right",
@@ -70,20 +38,42 @@ class GUI:
         )
 
         self.options_widget = pmui.Column(
-            self.open_button, self.close_button, *[e[0] for e in self.buttons]
+            self.open_button, self.close_button
         )
 
         self.drawer_column = pmui.Column(
-            *[e[1] for e in self.buttons], margin=0
+            margin=0
         )
 
         self.drawer = pmui.Drawer(self.drawer_column, size=300, variant="persistent")
 
-        for button in self.buttons:
-            button[0].on_click(partial(self.change_drawer, extension=button))
-
         self.open_button.on_click(self.open_close_drawer)
         self.close_button.on_click(self.open_close_drawer)
+
+        for extension in extensions:
+            self.register_new_extension(
+                pmui.IconButton(
+                    icon=extension.icon,
+                    size=extension.iconsize,
+                    description=extension.title,
+                    margin=button_margin,
+                ),
+                pn.Column(
+                    pmui.Typography(
+                        "## "+extension.title,
+                        width_policy="max",
+                    ),
+                    pmui.Typography(
+                        extension.description,
+                        width_policy="max",
+                    ),
+                    extension.make_gui(),
+                )
+            )
+
+        self.active_extension = self.buttons[0]
+
+        self.change_drawer(None, self.active_extension)
 
     @pn.io.hold()
     def update_colors(
@@ -129,6 +119,16 @@ class GUI:
             ),
             margin=0,
         )
+
+    def register_new_extension(self, button: pmui.IconButton, col: pn.Column):
+        ext = (button, col)
+
+        self.buttons.append(ext)
+        col.visible = False
+        self.options_widget.append(button)
+        self.drawer_column.append(col)
+        
+        button.on_click(partial(self.change_drawer, extension=ext))
 
 
 if __name__ == "__main__":

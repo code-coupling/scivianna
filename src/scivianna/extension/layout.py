@@ -187,8 +187,10 @@ This extension allows you to split panels to visualize several fields/geometries
     def set_to_frame(self, *args, **kwargs):
         self.layout.set_to_frame(self.frame_selector.value)
         
+    @pn.io.hold()
+    def change_to_frame(self, frame_name: str):
+        self.frame_selector.options = list(self.layout.visualisation_panels.keys())
 
-    def change_to_frame(self, frame_name):
         if frame_name != self.frame_selector.value:
             frame_code_enum = list(self.layout.available_interfaces.keys())[
                 list(self.layout.available_interfaces.values()).index(
@@ -203,3 +205,4 @@ This extension allows you to split panels to visualize several fields/geometries
             )
 
             self.frame_selector.value = frame_name
+

@@ -86,27 +86,29 @@ class VisualizationPanel:
         # 
         #   Extensions creation
         #         
+        self.extension_classes = extensions
         for extension in code_interface.extensions:
             if not issubclass(extension, Extension):
                 raise TypeError(f"Extension {extension} declared in {code_interface.extensions} extensions is not a subclass of {Extension}")
-            extensions.append(extension)
+            self.extension_classes.append(extension)
 
+        # 
+        #   Building layout
+        #         
         self.extensions = [
             e(
                 self.slave,
                 self.plotter,
                 self
             )
-            for e in extensions
+            for e in self.extension_classes
         ]
 
-        # 
-        #   Building layout
-        #         
         self.gui = GUI(
             self.extensions
         )
         self.gui_panel = self.gui.make_panel()
+
 
         self.figure = pn.Column(self.plotter.make_panel(), sizing_mode="stretch_both")
         pn.io.push_notebook(self.figure)
@@ -140,23 +142,7 @@ class VisualizationPanel:
         VisualizationPanel
             Copy of the visualisation panel
         """
-
-        new_index = self.copy_index = 1
-
-        if keep_name:
-            new_name = self.name
-        else:
-            if new_index == 1:
-                new_name = f"{self.name} - 2"
-            else:
-                new_name = self.name.replace(
-                    f" - {new_index + 1}", f" - {new_index + 2}"
-                )
-
-        new_visualiser = VisualizationPanel(self.slave, new_name)
-        new_visualiser.copy_index = new_index
-
-        return new_visualiser
+        raise NotImplementedError()
 
     def get_slave(
         self,

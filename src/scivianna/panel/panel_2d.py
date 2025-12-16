@@ -26,11 +26,10 @@ except ValueError as e:
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2D
 
-from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
+from scivianna.enums import UpdateEvent, VisualizationMode
 from scivianna.slave import ComputeSlave
 
 from scivianna.utils.polygon_sorter import PolygonSorter
-from scivianna.panel.gui import GUI
 from scivianna.plotter_2d.polygon.bokeh import Bokeh2DPolygonPlotter
 from scivianna.plotter_2d.grid.bokeh import Bokeh2DGridPlotter
 from scivianna.plotter_2d.generic_plotter import Plotter2D
@@ -138,6 +137,9 @@ class Panel2D(VisualizationPanel):
             
         # Attach the range update callback to the event
         self.plotter._set_callback_on_range_update(self.ranges_callback)
+        
+        self.__data_to_update: bool = False
+        self.__new_data = {}
 
     @pn.io.hold()
     def async_update_data(
@@ -401,7 +403,12 @@ class Panel2D(VisualizationPanel):
                     f" - {new_index + 1}", f" - {new_index + 2}"
                 )
 
-        new_visualiser = VisualizationPanel(self.slave, new_name)
+        new_visualiser = Panel2D(
+            slave=self.slave, 
+            name=new_name, 
+            display_polygons=self.display_polygons, 
+            extensions=[e for e in self.extension_classes]
+        )
         new_visualiser.copy_index = new_index
 
         return new_visualiser

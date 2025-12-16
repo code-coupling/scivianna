@@ -9,7 +9,6 @@ from scivianna.interface.generic_interface import GenericInterface
 from scivianna.panel.gui import GUI
 from scivianna.slave import ComputeSlave
 from scivianna.panel.visualisation_panel import VisualizationPanel
-from scivianna.panel.panel_1d import LineVisualisationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
     get_interface_default_panel,
@@ -79,43 +78,39 @@ class GenericLayout:
 
         self.panels_to_recompute: List[str] = []
 
+        self.layout_extension = LayoutExtension(add_run_button, self, None, None, None)
+
         self.button_columns: Dict[str, List[pmui.IconButton]] = {}
         self.side_bars: Dict[str, pn.Column] = {}
 
+        self.gui = GUI([self.layout_extension])
+        
         for panel in self.visualisation_panels.values():
-            if isinstance(panel, VisualizationPanel):
-                panel.provide_on_clic_callback(self.on_clic_callback)
-                panel.provide_on_mouse_move_callback(self.mouse_move_callback)
-                panel.provide_field_change_callback(self.field_change_callback)
-
-                # 2: assuming the two first are the button to open and close the tab
-                self.button_columns[panel.name] = [b[0] for b in panel.gui.buttons]
-                self.side_bars[panel.name] = [b[1] for b in panel.gui.buttons]
-
-                panel.gui.visible = False
-
-        self.layout_extension = LayoutExtension(add_run_button, self, None, None, None)
-
-
-        for k in self.button_columns:
-            print(self.button_columns[k])
-            print(self.side_bars[k])
-            for i in range(len(self.button_columns[k])):
-                print(k, i)
-                print(self.button_columns[k][i])
-                print(self.side_bars[k][i])
-
-        self.gui = GUI([self.layout_extension], [
-            (self.button_columns[k][i], self.side_bars[k][i])
-            for k in self.button_columns
-            for i in range(len(self.button_columns[k]))
-        ])
+            self.register_panel(panel)
 
         self.change_current_frame()
 
         self.last_hover_id = None
         """Last hovered cell to trigger change if applicable"""
 
+    @pn.io.hold()
+    def register_panel(self, panel: VisualizationPanel):
+        if isinstance(panel, VisualizationPanel):
+            panel.provide_on_clic_callback(self.on_clic_callback)
+            panel.provide_on_mouse_move_callback(self.mouse_move_callback)
+            panel.provide_field_change_callback(self.field_change_callback)
+
+            # 2: assuming the two first are the button to open and close the tab
+            self.button_columns[panel.name] = [b[0] for b in panel.gui.buttons]
+            self.side_bars[panel.name] = [b[1] for b in panel.gui.buttons]
+            
+            for button, side_bar in zip(self.button_columns[panel.name], self.side_bars[panel.name]):
+                self.gui.register_new_extension(button, side_bar)
+
+            panel.gui_panel.visible = False
+        else:
+            raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
+        
     @pn.io.hold()
     def change_code_interface(self, code_interface: str):
         """Replaces the panel to one linked to the code interface
@@ -155,9 +150,9 @@ class GenericLayout:
             else:
                 self.visualisation_panels[current_frame] = default_panel
 
-            self.visualisation_panels[current_frame].provide_on_clic_callback(self.on_clic_callback)
-            self.visualisation_panels[current_frame].provide_on_mouse_move_callback(self.mouse_move_callback)
+            self.register_panel(self.visualisation_panels[current_frame])
 
+    @pn.io.hold()
     def change_current_frame(self, *args, **kwargs):
         """Swap the the active panel
 
@@ -167,22 +162,22 @@ class GenericLayout:
             Event to make the function linkable to the gridstack
         """
         print("Changing to ", self.current_frame)
+        self.layout_extension.change_to_frame(self.current_frame)
 
         for key in self.side_bars:
             for b in self.button_columns[key]:
                 b.visible = key == self.current_frame
             for s in self.side_bars[key]:
                 s.visible = key == self.current_frame
-
+        
+        self.gui.change_drawer(None, self.gui.active_extension)
 
     @pn.io.hold()
-    def set_to_frame(self, event, frame_name: str):
+    def set_to_frame(self, frame_name: str):
         """Updates the Select widget to the active panel
 
         Parameters
         ----------
-        event : Any
-            Event to make the function linkable to the gridstack
         frame_name : str
             Name of the active panel
 
@@ -195,7 +190,8 @@ class GenericLayout:
             self.current_frame = frame_name
             self.code_interface_to_update = False
 
-            self.extension.edit_in_layout()
+            self.layout_extension.change_to_frame(self.current_frame)
+            self.change_current_frame()
 
             self.code_interface_to_update = True
         else:

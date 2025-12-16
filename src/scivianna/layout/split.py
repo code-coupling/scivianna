@@ -1,6 +1,7 @@
 import functools
 from typing import Dict, List, Tuple, Type, Union
 import panel as pn
+import panel_material_ui as pmui
 from enum import Enum
 from dataclasses import dataclass
 
@@ -93,6 +94,8 @@ class SplitLayout(GenericLayout):
             scroll=False,
         )
 
+        self.change_current_frame()
+
 
     def change_code_interface(self, event):
         super().change_code_interface(event)
@@ -103,7 +106,7 @@ class SplitLayout(GenericLayout):
         if self.code_interface_to_update:
             self.reset_interface()
             
-        self.change_current_frame(None)
+        self.change_current_frame()
 
     def current_split_item(
         self, panel_name: str, item: Union[SplitItem, VisualizationPanel]
@@ -240,7 +243,6 @@ class SplitLayout(GenericLayout):
         -------
         Dict[str, VisualizationPanel]
             VisualizationPanels dictionnary
-
         """
         visualisation_panels : Dict[str, VisualizationPanel] = {}
         
@@ -267,25 +269,13 @@ class SplitLayout(GenericLayout):
 
         #   We hide the history of objects in self.main_frame and adds a new one
         #   This practice prevents the garbage collector to delete objects that are still to be used
-        for o in self.main_frame.objects:
-            o.visible = False
-        self.main_frame.objects += [self.build_split_item(self.split_item)]
+        self.main_frame.objects = [
+            self.main_frame.objects[0],
+            self.build_split_item(self.split_item)
+        ]
 
-        self.panel_param_cards.clear()
-
-        self.frame_selector.options = list(self.visualisation_panels.keys())
-
-        for key in self.visualisation_panels:
-            self.panel_param_cards[key] = pn.Card(
-                self.visualisation_panels[key].side_bar,
-                width=300,
-                margin=0,
-                styles=card_style,
-                title=f"{key} parameters",
-            )
-
-        self.side_bar.objects = [self.layout_param_card,
-            *self.panel_param_cards.values()]
+        self.set_to_frame(self.current_frame)
+        self.change_current_frame()
             
     @pn.io.hold()
     def duplicate(self, horizontal: bool):
@@ -300,7 +290,6 @@ class SplitLayout(GenericLayout):
 
         new_frame = self.visualisation_panels[current_frame].duplicate()
 
-
         while new_frame.name in self.visualisation_panels:
             new_frame.copy_index += 1
             new_frame.name = new_frame.name.replace(
@@ -308,8 +297,7 @@ class SplitLayout(GenericLayout):
             )
 
         self.visualisation_panels[new_frame.name] = new_frame
-        self.visualisation_panels[new_frame.name].provide_on_clic_callback(self.on_clic_callback)
-        self.visualisation_panels[new_frame.name].provide_on_mouse_move_callback(self.mouse_move_callback)
+        self.register_panel(new_frame)
 
         parent_split, split_index = self.current_split_item(
             current_frame, self.split_item
@@ -331,7 +319,7 @@ class SplitLayout(GenericLayout):
 
         if split_index is None:
             # Index is None if there is only one visualizationpanel in self.main_frame
-            pass
+            self.split_item = split_item
         elif split_index == 1:
             parent_split.panel_1 = split_item
         elif split_index == 2:
@@ -340,4 +328,3 @@ class SplitLayout(GenericLayout):
             raise ValueError(f"Unexpected split index {split_index}")
 
         self.reset_interface()
-        self.change_current_frame(None)
