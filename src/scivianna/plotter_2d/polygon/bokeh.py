@@ -476,10 +476,10 @@ class Bokeh2DPolygonPlotter(Plotter2D):
                     self.source_mouse.data["sy"][0]
                 ),
                 space_location=(
-                            self.source_mouse.data["x"][0], 
-                            self.source_mouse.data["y"][0], 
-                            self.source_mouse.data["z"][0]
-                        ), 
+                    self.source_mouse.data["x"][0], 
+                    self.source_mouse.data["y"][0], 
+                    self.source_mouse.data["z"][0]
+                ), 
                 cell_id=self.source_polygons.data[CELL_NAMES][int(self.source_mouse.data["index"][0])]
             )
 

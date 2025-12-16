@@ -4,7 +4,8 @@ import multiprocessing as mp
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon
-from scivianna.slave import OptionElement, set_colors_list
+from scivianna.slave import OptionElement
+from scivianna.extension.field_selector import set_colors_list
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import VisualizationMode
 from scivianna.constants import MESH
@@ -36,8 +37,6 @@ class ColorTestInterface(Geometry2DPolygon):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -58,10 +57,6 @@ class ColorTestInterface(Geometry2DPolygon):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -192,7 +187,7 @@ def test_interpolate_cmap_blues():
 
 def test_color_list_none():
     interface = ColorTestInterface()
-    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, None, {})
     set_colors_list(data2D, interface, MESH, "gray", False, {})
 
     print(data2D.cell_colors)
@@ -201,7 +196,7 @@ def test_color_list_none():
 
 def test_color_list_none():
     interface = ColorTestInterface()
-    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, None, {})
     set_colors_list(data2D, interface, MESH, "gray", False, {})
 
     np.testing.assert_equal(data2D.cell_colors, [(200, 200, 200, 0)]*5)
@@ -209,14 +204,21 @@ def test_color_list_none():
 
 def test_color_list_str():
     interface = ColorTestInterface()
-    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, None, {})
     set_colors_list(data2D, interface, "str", "gray", False, {})
 
     np.testing.assert_equal(data2D.cell_edge_colors, get_edges_colors(np.array(data2D.cell_colors)))
 
 def test_color_list_float():
     interface = ColorTestInterface()
-    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, 0, 0, None, {})
+    data2D, _ = interface.compute_2D_data(None, None, 0, 1, 0, 1, 0, None, {})
+    
+    dict_value_per_cell = interface.get_value_dict(
+        "float", data2D.cell_ids, {}
+    )
+
+    data2D.cell_values = [dict_value_per_cell[v] for v in data2D.cell_ids]
+
     set_colors_list(data2D, interface, "float", "gray", False, {})
 
     white = np.array((255, 255, 255, 255))

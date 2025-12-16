@@ -7,7 +7,8 @@ import numpy as np
 from typing import Dict, Tuple, Any, Union
 
 from scivianna.interface.generic_interface import Geometry2D
-from scivianna.slave import ComputeSlave, set_colors_list
+from scivianna.slave import ComputeSlave
+from scivianna.extension.field_selector import set_colors_list
 from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
 from scivianna.utils.color_tools import get_edges_colors
 from scivianna.utils.polygon_sorter import PolygonSorter
@@ -25,8 +26,6 @@ def plot_frame_in_axes(
     u_max: float = 1.,
     v_min: float = 0.,
     v_max: float = 1.,
-    u_steps: int = 0,
-    v_steps: int = 0,
     w_value: float = 0.0,
     color_map: str = "BuRd",
     display_colorbar: bool = False,
@@ -58,10 +57,6 @@ def plot_frame_in_axes(
         Lower bound value along the v axis, by default 0.
     v_max : float, optional
         Upper bound value along the v axis, by default 1.
-    u_steps : int, optional
-        Number of points along the u axis, by default "BuRd"
-    v_steps : int, optional
-        Number of points along the v axis, by default "BuRd"
     w_value : float, optional
         Value along the u ^ v axis, by default "BuRd"
     color_map : str, optional
@@ -94,45 +89,27 @@ def plot_frame_in_axes(
         matplotlib.axes.Axes
             Axes in which the geometry was plotted
     """
-    if isinstance(slave, Geometry2D):
-        data, _ = slave.compute_2D_data(
-            u=u,
-            v=v,
-            u_min=u_min,
-            u_max=u_max,
-            v_min=v_min,
-            v_max=v_max,
-            u_steps=u_steps,
-            v_steps=v_steps,
-            w_value=w_value,
-            q_tasks=None,
-            options=options,
-        )
+    data, _ = slave.compute_2D_data(
+        u=u,
+        v=v,
+        u_min=u_min,
+        u_max=u_max,
+        v_min=v_min,
+        v_max=v_max,
+        w_value=w_value,
+        coloring_label=coloring_label,
+        q_tasks=None,
+        options=options,
+    )
 
-        set_colors_list(
-            data,
-            slave,
-            coloring_label,
-            color_map,
-            False,
-            options,
-        )
-    else:
-        data, _ = slave.compute_2D_data(
-            u=u,
-            v=v,
-            u_min=u_min,
-            u_max=u_max,
-            v_min=v_min,
-            v_max=v_max,
-            u_steps=u_steps,
-            v_steps=v_steps,
-            w_value=w_value,
-            coloring_label=coloring_label,
-            color_map=color_map,
-            center_colormap_on_zero=False,
-            options=options,
-        )
+    set_colors_list(
+        data,
+        slave,
+        coloring_label,
+        color_map,
+        False,
+        options,
+    )
 
     pw = PolygonSorter()
     pw.sort_from_value(

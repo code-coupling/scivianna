@@ -227,7 +227,7 @@ if __name__ == "__main__":
     import scivianna
     from scivianna.constants import GEOMETRY, X, Y
     from scivianna.interface.med_interface import MEDInterface
-    from scivianna.slave import set_colors_list
+    from scivianna.extension.field_selector import set_colors_list
     from scivianna.data.data2d import Data2D
     from scivianna.agent.data_2d_worker import Data2DWorker
     from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     data_2d, _ = med.compute_2D_data(
         X,
         Y, 
-        0, 1, 0, 1, 0, 0, # values not used
+        0, 1, 0, 1,  # values not used
         0., 
         None,
         {}

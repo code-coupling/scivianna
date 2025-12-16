@@ -81,31 +81,28 @@ class ThrowingErrorInterface(ValueAtLocation):
 def test_runtime_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:
-        slave.get_labels()
+        val = slave.get_labels()
     except RuntimeError as e:
-        assert True
-        return
-    else:
         assert False, "RuntimeError not caught"
+    else:
+        assert val is None
 
 @pytest.mark.default
 def test_value_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:
-        slave.get_value(None, None, None, None)
+        val = slave.get_value(None, None, None, None)
     except ValueError as e:
-        assert True
-        return
-    else:
         assert False, "ValueError not caught"
+    else:
+        assert val is None
 
 @pytest.mark.default
 def test_notimplemented_error():
     slave = ComputeSlave(ThrowingErrorInterface)
     try:
-        slave.get_values(None, None, None, None)
+        val = slave.get_values(None, None, None, None)
     except NotImplementedError as e:
-        assert True
-        return
-    else:
         assert False, "NotImplementedError not caught"
+    else:
+        assert val is None

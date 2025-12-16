@@ -32,8 +32,6 @@ def test_plot_polygons():
         u_max=10.0,
         v_min=-10.0,
         v_max=10.0,
-        u_steps=0,
-        v_steps=0,
         w_value=0.0,
         coloring_label="INTEGRATED_POWER",
         color_map="viridis",

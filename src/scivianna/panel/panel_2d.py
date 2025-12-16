@@ -99,7 +99,7 @@ class Panel2D(VisualizationPanel):
         else:
             self.plotter = Bokeh2DGridPlotter()
 
-        super().__init__(slave, name, extensions)
+        super().__init__(slave, name, extensions.copy())
 
         # 
         #   First plot on XY basic range
@@ -114,7 +114,7 @@ class Panel2D(VisualizationPanel):
         self.v_range = (0., 1.)
         self.w_value = 0.5
 
-        data_ = self.compute_fn(self.u, self.v, *self.u_range, *self.v_range, self.w_value)
+        data_ = self.compute_fn(self.u, self.v, self.u_range[0], self.v_range[0], self.u_range[1], self.v_range[1], self.w_value)
 
         self.plotter.set_axes(self.u, self.v, self.w_value)
         self.plotter.plot_2d_frame(data_)
@@ -197,8 +197,6 @@ class Panel2D(VisualizationPanel):
         x1: float,
         y1: float,
         z: float,
-        res_x: int = 300,
-        res_y: int = 300,
     ) -> Data2D:
         """Request the slave to compute a new frame, and updates the data to display
 
@@ -218,10 +216,6 @@ class Panel2D(VisualizationPanel):
             Upper bound value along the v axis
         z : float
             Value along the u ^ v axis
-        res_x : int, optional
-            Number of points along the X axis, if applicable, by default 300
-        res_y : int, optional
-            Number of points along the Y axis, if applicable, by default 300
 
         Returns
         -------
@@ -239,9 +233,8 @@ class Panel2D(VisualizationPanel):
             x1,
             y0,
             y1,
-            res_x,
-            res_y,
             z,
+            None,
             self.displayed_field,
             options,
         )
@@ -289,6 +282,9 @@ class Panel2D(VisualizationPanel):
         to_update = {"x0": x0, "x1": x1, "y0": y0, "y1": y1}
         self.__new_data = {**self.__new_data, **to_update}
         pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+
+        self.u_range = (x0, x1)
+        self.v_range = (y0, y1)
 
         for extension in self.extensions:
             extension.on_range_change((x0, x1), (y0, y1), self.w_value)
@@ -340,9 +336,8 @@ class Panel2D(VisualizationPanel):
             f"{self.name} - Recomputing for axes {u}, {v}, at range : {self.u}, {self.v}, ({self.w_value}), with field {self.displayed_field}"
         )
 
-        # TODO
         data = self.compute_fn(
-            u, v, *self.u_range, *self.v_range, self.w_value, res_x=100, res_y=100
+            u, v, self.u_range[0], self.v_range[0], self.u_range[1], self.v_range[1], self.w_value
         )
 
         if data is not None:

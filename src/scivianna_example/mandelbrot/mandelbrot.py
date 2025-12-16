@@ -1,9 +1,15 @@
+from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 import multiprocessing as mp
 import numpy as np
+import panel as pn
+import panel_material_ui as pmui
 
+from scivianna.extension.extension import Extension
 from scivianna.interface.generic_interface import Geometry2DGrid
 from scivianna.constants import MATERIAL, MESH
+from scivianna.panel.panel_2d import Panel2D
+from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
 from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.utils.polygonize_tools import PolygonElement
@@ -13,9 +19,94 @@ from scivianna.interface.option_element import IntOption, OptionElement
 from scivianna.layout.split import SplitDirection, SplitItem, SplitLayout
 
 
+with open(Path(__file__).parent / "mandelbrot.svg", "r") as f:
+    icon_svg = f.read()
+
+class MandelbrotExtension(Extension):
+    """Extension to load files and send them to the slave."""
+
+    def __init__(
+        self,
+        slave: "ComputeSlave",
+        plotter: "Plotter2D",
+        panel: "VisualizationPanel"
+    ):
+        """Constructor of the extension, saves the slave and the panel
+
+        Parameters
+        ----------
+        slave : ComputeSlave
+            Slave computing the displayed data
+        plotter : Plotter2D
+            Figure plotter
+        panel : VisualizationPanel
+            Panel to which the extension is attached
+        """
+        super().__init__(
+            "Mandelbrot",
+            icon_svg,
+            slave,
+            plotter,
+            panel,
+        )
+
+        self.description = """
+This extension allows defining the medcoupling field display parameters.
+"""
+
+        self.iconsize = "1.0em"
+
+        self.u_step_input = pmui.IntInput(
+            label = "u_steps",
+            value=500,
+            description="Horizontal resolution.",
+            width=280
+        )
+        self.v_step_input = pmui.IntInput(
+            label = "v_steps",
+            value=500,
+            description="Vertical resolution.",
+            width=280
+        )
+        self.max_iter_input = pmui.IntInput(
+            label = "Max iter",
+            value=10,
+            description="Maximum mandelbrot iterations.",
+            width=280
+        )
+        
+
+        self.u_step_input.param.watch(self.panel.recompute, "value")
+        self.v_step_input.param.watch(self.panel.recompute, "value")
+        self.max_iter_input.param.watch(self.panel.recompute, "value")
+
+    def provide_options(self):
+        return {
+            "u_steps":self.u_step_input.value,
+            "v_steps":self.v_step_input.value,
+            "Max iter":self.max_iter_input.value,
+        }
+    
+    def make_gui(self,) -> pn.viewable.Viewable:
+        """Returns a panel viewable to display in the extension tab.
+
+        Returns
+        -------
+        pn.viewable.Viewable
+            Viewable to display in the extension tab
+        """
+        return pmui.Column(
+            self.u_step_input,
+            self.v_step_input,
+            self.max_iter_input,
+            margin=0
+        )
+
+
+
 class MandelBrotInterface(Geometry2DGrid):
     geometry_type: GeometryType = GeometryType._2D
-
+    extensions = [MandelbrotExtension]
     def __init__(
         self,
     ):
@@ -43,8 +134,6 @@ class MandelBrotInterface(Geometry2DGrid):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -65,10 +154,6 @@ class MandelBrotInterface(Geometry2DGrid):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -83,6 +168,18 @@ class MandelBrotInterface(Geometry2DGrid):
         bool
             Were the data updated compared to the past call
         """
+        print("Computing", 
+              u,
+                v,
+                u_min,
+                u_max,
+                v_min,
+                v_max,
+                w_value,
+                q_tasks,
+                options
+              
+              )
         if (
             self.data is not None
             and np.array_equal(np.array(u), np.array(self.last_computed_frame[0]))
@@ -91,10 +188,10 @@ class MandelBrotInterface(Geometry2DGrid):
             and (u_max == self.last_computed_frame[3])
             and (v_min == self.last_computed_frame[4])
             and (v_max == self.last_computed_frame[5])
-            and (u_steps == self.last_computed_frame[6])
-            and (v_steps == self.last_computed_frame[7])
-            and (w_value == self.last_computed_frame[8])
-            and (options["Max iter"] == self.last_computed_frame[9]["Max iter"])
+            and (w_value == self.last_computed_frame[6])
+            and (options["u_steps"] == self.last_computed_frame[7]["u_steps"])
+            and (options["v_steps"] == self.last_computed_frame[7]["v_steps"])
+            and (options["Max iter"] == self.last_computed_frame[7]["Max iter"])
         ):
             print("Skipping polygon computation.")
             return self.data, False
@@ -106,8 +203,6 @@ class MandelBrotInterface(Geometry2DGrid):
             u_max,
             v_min,
             v_max,
-            u_steps,
-            v_steps,
             w_value,
             options,
         ]
@@ -135,11 +230,11 @@ class MandelBrotInterface(Geometry2DGrid):
             )
 
         xvalues, yvalues, grid = mandelbrot_set(
-            u_min, u_max, v_min, v_max, u_steps, v_steps, maxiter
+            u_min, u_max, v_min, v_max, options["u_steps"], options["v_steps"], maxiter
         )
 
         self.data = Data2D.from_grid(
-            np.array(grid).reshape((v_steps, u_steps), order="F"), xvalues, yvalues
+            np.array(grid).reshape((options["v_steps"], options["u_steps"]), order="F"), xvalues, yvalues
         )
 
         return self.data, True
@@ -165,10 +260,12 @@ class MandelBrotInterface(Geometry2DGrid):
         """
         if value_label == MATERIAL:
             dict_compo = {v: v for v in cells}
+            print(MATERIAL, "returning", dict_compo)
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.nan for v in cells}
+            dict_compo = {v: np.nan for v in cells}
+            print(MESH, "returning", dict_compo)
 
             return dict_compo
 
@@ -226,14 +323,12 @@ class MandelBrotInterface(Geometry2DGrid):
 
 def make_panel(_, return_slaves=False):
     slave = ComputeSlave(MandelBrotInterface)
-    panel = VisualizationPanel(slave, name="Mandelbrot")
+    panel = Panel2D(slave, name="Mandelbrot polygons")
     panel.update_event = UpdateEvent.RANGE_CHANGE
-    panel.step_inp.value = 2000
 
     slave_2 = ComputeSlave(MandelBrotInterface)
-    panel_2 = VisualizationPanel(slave_2, name="Mandelbrot", display_polygons=False)
+    panel_2 = Panel2D(slave_2, name="Mandelbrot grid", display_polygons=False)
     panel_2.update_event = UpdateEvent.RANGE_CHANGE
-    panel_2.step_inp.value = 2000
 
     layout = SplitLayout(
         SplitItem(panel, panel_2, SplitDirection.VERTICAL),

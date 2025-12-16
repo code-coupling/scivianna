@@ -1,6 +1,7 @@
 
 from typing import Any, Dict, List, Tuple, Union
 import geopandas as gp
+from scivianna.panel.panel_2d import Panel2D
 import shapely
 import multiprocessing as mp
 from pathlib import Path
@@ -125,8 +126,6 @@ class EuropeGridInterface(Geometry2DPolygon):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -147,10 +146,6 @@ class EuropeGridInterface(Geometry2DPolygon):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -294,7 +289,7 @@ def make_europe_panel(_, return_slaves: bool = False):
     slave_result = ComputeSlave(CountryTimeSeriesInterface)
     slave_result.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
 
-    map_panel = VisualizationPanel(slave, name="Map")
+    map_panel = Panel2D(slave, name="Map")
     map_panel.sync_field = True
     line_panel = LineVisualisationPanel(slave_result, name="Plot")
     line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE

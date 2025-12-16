@@ -103,6 +103,7 @@ class VisualizationPanel:
             )
             for e in self.extension_classes
         ]
+        print(self.extensions)
 
         self.gui = GUI(
             self.extensions

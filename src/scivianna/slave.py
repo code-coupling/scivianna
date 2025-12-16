@@ -138,9 +138,8 @@ def worker(
                         u_max,
                         v_min,
                         v_max,
-                        u_steps,
-                        v_steps,
                         w_value,
+                        q_tasks_,
                         coloring_label,
                         options,
                     ) = data
@@ -157,10 +156,8 @@ def worker(
                         u_max,
                         v_min,
                         v_max,
-                        u_steps,
-                        v_steps,
                         w_value,
-                        q_tasks,
+                        q_tasks_,
                         options,
                     )
 
@@ -424,9 +421,8 @@ class ComputeSlave:
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
+        q_tasks: mp.Queue,
         coloring_label: str,
         options: Dict[str, Any],
     ) -> Tuple[
@@ -448,12 +444,10 @@ class ComputeSlave:
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
+        q_tasks : mp.Queue
+            Queue from which get orders from the master.
         coloring_label : str
             Field label to display
         options : Dict[str, Any]
@@ -474,9 +468,8 @@ class ComputeSlave:
                     u_max,
                     v_min,
                     v_max,
-                    u_steps,
-                    v_steps,
                     w_value,
+                    q_tasks,
                     coloring_label,
                     options,
                 ],

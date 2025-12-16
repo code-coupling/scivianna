@@ -545,12 +545,18 @@ class Bokeh2DGridPlotter(Plotter2D):
             if self.cell_name_grid is not None:
                 hovered_cell = self.cell_name_grid[j, i]
 
-        callback(position=(
-                            self.source_mouse.data["x"][0], 
-                            self.source_mouse.data["y"][0], 
-                            self.source_mouse.data["z"][0]
-                        ), 
-                cell_id=hovered_cell)
+        callback(
+            screen_location=(
+                self.source_mouse.data["sx"][0],
+                self.source_mouse.data["sy"][0]
+            ),
+            space_location=(
+                self.source_mouse.data["x"][0], 
+                self.source_mouse.data["y"][0], 
+                self.source_mouse.data["z"][0]
+            ), 
+            cell_id=hovered_cell
+        )
 
     def on_mouse_move(self, _):
         """Callback called when the mouse is moved. The mouse location in the grid is saved, and an update is requested at the current location after a timeout.

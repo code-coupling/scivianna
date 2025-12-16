@@ -54,8 +54,6 @@ class StructuredMeshInterface(Geometry2DPolygon):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -76,10 +74,6 @@ class StructuredMeshInterface(Geometry2DPolygon):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue

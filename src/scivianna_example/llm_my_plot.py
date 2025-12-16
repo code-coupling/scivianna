@@ -19,7 +19,7 @@ data_2d:Data2D
 data_2d, _ = med.compute_2D_data(
     X,
     Y, 
-    0, 1, 0, 1, 0, 0, # values not used
+    0, 1, 0, 1, # values not used
     0., 
     None,
     {}

@@ -27,13 +27,15 @@ def test_plot_grid():
         u_max=1.0,
         v_min=-1.0,
         v_max=1.0,
-        u_steps=50,
-        v_steps=50,
         w_value=0.0,
         coloring_label=MATERIAL,
         color_map="viridis",
         axes=axes,
-        options = {"Max iter":20}
+        options = {
+            "Max iter":20,
+            "u_steps":50,
+            "v_steps":50
+        }
     )
 
     slave.terminate()
