@@ -39,7 +39,7 @@ def get_country_category(country_code: str):
 
 
 class EuropeGridInterface(Geometry2DPolygon):
-    geometry_type: GeometryType = GeometryType._2D
+    geometry_type: GeometryType = GeometryType._2D_INFINITE
 
     def __init__(
         self,

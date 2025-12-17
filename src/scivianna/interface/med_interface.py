@@ -132,7 +132,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
     """ Support mesh
     """
     
-    geometry_type=GeometryType._3D
+    geometry_type=GeometryType._3D_INFINITE
 
     extensions=[MEDCouplingExtension]
 

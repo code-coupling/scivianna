@@ -27,7 +27,7 @@ class StructuredMeshInterface(Geometry2DPolygon):
     fields: Dict[str, np.ndarray]
     """Dictionnary containing the list of per cell value for each read field."""
 
-    geometry_type=GeometryType._3D
+    geometry_type=GeometryType._3D_INFINITE
 
     def __init__(self, ):
         """StructuredMesh interface constructor."""

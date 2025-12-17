@@ -2,6 +2,7 @@ from typing import Tuple, TYPE_CHECKING
 import numpy as np
 import panel as pn
 import panel_material_ui as pmui
+from scivianna.enums import GeometryType
 from scivianna.extension.extension import Extension
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
@@ -217,7 +218,6 @@ You can also hide/show the axes on the plot and force a plot update.
                     self.y0_inp,
                     self.y1_inp, margin=0
                 ),
-                self.w_inp, 
                 self.recompute_button,
                 margin=0
             ),
@@ -235,6 +235,7 @@ You can also hide/show the axes on the plot and force a plot update.
             collapsed=True,
             outlined=False
         )
+        self.update_widgets_visibility()
 
     @pn.io.hold()
     def toggle_axis_visibility(self, *args, **kwargs):
@@ -263,6 +264,7 @@ You can also hide/show the axes on the plot and force a plot update.
         return pmui.Column(
             self.hide_show_button,
             self.bounds_card,
+            self.w_inp, 
             self.axes_card,
             margin=0
         )
@@ -323,8 +325,21 @@ You can also hide/show the axes on the plot and force a plot update.
 
             self.__new_data = {}
 
+        self.update_widgets_visibility()
         if self.axes_updated or self.range_updated:
             self.trigger_update()
+
+    def update_widgets_visibility(self, ):
+        geom_type: GeometryType = self.slave.get_geometry_type()
+
+        # Definition of U and V vectors
+        self.axes_card.visible = geom_type in [GeometryType._3D, GeometryType._3D_INFINITE]
+
+        # Definition of U and V coords
+        self.bounds_card.visible = geom_type in [GeometryType._2D, GeometryType._3D]
+        
+        # Definition of the normal coordinate
+        self.w_inp.visible = geom_type in [GeometryType._3D, GeometryType._3D_INFINITE]
             
     def trigger_update(self, *args, **kwargs):
             u, v = self.get_uv()

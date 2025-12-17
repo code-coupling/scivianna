@@ -1,15 +1,13 @@
 from typing import Callable, List, Tuple, Type, Union
-import numpy as np
 import panel as pn
 import panel_material_ui as pmui
-import os
 
 from scivianna.data.data_container import DataContainer
 from scivianna.extension.extension import Extension
 
 from scivianna.interface.generic_interface import Geometry2D
 
-from scivianna.enums import GeometryType, UpdateEvent
+from scivianna.enums import UpdateEvent
 from scivianna.slave import ComputeSlave
 
 from scivianna.panel.gui import GUI

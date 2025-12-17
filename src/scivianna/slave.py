@@ -21,7 +21,7 @@ from scivianna.interface.generic_interface import (
     Value1DAtLocation
 )
 from scivianna.interface.option_element import OptionElement
-from scivianna.enums import VisualizationMode
+from scivianna.enums import GeometryType, VisualizationMode
 
 from typing import TYPE_CHECKING
 
@@ -56,6 +56,8 @@ class SlaveCommand:
     """Compute a 2D slice of the geometry"""
     GET_VALUE_DICT = "get_value_dict"
     """Returns the values of a field at cells"""
+    GET_GEOMETRY_TYPE = "get_geometry_type"
+    """Returns the geometry type"""
 
     #   ValueAtLocation functions
     GET_VALUE = "get_value"
@@ -128,7 +130,6 @@ def worker(
                     input_list = code_.get_options_list()
                     q_returns.put(input_list)
 
-
                 #   Geometry2D functions
                 elif task == SlaveCommand.COMPUTE_2D_DATA:
                     (
@@ -182,6 +183,8 @@ def worker(
                     set_return = code_.get_value_dict(*data)
                     q_returns.put(set_return)
 
+                elif task == SlaveCommand.GET_GEOMETRY_TYPE:
+                    q_returns.put(code_.geometry_type)
 
                 #   ValueAtLocation functions
                 elif task == SlaveCommand.GET_VALUE:
@@ -501,6 +504,18 @@ class ComputeSlave:
 
         return self.get_result_or_error()
 
+    def get_geometry_type(self,) -> GeometryType:
+        """Returns the interface geometry type
+
+        Returns
+        -------
+        GeometryType
+            Interface geometry type
+        """
+        self.q_tasks.put([SlaveCommand.GET_GEOMETRY_TYPE, []])
+
+        return self.get_result_or_error()
+
 
     #   ValueAtLocation functions
     def get_value(
@@ -722,7 +737,6 @@ class ComputeSlave:
         self.q_tasks.put([SlaveCommand.SET_TIME, [time_]])
 
         return self.get_result_or_error()
-
 
     def duplicate(
         self,
