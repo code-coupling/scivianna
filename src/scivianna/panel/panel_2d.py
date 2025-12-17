@@ -103,8 +103,11 @@ class Panel2D(VisualizationPanel):
 
         # 
         #   First plot on XY basic range
-        #         
-        self.displayed_field = MESH
+        #
+        self.displayed_field = MESH         
+        for extension in self.extensions:
+            extension.on_field_change(MESH)
+
         self.colormap = "BuRd"
 
         self.u = X
@@ -140,6 +143,8 @@ class Panel2D(VisualizationPanel):
         
         self.__data_to_update: bool = False
         self.__new_data = {}
+
+        pn.state.on_session_created(self.recompute)
 
     @pn.io.hold()
     def async_update_data(

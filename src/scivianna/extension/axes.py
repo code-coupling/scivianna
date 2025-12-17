@@ -53,6 +53,7 @@ class Axes(Extension):
         panel : VisualizationPanel
             Panel to which the extension is attached
         """
+        assert isinstance(plotter, Plotter2D), "Axes extension is built for a Plotter2D only"
         super().__init__(
             "Axes customization",
             icon_svg,

@@ -126,7 +126,9 @@ class GUI:
         self.buttons.append(ext)
         col.visible = False
         self.options_widget.append(button)
-        self.drawer_column.append(col)
+        
+        # Adding col first to keep the selection at the bottom
+        self.drawer_column.insert(0, col)
         
         button.on_click(partial(self.change_drawer, extension=ext))
 

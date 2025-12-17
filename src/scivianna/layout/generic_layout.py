@@ -369,4 +369,4 @@ class GenericLayout:
         """
         for panel in self.visualisation_panels.values():
             if panel.sync_field:
-                panel.set_field(new_field, allow_wrong_name=True)
+                panel.set_field(new_field)

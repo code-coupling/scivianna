@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.layout.generic_layout import GenericLayout
 from scivianna.panel.visualisation_panel import ComputeSlave, VisualizationPanel
-from scivianna.panel.panel_1d import LineVisualisationPanel
+from scivianna.panel.panel_1d import Panel1D
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
 )
@@ -148,7 +148,7 @@ class SplitLayout(GenericLayout):
                 return item, None
         else:
             raise TypeError(
-                f"SplitItem, VisualizationPanel or LineVisualisationPanel expected, found {type(item)}"
+                f"SplitItem or VisualizationPanel expected, found {type(item)}"
             )
 
         return None, None
@@ -195,7 +195,7 @@ class SplitLayout(GenericLayout):
         
         else:
             raise TypeError(
-                f"SplitItem, VisualizationPanel or LineVisualisationPanel expected, found {type(split_item)}"
+                f"SplitItem or VisualizationPanel expected, found {type(split_item)}"
             )
 
     def update_interface_in_split_item(
@@ -231,7 +231,7 @@ class SplitLayout(GenericLayout):
                 split_item = new_panel
         else:
             raise TypeError(
-                f"SplitItem, VisualizationPanel or LineVisualisationPanel expected, found {type(split_item)}"
+                f"SplitItem or VisualizationPanel expected, found {type(split_item)}"
             )
         
     def get_panels_dict(self, split_item: SplitItem) -> Dict[str, VisualizationPanel]:

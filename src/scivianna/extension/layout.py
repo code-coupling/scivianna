@@ -49,12 +49,17 @@ class LayoutExtension(Extension):
         self.description = """
 This extension allows you to split panels to visualize several fields/geometries at the same time.
 """
+        interface_options = [
+            val.value if isinstance(val, GenericInterfaceEnum) else str(val)
+            for val in self.layout.available_interfaces.keys()
+        ]
 
         self.interface_selector = pn.widgets.Select(
             name="Code",
-            options=[
-                val.value if isinstance(val, GenericInterfaceEnum) else str(val)
-                for val in self.layout.available_interfaces.keys()
+            options=interface_options,
+            value=interface_options[
+                list(self.layout.available_interfaces.values())
+                    .index(self.layout.visualisation_panels[self.layout.current_frame].slave.code_interface)
             ],
             width = 280,
             margin = 0
@@ -158,6 +163,7 @@ This extension allows you to split panels to visualize several fields/geometries
             pn.Row(
                 self.duplicate_horizontally_button, self.duplicate_vertitally_button
             ),
+            self.run_button,
             width=300,
             margin=0,
         )

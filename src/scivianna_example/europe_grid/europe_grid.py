@@ -15,7 +15,7 @@ from scivianna.interface import csv_result
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
-from scivianna.panel.panel_1d import LineVisualisationPanel
+from scivianna.panel.panel_1d import Panel1D
 from scivianna.data.data2d import Data2D
 
 from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface
@@ -281,7 +281,7 @@ class EuropeGridInterface(Geometry2DPolygon):
         ]
 
 
-def make_europe_panel(_, return_slaves: bool = False):
+def make_europe_panel(_, return_slaves: bool = False) -> SplitLayout:
     slave = ComputeSlave(EuropeGridInterface)
     # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
     slave.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
@@ -291,7 +291,7 @@ def make_europe_panel(_, return_slaves: bool = False):
 
     map_panel = Panel2D(slave, name="Map")
     map_panel.sync_field = True
-    line_panel = LineVisualisationPanel(slave_result, name="Plot")
+    line_panel = Panel1D(slave_result, name="Plot")
     line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
     line_panel.sync_field = True
 
@@ -311,6 +311,7 @@ def make_europe_panel(_, return_slaves: bool = False):
 
 
 if __name__ == "__main__":
-    from scivianna.notebook_tools import _serve_panel
+    # from scivianna.notebook_tools import _serve_panel
 
-    _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")
+    make_europe_panel(None).main_frame.show()
+    # _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")

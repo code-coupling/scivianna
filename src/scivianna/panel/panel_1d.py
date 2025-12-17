@@ -1,34 +1,27 @@
 from typing import Callable, Dict, List, Tuple, Union
 import panel as pn
-import os
 import pandas as pd
-from scivianna.component.overlay_component import Overlay
 
 from scivianna.enums import UpdateEvent
+from scivianna.extension.extension import Extension
+from scivianna.extension.line_selector import LineSelector
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.plotter_1d.bokeh_1d_plotter import BokehPlotter1D
+from scivianna.plotter_1d.generic_plotter import Plotter1D
 from scivianna.slave import ComputeSlave
 
 
-class LineVisualisationPanel:
+default_extensions = [LineSelector]
+
+class Panel1D(VisualizationPanel):
     """Visualisation panel associated to a code."""
 
-    main_frame: Overlay
-    """ Main frame displaying the geometry.
-    """
-
-    name: str
-    """ Panel name
-    """
-    plotter: BokehPlotter1D
-    """ 1D plotter displaying and updating the graph
+    plotter: Plotter1D
+    """ 1D plotter displaying and updating the graph : TODO generic plotter
     """
     update_event: Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
     """ On what event does the panel recompute itself
     """
-    sync_field: bool = False
-    """ On what event does the panel recompute itself
-    """
-
     position: Tuple[float, float, float] = None
     """Position where request the plot"""
     cell_id: str = None
@@ -38,6 +31,7 @@ class LineVisualisationPanel:
             self,
             slave: ComputeSlave,
             name: str = "",
+            extensions: List[Extension] = default_extensions
         ):
         """Visualization panel constructor
 
@@ -48,12 +42,13 @@ class LineVisualisationPanel:
         name : str
             Name of the panel.
         """
-        print("New frame built with name ", name)
-        self.name = name
+        self.plotter = BokehPlotter1D()
+        
+        super().__init__(slave, name, extensions.copy())
+
         self.copy_index = 0
         
-        self.slave = slave
-        self.fields = self.slave.get_labels()
+        self.fields = slave.get_labels()
 
         self.__data_to_update: bool = False
         """Is it required to update the data, can be set on periodic event or on clic"""
@@ -64,12 +59,6 @@ class LineVisualisationPanel:
         self.current_value = None
 
         self.series: Dict[str, pd.Series] = {}
-
-        def recompute_cb(event):
-            self.recompute()
-            
-            if pn.state.curdoc is not None:
-                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
         def field_changed(event):
             """Function called on field changed
@@ -82,7 +71,7 @@ class LineVisualisationPanel:
             if self.field_change_callback is not None and\
                     len(self.field_color_selector.value) > 0:
                 self.field_change_callback(self.field_color_selector.value[0])
-            recompute_cb(event)
+            self.recompute(event)
 
         fields_list = self.slave.get_labels()
         self.field_color_selector = pn.widgets.MultiChoice(
@@ -94,23 +83,9 @@ class LineVisualisationPanel:
 
         self.__new_data = {}
 
-        self.plotter = BokehPlotter1D()
         self.__get_series(self.field_color_selector.value[0])
         self.async_update_data()
         self.plotter.set_visible(self.field_color_selector.value)
-
-        fig_pane = self.plotter.make_panel()
-
-        self.fig_overlay = Overlay(
-            figure=fig_pane,
-            message=pn.pane.Markdown(""),
-            margin=0,
-            width_policy="max",
-            height_policy="max",
-            title=pn.pane.Markdown(f"## {self.name}", visible=False),
-        )
-
-        self.main_frame = self.fig_overlay
 
         self.periodic_recompute_added = False
 
@@ -138,11 +113,9 @@ class LineVisualisationPanel:
             self.__data_to_update = False
 
             # this is necessary only in a notebook context where sometimes we have to force Panel/Bokeh to push an update to the browser
-            pn.io.push_notebook(self.fig_overlay)
+            pn.io.push_notebook(self.figure)
 
-    def recompute(
-        self,
-    ):
+    def recompute(self, *args, **kwargs):
         """Recomputes the figure based on the new bounds and parameters.
 
         Parameters
@@ -177,7 +150,7 @@ class LineVisualisationPanel:
         else:
             self.series[series.name] = series
 
-    def duplicate(self, keep_name: bool = False) -> "LineVisualisationPanel":
+    def duplicate(self, keep_name: bool = False) -> "Panel1D":
         """Get a copy of the panel. A panel of the same type is generated, the current display too, but a new slave process is created.
 
         Parameters
@@ -203,7 +176,10 @@ class LineVisualisationPanel:
                     f" - {new_index + 1}", f" - {new_index + 2}"
                 )
 
-        new_visualiser = LineVisualisationPanel(new_name)
+        new_visualiser = Panel1D(
+            new_name,
+            extensions=[e for e in self.extension_classes]
+        )
         new_visualiser.copy_index = new_index
 
         return new_visualiser
@@ -223,12 +199,11 @@ class LineVisualisationPanel:
         cell_id : str
             cell id to provide to the slave
         """
-        self.fig_overlay.show_temporary_message(f"Updating for position {position} and cell {cell_id}", 1000)
         self.position = position
         self.cell_id = cell_id
         self.recompute()
 
-    def set_field(self, field_names: List[str], allow_wrong_name: bool = False):
+    def set_field(self, field_names: List[str]):
         """Updates the plotted fields
 
         Parameters
@@ -242,18 +217,12 @@ class LineVisualisationPanel:
         if isinstance(field_names, list):
             for field_name in field_names:
                 if field_name not in self.field_color_selector.options:
-                    if allow_wrong_name:
-                        continue
-                    else:
-                        raise ValueError(f"Requested field {field_name} not found, available fields : {self.field_color_selector.options}")
+                    continue
                 else:
                     fields.append(field_name)
         else:
             if field_names not in self.field_color_selector.options:
-                if allow_wrong_name:
-                    pass
-                else:
-                    raise ValueError(f"Requested field {field_names} not found, available fields : {self.field_color_selector.options}")
+                pass
             else:
                 fields.append(field_names)
 
@@ -274,3 +243,35 @@ class LineVisualisationPanel:
             Function to call.
         """
         self.field_change_callback = callback
+
+    def provide_on_mouse_move_callback(self, callback: Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot.
+        Functions arguments are location, cell_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        pass
+
+    def provide_on_clic_callback(self, callback: Callable):
+        """Stores a function to call everytime the user clics on the plot.
+        Functions arguments are location, cell_id.
+
+        Parameters
+        ----------
+        callback : Callable
+            Function to call.
+        """
+        pass
+
+    def set_colormap(self, colormap):
+        """Sets the current color map, not used in the case of a Panel1D
+
+        Parameters
+        ----------
+        colormap : str
+            Color map name
+        """
+        pass

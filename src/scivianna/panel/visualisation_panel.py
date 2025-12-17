@@ -15,7 +15,7 @@ from scivianna.plotter_2d.generic_plotter import Plotter2D
 
 pn.config.inline = True
 
-class VisualizationPanel:
+class VisualizationPanel(pn.viewable.Viewer):
     """Visualisation panel associated to a code."""
 
     name: str
@@ -64,7 +64,8 @@ class VisualizationPanel:
         #         
         #   Initializing attributes
         #         
-        self.name = name
+        super().__init__(name=name)
+        
         self.copy_index = 0
         self.slave = slave
         self.update_polygons = False
@@ -101,7 +102,6 @@ class VisualizationPanel:
             )
             for e in self.extension_classes
         ]
-        print(self.extensions)
 
         self.gui = GUI(
             self.extensions
@@ -120,8 +120,8 @@ class VisualizationPanel:
         """Recompute requested by a coordinates/field change on API side"""
 
         for extension in self.extensions:
-            self.plotter.provide_on_clic_callback(extension.on_mouse_clic)
-            self.plotter.provide_on_mouse_move_callback(extension.on_mouse_move)
+            self.provide_on_clic_callback(extension.on_mouse_clic)
+            self.provide_on_mouse_move_callback(extension.on_mouse_move)
 
     def duplicate(self, keep_name: bool = False) -> "VisualizationPanel":
         """Get a copy of the panel. A panel of the same type is generated, the current display too, but a new slave process is created.
@@ -156,14 +156,6 @@ class VisualizationPanel:
     # #     API to provide in the panels
     # #
     # 
-
-    @pn.io.hold()
-    def async_update_data(
-        self,
-    ):
-        """Update the figures and buttons based on what was added in self.__new_data. This function is called between two servers ticks to prevent multi-users collisions."""
-        raise NotImplementedError()
-
     def recompute(
         self, *args, **kwargs
     ):
@@ -245,3 +237,6 @@ class VisualizationPanel:
             HTML color
         """
         self.figure.styles = {"border": f"2px solid {color}"}
+
+    def __panel__(self,):
+        return pn.Row(self.gui_panel, self.figure, margin=0, sizing_mode="stretch_width")
