@@ -123,8 +123,11 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
     fields_iterations: Dict[str, List[Tuple[int, int]]]
     """List containing for tuples storing the field name, and the associated iteration."""
 
-    fields: Dict[str, List[float]]
+    fields: Dict[str, np.ndarray]
     """Dictionnary containing the list of per cell value for each read field."""
+
+    field_doubles: Dict[str, medcoupling.MEDCouplingFieldDouble]
+    """Dictionnary containing the received MEDCouplingFieldDouble."""
 
     cell_dict: Dict[int, int]
     """Dictionnary associating the 2D mesh cells to the 3D mesh cells"""
@@ -138,15 +141,26 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
     def __init__(self):
         """MEDCoupling interface constructor."""
-        self.data: List[PolygonElement] = None
+        self.data: Data2D = None
+        """Past computed data"""
         self.file_path = None
+        """Read file path saved for lazy load"""
         self.meshnames = []
+        """List of mesh names in the file"""
         self.mesh = None
+        """Currently loaded mesh"""
         self.fieldnames = []
-        self.last_computed_frame = []
+        """List of fields in the current mesh"""
         self.fields = {}
+        """List of fields data"""
+        self.field_doubles = {}
+        """Dictionnary containing the received MEDCouplingFieldDouble."""
         self.fields_iterations = {}
+        """Dictionnary containing the med file available (iter, order) couples"""
         self.cell_dict = {}
+        """Dictionnary associating the 2D mesh cells to the 3D mesh cells"""
+        self.last_computed_frame = []
+        """Parameters of the last computed frame"""
 
     def read_file(self, file_path: str, file_label: str):
         """Read a file and store its content in the interface
@@ -383,16 +397,13 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         if value_label in self.fields:
             field_np_array = self.fields[value_label]
+        elif value_label in self.field_doubles:
+            field_np_array = self.field_doubles[value_label].getArray().toNumPyArray()
         else:
             print(f"Reading MEDCouplingFieldDouble in {self.file_path}")
             # print("Checking", value_label, "in", self.fields_iterations, field in self.fields_iterations.keys())
 
             if value_label in self.fields_iterations:
-                # print("Checking ", (options["Iteration"], options["Order"]), (options["Iteration"], options["Order"]) in self.fields_iterations[value_label])
-                options = {
-                    "Iteration": self.fields_iterations[value_label][0][0],
-                    "Order": self.fields_iterations[value_label][0][1],
-                }
                 # if "Iteration" in options and "Order" in options and (options["Iteration"], options["Order"]) in self.fields_iterations[value_label]:
                 if True:
                     field_name = value_label.split("@")[0]
@@ -421,7 +432,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         if field_np_array is not None:
             indexes = np.array(list(self.cell_dict.values())).astype(int)
-            values = field_np_array[indexes[np.array(cells).astype(int)]]
+            values = field_np_array[indexes[np.array(cells).astype(int)].tolist()]
 
             value_dict = dict(zip(np.array(cells).astype(str), values))
 
@@ -470,19 +481,22 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         mcfield.setMesh(self.mesh)
         array = medcoupling.DataArrayDouble([0.0] * self.mesh.getNumberOfCells())
         mcfield.setArray(array)
-        if field_name in self.fields:
-            mcfield.setNature(self.fields[field_name].getNature())
+        if field_name in self.field_doubles:
+            mcfield.setNature(self.field_doubles[field_name].getNature())
         else:
             print(
                 field_name,
-                f"not found in self.fields, available keys: {list(self.fields.keys())}.",
+                f"not found in self.fields, available keys: {list(self.field_doubles.keys())}.",
             )
         return mcfield
 
     def setInputMEDDoubleField(
         self, field_name: str, field: medcoupling.MEDCouplingFieldDouble
     ):
-        self.fields[field_name] = field
+        if field_name in self.fields:
+            del self.fields[field_name]
+
+        self.field_doubles[field_name] = field
 
     def setTime(self, time_:float):
         pass

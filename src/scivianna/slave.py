@@ -83,6 +83,9 @@ class SlaveCommand:
     SET_TIME = "setTime"
     """Sets the current time"""
 
+    CUSTOM = "custom"
+    """Custom call to transfer to the interface to ease extension development"""
+
 
 def worker(
     q_tasks: mp.Queue,
@@ -107,6 +110,7 @@ def worker(
         try:
             if not q_tasks.empty():
                 task, data = q_tasks.get()
+                print(task)
 
                 #   GenericInterface functions
                 if task == SlaveCommand.READ_FILE:
@@ -263,6 +267,9 @@ def worker(
                     set_return = code_.setInputDoubleValue(name, val)
                     q_returns.put(set_return)
 
+                elif task == SlaveCommand.CUSTOM:
+                    function_name, arguments = data
+                    q_returns.put(code_.__getattribute__(function_name)(**arguments))
 
             else:
                 time.sleep(0.1)
@@ -320,6 +327,7 @@ class ComputeSlave:
         )
         self.p.start()
         self.running = True
+        self.ongoing_request = False
 
         def terminate_process():
             self.terminate()
@@ -351,12 +359,28 @@ class ComputeSlave:
             self.running = False
             raise TypeError(f"Found unpicklable item to send to the interface : {unpicklables[0]}.\nPlease redefine the {self.code_interface.__name__} serialize function to handle this error.")
 
-        self.q_tasks.put((SlaveCommand.READ_FILE, [file_path, file_label]))
-        
         self.file_read.append((file_path, file_label))
 
-        function_return = self.get_result_or_error()
-        assert function_return == "OK"
+        return self.__get_function((SlaveCommand.READ_FILE, [file_path, file_label]))
+        
+    def __get_function(self, argument: Tuple[SlaveCommand, Any]):
+        """Sends a function call to the process, and forward its return
+
+        Parameters
+        ----------
+        argument : Tuple[SlaveCommand, Any]
+            Command and arguments to send to the slave
+        """
+
+        while self.ongoing_request:
+            time.sleep(0.1)
+        
+        self.ongoing_request = True
+        self.q_tasks.put(argument)
+
+        value = self.get_result_or_error()
+        self.ongoing_request = False
+        return value
 
     def get_labels(
         self,
@@ -368,9 +392,7 @@ class ComputeSlave:
         List[str]
             List of labels
         """
-        self.q_tasks.put([SlaveCommand.GET_LABELS, None])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.GET_LABELS, None])
 
     def get_label_coloring_mode(self, field_name: str) -> VisualizationMode:
         """Returns the coloring mode of the plot
@@ -385,10 +407,8 @@ class ComputeSlave:
         VisualizationMode
             Coloring mode
         """
-        self.q_tasks.put([SlaveCommand.GET_LABEL_COLORING_MODE, field_name])
+        return self.__get_function([SlaveCommand.GET_LABEL_COLORING_MODE, field_name])
 
-        return self.get_result_or_error()
-    
     def get_file_input_list(
         self,
     ) -> List[Tuple[str, str]]:
@@ -399,9 +419,7 @@ class ComputeSlave:
         List[Tuple[str, str]]
             List of (file label, description)
         """
-        self.q_tasks.put([SlaveCommand.GET_FILE_INPUT_LIST, None])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.GET_FILE_INPUT_LIST, None])
 
     def get_options_list(self) -> List[OptionElement]:
         """Get from the interface the list of options to add to the bounds ribbon.
@@ -411,9 +429,7 @@ class ComputeSlave:
         List[OptionElement]
             List of options
         """
-        self.q_tasks.put([SlaveCommand.GET_OPTIONS_LIST, None])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.GET_OPTIONS_LIST, None])
 
     #   Geometry2D functions
     def compute_2D_data(
@@ -461,7 +477,7 @@ class ComputeSlave:
         Tuple[Data2D, bool]
             Data2D object containing the geometry, whether the polygons were updated
         """
-        self.q_tasks.put(
+        return self.__get_function(
             [
                 SlaveCommand.COMPUTE_2D_DATA,
                 [
@@ -479,8 +495,6 @@ class ComputeSlave:
             ]
         )
 
-        return self.get_result_or_error()
-    
     def get_value_dict(
         self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
@@ -500,9 +514,7 @@ class ComputeSlave:
         Dict[Union[int,str], str]
             Field value for each requested cell names
         """
-        self.q_tasks.put([SlaveCommand.GET_VALUE_DICT, [value_label, cells, options]])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.GET_VALUE_DICT, [value_label, cells, options]])
 
     def get_geometry_type(self,) -> GeometryType:
         """Returns the interface geometry type
@@ -512,10 +524,7 @@ class ComputeSlave:
         GeometryType
             Interface geometry type
         """
-        self.q_tasks.put([SlaveCommand.GET_GEOMETRY_TYPE, []])
-
-        return self.get_result_or_error()
-
+        return self.__get_function([SlaveCommand.GET_GEOMETRY_TYPE, []])
 
     #   ValueAtLocation functions
     def get_value(
@@ -543,7 +552,7 @@ class ComputeSlave:
         Union[str, float]
             Field value
         """
-        self.q_tasks.put(
+        return self.__get_function(
             [
                 SlaveCommand.GET_VALUE,
                 [
@@ -554,8 +563,6 @@ class ComputeSlave:
                 ],
             ]
         )
-
-        return self.get_result_or_error()
 
     def get_values(
         self,
@@ -582,7 +589,7 @@ class ComputeSlave:
         List[Union[str, float]]
             Field values
         """
-        self.q_tasks.put(
+        return self.__get_function(
             [
                 SlaveCommand.GET_VALUES,
                 [
@@ -593,8 +600,6 @@ class ComputeSlave:
                 ],
             ]
         )
-
-        return self.get_result_or_error()
 
 
     #   Value1DAtLocation functions
@@ -623,7 +628,7 @@ class ComputeSlave:
         Union[pd.Series, List[pd.Series]]
             Field value
         """
-        self.q_tasks.put(
+        return self.__get_function(
             [
                 SlaveCommand.GET_1D_VALUE,
                 [
@@ -635,8 +640,6 @@ class ComputeSlave:
             ]
         )
 
-        return self.get_result_or_error()
-    
     #   OverLine functions
     def compute_1D_line_data(
         self,
@@ -666,7 +669,7 @@ class ComputeSlave:
         pd.DataFrame
             Pandas dataframe containing the data
         """
-        self.q_tasks.put(
+        return self.__get_function(
             [
                 SlaveCommand.COMPUTE_1D_LINE_DATA,
                 [
@@ -679,8 +682,6 @@ class ComputeSlave:
             ]
         )
 
-        return self.get_result_or_error()
-    
     #   ICOCOInterface functions
     def getInputMEDDoubleFieldTemplate(
         self, fieldName: str
@@ -692,9 +693,7 @@ class ComputeSlave:
         fieldName: str
             Field name
         """
-        self.q_tasks.put([SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE, fieldName])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE, fieldName])
 
     def setInputMEDDoubleField(
         self, fieldName: str, aField: "medcoupling.MEDCouplingFieldDouble"
@@ -708,9 +707,7 @@ class ComputeSlave:
         aField : medcoupling.MEDCouplingFieldDouble
             New field value
         """
-        self.q_tasks.put([SlaveCommand.SET_INPUT_MED_DOUBLEFIELD, [fieldName, aField]])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.SET_INPUT_MED_DOUBLEFIELD, [fieldName, aField]])
 
     def setInputDoubleValue(self, name: str, val: float):
         """Set the current time in an interface to associate to the received value.
@@ -722,9 +719,7 @@ class ComputeSlave:
         time : float
             Current time
         """
-        self.q_tasks.put([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
 
     def setTime(self, time_:float):
         """Set the current time in an interface to associate to the received value.
@@ -734,9 +729,7 @@ class ComputeSlave:
         time_ : float
             Current time
         """
-        self.q_tasks.put([SlaveCommand.SET_TIME, [time_]])
-
-        return self.get_result_or_error()
+        return self.__get_function([SlaveCommand.SET_TIME, [time_]])
 
     def duplicate(
         self,
@@ -784,6 +777,7 @@ class ComputeSlave:
         if not self.running:
             return
         
+        self.ongoing_request = False
         if not self.q_errors.empty():
             error:Exception = self.q_errors.get()
             pn.state.notifications.error(f"Error {error}, restoring data.")
@@ -792,6 +786,27 @@ class ComputeSlave:
         else:
             return self.q_returns.get()
 
+    def wait_available(self,):
+        while self.ongoing_request:
+            time.sleep(0.05)
+        return
+
+    def call_custom_function(self, function_name: str, arguments: Dict[str, Any]):
+        """Call an custom function meant to ease extension developments
+
+        Parameters
+        ----------
+        function_name : str
+            Name of the interface function
+        arguments : Dict[str, Any]
+            Kwargs of the custom function
+
+        Returns
+        -------
+        Any
+            Function return
+        """
+        return self.__get_function([SlaveCommand.CUSTOM, [function_name, arguments]])
 
 if __name__ == "__main__":
     pass

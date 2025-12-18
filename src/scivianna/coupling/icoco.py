@@ -451,7 +451,7 @@ class GridStackProblem(Problem):
 
         if field_name not in slave.get_labels():
             raise ValueError(
-                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
+                f"Unknown requested field '{field_name}' for panel {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
             )
 
         return slave.getInputMEDDoubleFieldTemplate(field_name)
