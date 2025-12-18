@@ -110,7 +110,6 @@ def worker(
         try:
             if not q_tasks.empty():
                 task, data = q_tasks.get()
-                print(task)
 
                 #   GenericInterface functions
                 if task == SlaveCommand.READ_FILE:
@@ -346,7 +345,7 @@ class ComputeSlave:
         file_label : str
             File label
         """
-        if type(file_path) in [str, Path]:
+        if isinstance(file_path, str) or isinstance(file_path, Path):
             print(f"Reading file {file_path} as {file_label}")
         else:
             print(f"Reading object of type {type(file_path)} as {file_label}")

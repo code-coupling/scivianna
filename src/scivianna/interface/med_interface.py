@@ -393,6 +393,13 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         if value_label == MESH:
             return {str(v): np.nan for v in cells}
 
+        if not "Iteration" in options:
+            print(f"Iteration not found in medcoupling option, setting {self.fields_iterations[value_label][0][0]}")
+            options["Iteration"] = self.fields_iterations[value_label][0][0]
+        if not "Order" in options:
+            print(f"Order not found in medcoupling option, setting {self.fields_iterations[value_label][0][1]}")
+            options["Order"] = self.fields_iterations[value_label][0][1]
+
         field_np_array = None
 
         if value_label in self.fields:

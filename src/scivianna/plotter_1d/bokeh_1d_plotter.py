@@ -27,8 +27,7 @@ class BokehPlotter1D(Plotter1D):
 
         self.fig = figure(
             name="plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
         )
 
         # Reset ranges when plots are hidden
@@ -45,8 +44,7 @@ class BokehPlotter1D(Plotter1D):
         self.fig_pane = pn.pane.Bokeh(
             self.fig,
             name="Plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             margin=0,
             styles={"border": "2px solid lightgray"},
         )
