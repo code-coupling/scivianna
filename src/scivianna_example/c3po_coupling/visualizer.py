@@ -183,6 +183,8 @@ class VisuProblem(GridStackProblem):
         #   Adding the run button to be able to start the synchronisation to the coupling
         self.gridstack = GridStackLayout(
             visualisation_panels, bounds_x, bounds_y, add_run_button=True)
+        
+        self.gridstack.add_time_widget()
 
         return super().initialize()
 

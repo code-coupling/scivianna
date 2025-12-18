@@ -55,7 +55,7 @@ import socket
 
 from scivianna.interface.generic_interface import IcocoInterface
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.panel_1d import LineVisualisationPanel
+from scivianna.panel.panel_1d import Panel1D
 
 
 class Value:
@@ -155,17 +155,7 @@ class GridStackProblem(Problem):
         sock.close()
 
         pn.serve(
-            pn.template.BootstrapTemplate(
-                main=[
-                    pn.Column(
-                        self.gridstack.main_frame,
-                        height_policy="max",
-                        width_policy="max",
-                        margin=0,
-                    )
-                ],
-                title=self.title,
-            ),
+            self.gridstack.main_frame,
             address=ip_adress,
             websocket_origin=f"{ip_adress}:{port}",
             port=port,

@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Tuple, Type, Union
 
 from scivianna.enums import UpdateEvent
 from scivianna.extension.layout import LayoutExtension
+from scivianna.extension.coupling import CouplingExtension
 from scivianna.interface.generic_interface import GenericInterface
 from scivianna.panel.gui import GUI
 from scivianna.slave import ComputeSlave
@@ -370,3 +371,10 @@ class GenericLayout:
         for panel in self.visualisation_panels.values():
             if panel.sync_field:
                 panel.set_field(new_field)
+
+    def add_time_widget(self,):
+        """Adds a time management widget to the layout
+        """
+        self.time_widget = CouplingExtension(self, None, None, None)
+
+        self.gui.add_extension(self.time_widget)

@@ -123,47 +123,12 @@ This extension allows you to split panels to visualize several fields/geometries
         self.duplicate_horizontally_button.on_click(duplicate_hozironally)
         self.duplicate_vertitally_button.on_click(duplicate_vertically)
 
-        def request_recompute(event):
-            """Request a recompute task on all panels, which will trigger the addition of a periodict update on the panels
-
-            Parameters
-            ----------
-            event : bool
-                If the call is from a button press or release
-            """
-            if event:
-                # for panel in self.visualisation_panels:
-                #     self.visualisation_panels[panel].add_periodic_update()
-                if self.layout.periodic_recompute_added:
-                    self.run_button.icon = "player-play"
-                    self.layout.stop_periodic_update()
-                else:
-                    self.run_button.icon = "player-pause"
-                    self.layout.add_periodic_update()
-
-        if add_run_button:
-            self.run_button = pn.widgets.ButtonIcon(
-                icon="player-play",
-                description="Start automatic update",
-                height=30,
-                width=30,
-                align="center",
-            )
-            self.run_button.on_click(request_recompute)
-
-            self.curdoc = curdoc()
-
-            pn.state.curdoc = self.curdoc
-        else:
-            self.run_button = None
-
         self.layout_param_card = pn.Column(
             self.frame_selector,
             self.interface_selector,
             pn.Row(
                 self.duplicate_horizontally_button, self.duplicate_vertitally_button
             ),
-            self.run_button,
             width=300,
             margin=0,
         )
