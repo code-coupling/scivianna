@@ -18,7 +18,7 @@ def test_plot_polygons():
     # Field example
     slave = ComputeSlave(MEDInterface)
     slave.read_file(
-        Path(scivianna.__file__).parent / "default_jdd" / "power.med",
+        Path(scivianna.__file__).parent / "input_file" / "power.med",
         GEOMETRY,
     )
 

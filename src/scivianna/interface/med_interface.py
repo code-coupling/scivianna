@@ -713,7 +713,7 @@ if __name__ == "__main__":
     slave = ComputeSlave(MEDInterface)
     # slave.read_file("/volatile/catA/tmoulignier/Workspace/some_holoviz/jdd/mesh_hexa_3d.med", GEOMETRY)
     slave.read_file(
-        "/volatile/catA/tmoulignier/Workspace/some_holoviz/src/scivianna/default_jdd/INTEGRATED_POWER.med",
+        "/volatile/catA/tmoulignier/Workspace/some_holoviz/src/scivianna/input_file/INTEGRATED_POWER.med",
         GEOMETRY,
     )
 

@@ -30,17 +30,8 @@ setup(
         "scivianna": [
             "agent/*.py",
             "agent/*.md",
-            "components/*.py",
-            "data/*.py",
-            "default_jdd/*",
+            "input_file/*",
             "icon/*.svg",
-            "interface/*.py",
-            "layout/*.py",
-            "panel/*.py",
-            "plotter_1d/*.py",
-            "plotter_2d/*.py",
-            "plotter_2d/grid/*.py",
-            "plotter_2d/polygon/*.py",
             "utils/*",
             "*.sh",
             "VERSION",
@@ -49,10 +40,9 @@ setup(
         "scivianna_example": [
             "c3po_coupling/*",
             "europe_grid/*",
-            "medcoupling/*",
+            "med/*",
             "mandelbrot/*",
             "*/README.md",
-            "*.py"
         ]
     },
     keywords="visualization",

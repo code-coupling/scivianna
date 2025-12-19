@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     med = MEDInterface()
     med.read_file(
-        str(Path(scivianna.__file__).parent / "default_jdd" / "power.med"),
+        str(Path(scivianna.__file__).parent / "input_file" / "power.med"),
         GEOMETRY,
     )
     data_2d:Data2D

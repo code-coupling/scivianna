@@ -149,7 +149,7 @@ def get_med_panel(geo: str, title="") -> VisualizationPanel:
 
     slave = ComputeSlave(MEDInterface)
     if geo is None:
-        slave.read_file(Path(__file__).parent / "default_jdd" / "power.med", GEOMETRY)
+        slave.read_file(Path(__file__).parent / "input_file" / "power.med", GEOMETRY)
     elif isinstance(geo, str):
         slave.read_file(geo, GEOMETRY)
     else:

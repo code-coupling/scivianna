@@ -9,7 +9,7 @@ import scivianna_example.c3po_coupling.visualizer as visualizer
 
 def get_panel(_):
     # Building of objects driving codes
-    fieldDriver = DecreasingFieldProblem(str(Path(scivianna.__file__).parent / "default_jdd" / "power.med"))
+    fieldDriver = DecreasingFieldProblem(str(Path(scivianna.__file__).parent / "input_file" / "power.med"))
     fieldDriver.initialize()
 
     visualizer_data = visualizer.VisualizerData(
