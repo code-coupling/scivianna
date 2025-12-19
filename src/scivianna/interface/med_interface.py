@@ -254,6 +254,7 @@ This extension allows defining the medcoupling field display parameters.
         return pmui.Column(
             self.iteration_input,
             self.order_input,
+            pmui.Typography("Coordinate along the normal axis"),
             self.slider_w,
             margin=0
         )

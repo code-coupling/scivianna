@@ -129,7 +129,11 @@ You can also hide/show the axes on the plot and force a plot update.
         )
         self.recompute_button.on_click(self.trigger_update)
 
-
+        self.w_col = pmui.Column(
+            pmui.Typography("Coordinate along the normal axis"),
+            self.w_inp,
+            margin=0
+        )
 
         # 
         #   Vectors widgets
@@ -210,6 +214,7 @@ You can also hide/show the axes on the plot and force a plot update.
         self.axis_buttons = pn.Row(self.xplus, self.yplus, self.zplus, margin=0)
 
         self.bounds_card = pmui.Card(
+            pmui.Typography("Bounds along the axes"),
             pmui.Column(
                 pmui.Row(
                     self.x0_inp,
@@ -229,7 +234,11 @@ You can also hide/show the axes on the plot and force a plot update.
         )
 
         self.axes_card = pmui.Card(
-            pmui.Column(self.axis_buttons, pn.Row(u, v, margin=0), margin=0),
+            pmui.Column(
+            pmui.Typography("2D plot plane vectors"),
+            self.axis_buttons, 
+            pn.Row(u, v, margin=0), 
+            margin=0),
             title="Axes vectors",
             width=300,
             margin=0,
@@ -263,8 +272,9 @@ You can also hide/show the axes on the plot and force a plot update.
             Viewable to display in the extension tab
         """
         return pmui.Column(
+            pmui.Typography("Hide/show axis"),
             self.hide_show_button,
-            self.w_inp, 
+            self.w_col, 
             self.bounds_card,
             self.axes_card,
             margin=0

@@ -2,6 +2,7 @@
 from bokeh.plotting import curdoc
 
 import panel as pn
+import panel_material_ui as pmui
 from typing import TYPE_CHECKING
 
 from scivianna.extension.extension import Extension
@@ -79,6 +80,7 @@ This extension allows you run coupling simulations.
             Viewable to display in the extension tab
         """
         return pn.Column(
+                pmui.Typography("Start/pause real time display"),
                 self.layout_param_card,
                 margin=(0, 0, 10, 10),
             )
