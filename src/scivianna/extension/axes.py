@@ -264,8 +264,8 @@ You can also hide/show the axes on the plot and force a plot update.
         """
         return pmui.Column(
             self.hide_show_button,
-            self.bounds_card,
             self.w_inp, 
+            self.bounds_card,
             self.axes_card,
             margin=0
         )

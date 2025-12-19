@@ -101,6 +101,13 @@ class Panel2D(VisualizationPanel):
 
         super().__init__(slave, name, extensions.copy())
 
+        self.u = X
+        self.v = Y
+
+        self.u_range = (0., 1.)
+        self.v_range = (0., 1.)
+        self.w_value = 0.5
+
         # 
         #   First plot on XY basic range
         #
@@ -109,13 +116,6 @@ class Panel2D(VisualizationPanel):
             extension.on_field_change(MESH)
 
         self.colormap = "BuRd"
-
-        self.u = X
-        self.v = Y
-
-        self.u_range = (0., 1.)
-        self.v_range = (0., 1.)
-        self.w_value = 0.5
 
         data_ = self.compute_fn(self.u, self.v, self.u_range[0], self.v_range[0], self.u_range[1], self.v_range[1], self.w_value)
 
@@ -516,6 +516,7 @@ class Panel2D(VisualizationPanel):
         """
         self.__data_to_update = True
 
+        update_axes = False
         if u is not None:
             if not type(u) in [tuple, list, np.ndarray]:
                 raise TypeError(
@@ -523,7 +524,9 @@ class Panel2D(VisualizationPanel):
                 )
             if not len(u) == 3:
                 raise ValueError(f"u must be of length 3, found {len(u)}")
-            self.u = u
+            if not np.array_equal(u, self.u):
+                self.u = u
+                update_axes = True
 
         if v is not None:
             if not type(v) in [tuple, list, np.ndarray]:
@@ -532,40 +535,70 @@ class Panel2D(VisualizationPanel):
                 )
             if not len(v) == 3:
                 raise ValueError(f"v must be of length 3, found {len(v)}")
-            self.v = v
+            if not np.array_equal(v, self.v):
+                self.v = v
+                update_axes = True
 
+        if update_axes:
+            for extension in self.extensions:
+                extension.on_frame_change(self.u, self.v)
+        
+        update_range = False
         if u_min is not None:
             if not type(u_min) in [float, int]:
                 raise TypeError(f"u_min must be a number, found type {type(u_min)}")
-            self.__new_data["x0"] = u_min
+            if u_min != self.u_range[0]:
+                self.__new_data["x0"] = u_min
+                update_range = True
+        else:
+            u_min = self.u_range[0]
+
         if v_min is not None:
             if not type(v_min) in [float, int]:
                 raise TypeError(f"v_min must be a number, found type {type(v_min)}")
-            self.__new_data["y0"] = v_min
+            if v_min != self.v_range[0]:
+                self.__new_data["y0"] = v_min
+                update_range = True
+        else:
+            v_min = self.v_range[0]
+
         if u_max is not None:
             if not type(u_max) in [float, int]:
                 raise TypeError(f"u_max must be a number, found type {type(u_max)}")
-            self.__new_data["x1"] = u_max
+            if u_max != self.u_range[1]:
+                self.__new_data["x1"] = u_max
+                update_range = True
+        else:
+            u_max = self.u_range[1]
+
         if v_max is not None:
             if not type(v_max) in [float, int]:
                 raise TypeError(f"v_max must be a number, found type {type(v_max)}")
-            self.__new_data["y1"] = v_max
+            if v_max != self.v_range[1]:
+                self.__new_data["y1"] = v_max
+                update_range = True
+        else:
+            v_max = self.v_range[1]
+
 
         if w is not None:
             if not type(w) in [float, int]:
                 raise TypeError(f"w must be a number, found type {type(w)}")
-            self.w_value = w
+            if w != self.w_value:
+                self.w_value = w
+                update_range = True
 
-        if not any(e is None for e in [u_min, u_max, v_min, v_max]):
+        if update_range:
             self.u_range = (u_min, u_max)
             self.v_range = (v_min, v_max)
 
             for extension in self.extensions:
                 extension.on_range_change(self.u_range, self.v_range, self.w_value)
 
-        self.marked_to_recompute = True
-        if pn.state.curdoc is not None:
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+        if update_axes or update_range:
+            self.marked_to_recompute = True
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
     def set_field(self, field_name: str):
         """Updates the plotted field

@@ -65,11 +65,16 @@ This extension allows defining the medcoupling field display parameters.
 
         self.iconsize = "1.0em"
 
+        self.field_name = None
+        self.field_iterations = None
+
         self.iteration_input = pmui.IntInput(
             label = "Iteration",
             value=-1,
             description="Med field iteration.",
-            width=280
+            width=280,
+            color="primary",
+            sx={}
         )
         self.order_input = pmui.IntInput(
             label = "Order",
@@ -77,15 +82,166 @@ This extension allows defining the medcoupling field display parameters.
             description="Med field order.",
             width=280
         )
+        self.slider_w = pmui.FloatSlider(
+            label = "W coordinate", 
+            visible = False,
+            width=280
+        )
 
-        self.iteration_input.param.watch(self.panel.recompute, "value")
-        self.order_input.param.watch(self.panel.recompute, "value")
+        self.valid = True
 
-    def provide_options(self):
+        self.iteration_input.param.watch(self.recompute, "value")
+        self.order_input.param.watch(self.recompute, "value")
+        self.slider_w.param.watch(self.on_slider_change, "value")
+
+        self.u = (1, 0, 0)
+        self.v = (0, 1, 0)
+
+        self.u_bounds = (0., 1.)
+        self.v_bounds = (0., 1.)
+
+        self.w = 0.5
+
+        self.on_file_load(None, None)
+
+    def provide_options(self) -> Dict[str, float]:
+        """Provide the medcoupling interface options
+
+        Returns
+        -------
+        Dict[str, float]
+            MED options
+        """
         return {
             "Iteration":self.iteration_input.value,
             "Order":self.order_input.value,
         }
+
+    def on_field_change(self, field_name: str):
+        """Saves field name and checks order/iteration values
+
+        Parameters
+        ----------
+        field_name : str
+            New displayed field
+        """
+        self.field_name = field_name
+        self.check_int_inputs()
+    
+    def on_file_load(self, file_path, file_key):
+        """Catches the file load event to update its data
+        """
+        self.field_iterations = self.slave.call_custom_function("get_iterations", {})
+        self.check_int_inputs()
+        self.update_slider_range()
+
+    def on_slider_change(self, event):
+        """Updates the panel w coordinate on slider change
+        """
+        if self.slider_w.value != self.w:
+            self.panel.set_coordinates(w=self.slider_w.value)
+
+    @pn.io.hold()
+    def update_slider_range(self,):
+        """Update slider bounds based on the mesh bounding box
+        """
+        x_range, y_range, z_range = self.slave.call_custom_function("get_bounding_box", {})
+
+        w = np.cross(self.u, self.v).astype(float)
+        w /= np.linalg.norm(w).astype(float)
+
+        min_vect = np.array([x_range[0], y_range[0], z_range[0]])
+        max_vect = np.array([x_range[1], y_range[1], z_range[1]])
+
+        min_w = np.dot(w, min_vect)
+        max_w = np.dot(w, max_vect)
+
+        if self.slider_w.start != min(min_w, max_w):
+            self.slider_w.start = min(min_w, max_w)
+
+        if self.slider_w.end != max(min_w, max_w):
+            self.slider_w.end = max(min_w, max_w)
+
+        if self.w != self.slider_w.value:
+            self.slider_w.value = self.w
+
+        if not self.slider_w.visible:
+            self.slider_w.visible = True
+
+    def on_range_change(self, u_bounds: Tuple[float, float], v_bounds: Tuple[float, float], w_value: float):
+        """Saves the frame bounds on both coordinates and the normal coordinate
+
+        Parameters
+        ----------
+        u_bounds : Tuple[float, float]
+            Bounds on the horizontal axis
+        v_bounds : Tuple[float, float]
+            Bounds on the vertical axis
+        w_value : float
+            Normal axis coordinate
+        """
+        self.u_bounds = u_bounds
+        self.v_bounds = v_bounds
+        self.w = w_value
+
+        self.update_slider_range()
+
+    def on_frame_change(self, u_vector, v_vector):
+        """Saves new u and v vectors
+
+        Parameters
+        ----------
+        u_vector : np.ndarray
+            Horizontal vector
+        v_vector : np.ndarray
+            Vertical vector
+        """
+        self.u = np.array(u_vector)
+        self.v = np.array(v_vector)
+
+        self.update_slider_range()
+
+    @pn.io.hold()
+    def check_int_inputs(self,):
+        """Checks iteration and order intinputs values
+        """
+        if self.field_name is None or (self.field_iterations is None or self.field_name not in self.field_iterations) :
+            return
+        
+        tup = (self.iteration_input.value, self.order_input.value)
+
+        if tup in self.field_iterations[self.field_name]:
+            self.iteration_input.color = "primary"
+            self.order_input.color = "primary"
+
+            self.iteration_input.sx = {}
+            self.order_input.sx = {}
+        else:
+            # https://panel-material-ui.holoviz.org/how_to/customize.html
+            pn.state.notifications.error("Iteration/order couple not valid, see console for available values.")
+            print(f"Available iteration/order values for field '{self.field_name}': {self.field_iterations[self.field_name]}")
+
+            self.iteration_input.color = "error"
+            self.order_input.color = "error"
+            self.iteration_input.sx = {
+                # Target the notched outline (border) of the MUI OutlinedInput
+                "& .MuiOutlinedInput-notchedOutline": {
+                    "borderColor": "red",
+                }
+            }
+            self.order_input.sx = {
+                # Target the notched outline (border) of the MUI OutlinedInput
+                "& .MuiOutlinedInput-notchedOutline": {
+                    "borderColor": "red",
+                }
+            }
+
+    def recompute(self, *args, **kwargs):
+        """Recompute event on intinput changes
+        """
+        self.check_int_inputs()
+        if self.valid:
+            self.panel.recompute()
     
     def make_gui(self,) -> pn.viewable.Viewable:
         """Returns a panel viewable to display in the extension tab.
@@ -98,6 +254,7 @@ This extension allows defining the medcoupling field display parameters.
         return pmui.Column(
             self.iteration_input,
             self.order_input,
+            self.slider_w,
             margin=0
         )
 
@@ -274,6 +431,12 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             cell_ids = list(range(mesh.getNumberOfCells()))
         elif mesh_dimension == 3:
             vec = [float(e) for e in np.cross(u, v)]
+
+            if any([u_min is None, v_min is None, w_value is None]):
+                print(f"u_min : {u_min}")
+                print(f"v_min : {v_min}")
+                print(f"w_value : {w_value}")
+
             origin = [u_min * u[i] + v_min * v[i] + w_value * vec[i] for i in range(3)]
             
             try:
@@ -521,6 +684,25 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             IntOption("Order", -1, "MED field order."),
         ]
 
+    def get_iterations(self,) -> Dict[str, List[Tuple[int, int]]]:
+        """Returns the fields iterations
+
+        Returns
+        -------
+        Dict[str, List[Tuple[int, int]]]
+            Iterations/orders per field
+        """
+        return self.fields_iterations
+
+    def get_bounding_box(self,)-> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
+        """Returns the mesh bounding box
+
+        Returns
+        -------
+        Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]
+            Mesh bounding box : ((minx, maxx), (miny, maxy), (minz, maxz))
+        """
+        return self.mesh.getBoundingBox()
 
 if __name__ == "__main__":
     from scivianna.slave import ComputeSlave
