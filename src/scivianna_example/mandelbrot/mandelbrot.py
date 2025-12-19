@@ -260,13 +260,10 @@ class MandelBrotInterface(Geometry2DGrid):
         """
         if value_label == MATERIAL:
             dict_compo = {v: v for v in cells}
-            print(MATERIAL, "returning", dict_compo)
             return dict_compo
 
         if value_label == MESH:
             dict_compo = {v: np.nan for v in cells}
-            print(MESH, "returning", dict_compo)
-
             return dict_compo
 
         raise NotImplementedError(
@@ -325,10 +322,14 @@ def make_panel(_, return_slaves=False):
     slave = ComputeSlave(MandelBrotInterface)
     panel = Panel2D(slave, name="Mandelbrot polygons")
     panel.update_event = UpdateEvent.RANGE_CHANGE
+    panel.set_field(MATERIAL)
+    panel.set_colormap("BuRd")
 
     slave_2 = ComputeSlave(MandelBrotInterface)
     panel_2 = Panel2D(slave_2, name="Mandelbrot grid", display_polygons=False)
     panel_2.update_event = UpdateEvent.RANGE_CHANGE
+    panel_2.set_field(MATERIAL)
+    panel_2.set_colormap("BuRd")
 
     layout = SplitLayout(
         SplitItem(panel, panel_2, SplitDirection.VERTICAL),

@@ -159,12 +159,8 @@ class Bokeh2DGridPlotter(Plotter2D):
 
         self.figure = Figure(
             name="plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             match_aspect=True,
-            # aspect_ratio="auto",
-            # aspect_scale = 1.,
-            # title = self.name,
             toolbar_location=None,
         )
 
@@ -416,8 +412,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         return pn.pane.Bokeh(
             self.figure,
             name=GEOMETRY,
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             margin=0,
             styles={"border": "2px solid lightgray"},
         )

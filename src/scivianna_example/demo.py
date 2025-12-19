@@ -2,10 +2,10 @@ from scivianna_example.europe_grid.europe_grid import (
     make_europe_panel as europe_example,
 )
 import scivianna_example.europe_grid.europe_grid as europe_grid
-from scivianna_example.medcoupling.split_item_example import (
+from scivianna_example.med.split_item_example import (
     get_panel as medcoupling_example,
 )
-import scivianna_example.medcoupling.split_item_example as split_item_example
+import scivianna_example.med.split_item_example as split_item_example
 
 from scivianna_example.mandelbrot.mandelbrot import (
     make_panel as mandelbrot_example,
@@ -40,28 +40,20 @@ def make_demo(return_slaves=False) -> pmui.Page:
 
     with open(Path(mandelbrot.__file__).parent / "description.md", "r") as f:
         mandelbrot_with_description = pmui.Row(
-            mandelbrot_panel.main_frame,
-            pmui.Typography(f.read(), width=300),
-            sizing_mode="stretch_both",
+            mandelbrot_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
     tabs = pmui.Tabs(
         ("Europe example", europe_with_description),
         ("Medcoupling example", medcoupling_with_description),
         ("Mandelbrot example", mandelbrot_with_description),
-    )
-
-    page = pmui.Page(
-        main=[tabs],
-        sidebar_variant="temporary",
-        sidebar_open=False,
-        title="Scivianna demonstrator",
+        sizing_mode = "stretch_both"
     )
 
     if return_slaves:
-        return page, slaves_medcoupling + slaves_europe + slaves_mandelbrot
+        return tabs, slaves_medcoupling + slaves_europe + slaves_mandelbrot
     else:
-        return page
+        return tabs
 
 
 if __name__ == "__main__":

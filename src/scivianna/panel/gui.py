@@ -53,7 +53,12 @@ class GUI:
             margin=0
         )
 
-        self.drawer = pmui.Drawer(self.drawer_column, size=300, variant="persistent")
+        self.drawer = pmui.Drawer(
+            self.drawer_column, 
+            size=300, 
+            variant="persistent",
+            sizing_mode="stretch_height"
+        )
 
         self.open_button.on_click(self.open_close_drawer)
         self.close_button.on_click(self.open_close_drawer)

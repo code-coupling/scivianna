@@ -46,7 +46,7 @@ The process threads structure of a coupling with the visualiser works as follow:
 
 from typing import List, Tuple
 
-from icoco.utils import medcoupling  # type: ignore
+import medcoupling  # type: ignore
 from icoco.exception import WrongContext, WrongArgument
 from icoco.problem import Problem, ValueType
 

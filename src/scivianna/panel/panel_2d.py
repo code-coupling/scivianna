@@ -144,7 +144,10 @@ class Panel2D(VisualizationPanel):
         self.__data_to_update: bool = False
         self.__new_data = {}
 
-        pn.state.on_session_created(self.recompute)
+        try:
+            pn.state.on_session_created(self.recompute)
+        except:
+            print("Could not create a session creation event")
 
     @pn.io.hold()
     def async_update_data(
@@ -477,8 +480,7 @@ class Panel2D(VisualizationPanel):
             extension.on_range_change(self.u_range, self.v_range, w_val)
 
         if w_val != self.w_value:
-            # TODO
-            # self.fig_overlay.show_temporary_message(f"w updating to {w_val}", 1000)
+            pn.state.notifications.info(f"w updating to {w_val} in {self.name}", 1000)
             self.__new_data["w"] = w_val
             self.__data_to_update = True
 

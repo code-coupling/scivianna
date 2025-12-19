@@ -291,9 +291,11 @@ def make_europe_panel(_, return_slaves: bool = False) -> SplitLayout:
 
     map_panel = Panel2D(slave, name="Map")
     map_panel.sync_field = True
+    map_panel.set_field("solar_pv")
     line_panel = Panel1D(slave_result, name="Plot")
     line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
     line_panel.sync_field = True
+    line_panel.set_field("solar_pv")
 
     split_panel = SplitLayout(
         SplitItem(
