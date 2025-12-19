@@ -168,7 +168,8 @@ You can also hide/show the axes on the plot and force a plot update.
             to_update = {"u0": 0, "u1": 1, "u2": 0, "v0": 0, "v1": 0, "v2": 1}
             self.__new_data = {**self.__new_data, **to_update}
             self.axes_updated = True
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
         # Attach the CB to the button
         self.xplus = pmui.Button(name="X+", button_type="success", width=50)
@@ -185,7 +186,8 @@ You can also hide/show the axes on the plot and force a plot update.
             to_update = {"u0": 1, "u1": 0, "u2": 0, "v0": 0, "v1": 0, "v2": 1}
             self.__new_data = {**self.__new_data, **to_update}
             self.axes_updated = True
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
         # Attach the CB to the button
         self.yplus = pmui.Button(name="Y+", button_type="success", width=50)
@@ -202,7 +204,8 @@ You can also hide/show the axes on the plot and force a plot update.
             to_update = {"u0": 1, "u1": 0, "u2": 0, "v0": 0, "v1": 1, "v2": 0}
             self.__new_data = {**self.__new_data, **to_update}
             self.axes_updated = True
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
         # Attach the CB to the button
         self.zplus = pmui.Button(name="Z+", button_type="success", width=50)
@@ -296,7 +299,8 @@ You can also hide/show the axes on the plot and force a plot update.
             self.__new_data["y0"], self.__new_data["y1"] = v_bounds
             self.__new_data["w"] = w_value
             
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
     def on_frame_change(self, u_vector, v_vector):
         u, v = self.get_uv()
@@ -304,7 +308,8 @@ You can also hide/show the axes on the plot and force a plot update.
             self.__new_data["u0"], self.__new_data["u1"], self.__new_data["u2"] = u_vector
             self.__new_data["v0"], self.__new_data["v1"], self.__new_data["v2"] = v_vector
 
-            pn.state.curdoc.add_next_tick_callback(self.async_update_data)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
     async def async_update_data(self,):
         if self.__new_data != {}:
