@@ -12,7 +12,6 @@ from scivianna.panel.panel_2d import Panel2D
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 from scivianna.slave import ComputeSlave
 from scivianna.panel.visualisation_panel import VisualizationPanel
-from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.data.data2d import Data2D
 from scivianna.interface.option_element import IntOption, OptionElement

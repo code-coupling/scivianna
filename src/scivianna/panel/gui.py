@@ -21,9 +21,9 @@ class GUI:
         extensions : List[Extension]
             List of extensions to add to the GUI
         """
-        s = "6em"
-        button_margin_x = 4
-        button_margin_y = 10
+        s = "10em"
+        button_margin_x = 2
+        button_margin_y = 5
         self.button_margin = (button_margin_x, button_margin_y)
 
         self.extensions = extensions
