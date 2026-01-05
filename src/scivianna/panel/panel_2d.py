@@ -470,8 +470,9 @@ class Panel2D(VisualizationPanel):
         if w_val != self.w_value:
             pn.state.notifications.info(f"w updating to {w_val} in {self.name}", 1000)
             self.w_value = w_val
-            self.__data_to_update = True
+            self.plotter.set_axes(self.u, self.v, self.w_value)
 
+            self.__data_to_update = True
             self.marked_to_recompute = True
             pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
@@ -582,6 +583,7 @@ class Panel2D(VisualizationPanel):
                 extension.on_range_change(self.u_range, self.v_range, self.w_value)
 
         if update_axes or update_range:
+            self.plotter.set_axes(self.u, self.v, self.w_value)
             self.marked_to_recompute = True
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)

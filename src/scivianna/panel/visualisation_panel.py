@@ -239,4 +239,4 @@ class VisualizationPanel(pn.viewable.Viewer):
         self.figure.styles = {"border": f"2px solid {color}"}
 
     def __panel__(self,):
-        return pn.Row(self.gui_panel, self.figure, margin=0, sizing_mode="stretch_width")
+        return pn.Row(self.gui_panel, self.figure, margin=0, sizing_mode="stretch_both")

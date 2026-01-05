@@ -138,6 +138,7 @@ class GUI:
                 margin=0,
             ),
             margin=0,
+            sizing_mode="stretch_height",
         )
     
     def add_extension(self, extension: Extension):

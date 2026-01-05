@@ -1,3 +1,5 @@
+from scivianna.panel.demo import Demonstrator
+import scivianna_example
 from scivianna_example.europe_grid.europe_grid import (
     make_europe_panel as europe_example,
 )
@@ -43,17 +45,33 @@ def make_demo(return_slaves=False) -> pmui.Page:
             mandelbrot_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
-    tabs = pmui.Tabs(
-        ("Europe example", europe_with_description),
-        ("Medcoupling example", medcoupling_with_description),
-        ("Mandelbrot example", mandelbrot_with_description),
-        sizing_mode = "stretch_both"
-    )
+    description_file = Path(scivianna_example.__file__).parent / "demo_description.md"
+
+    image = pn.pane.Image(Path(scivianna_example.__file__).parent / "image/tuto_visu_serma.png", sizing_mode = "stretch_both")
+    
+    with open(description_file, 'r') as f:
+        help = pn.Column(pmui.Typography(f.read()), image, sizing_mode = "stretch_both")
+
+    guis = {
+        "Help": help,
+        "Europe example": europe_with_description,
+        "Medcoupling example": medcoupling_with_description,
+        "Mandelbrot example": mandelbrot_with_description,
+    }
+
+    icons = {
+        "Help": "question_mark",
+        "Europe example": "line_axis",
+        "Medcoupling example": "dashboard",
+        "Mandelbrot example": "grid_4x4",
+    }
+
+    demo = Demonstrator(guis, icons)
 
     if return_slaves:
-        return tabs, slaves_medcoupling + slaves_europe + slaves_mandelbrot
+        return demo, slaves_medcoupling + slaves_europe + slaves_mandelbrot
     else:
-        return tabs
+        return demo
 
 
 if __name__ == "__main__":
