@@ -326,18 +326,6 @@ class Panel2D(VisualizationPanel):
         if profile_time:
             st = time.time()
 
-        # TODO
-        # res_x, res_y = self.plotter.get_resolution()
-
-        # if res_x is None:
-        #     res_x = steps
-        #     res_y = steps
-
-        # elif steps < res_y:
-        #     res_x = int(steps * res_x / res_y)
-        #     res_y = steps
-
-        # num_levels = num_levels_inp.value
         u, v = self.get_uv()
 
         print(
@@ -481,7 +469,7 @@ class Panel2D(VisualizationPanel):
 
         if w_val != self.w_value:
             pn.state.notifications.info(f"w updating to {w_val} in {self.name}", 1000)
-            self.__new_data["w"] = w_val
+            self.w_value = w_val
             self.__data_to_update = True
 
             self.marked_to_recompute = True
@@ -550,7 +538,6 @@ class Panel2D(VisualizationPanel):
             if not type(u_min) in [float, int]:
                 raise TypeError(f"u_min must be a number, found type {type(u_min)}")
             if u_min != self.u_range[0]:
-                self.__new_data["x0"] = u_min
                 update_range = True
         else:
             u_min = self.u_range[0]
@@ -559,7 +546,6 @@ class Panel2D(VisualizationPanel):
             if not type(v_min) in [float, int]:
                 raise TypeError(f"v_min must be a number, found type {type(v_min)}")
             if v_min != self.v_range[0]:
-                self.__new_data["y0"] = v_min
                 update_range = True
         else:
             v_min = self.v_range[0]
@@ -568,7 +554,6 @@ class Panel2D(VisualizationPanel):
             if not type(u_max) in [float, int]:
                 raise TypeError(f"u_max must be a number, found type {type(u_max)}")
             if u_max != self.u_range[1]:
-                self.__new_data["x1"] = u_max
                 update_range = True
         else:
             u_max = self.u_range[1]
@@ -577,7 +562,6 @@ class Panel2D(VisualizationPanel):
             if not type(v_max) in [float, int]:
                 raise TypeError(f"v_max must be a number, found type {type(v_max)}")
             if v_max != self.v_range[1]:
-                self.__new_data["y1"] = v_max
                 update_range = True
         else:
             v_max = self.v_range[1]
