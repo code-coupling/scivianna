@@ -31,7 +31,7 @@ def get_panel():
     med_3.set_coordinates(u=Y, v=Z)
 
     for m in [med_1, med_2, med_3]:
-        visualisation_panels[m.name] = m
+        visualisation_panels[m.panel_name] = m
         
     bounds_x = {
         "MEDCoupling visualizer XY": (0, 5),

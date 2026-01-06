@@ -107,15 +107,15 @@ class GenericLayout:
             panel.provide_field_change_callback(self.field_change_callback)
 
             # 2: assuming the two first are the button to open and close the tab
-            self.button_columns[panel.name] = [b[0] for b in panel.gui.buttons]
-            self.side_bars[panel.name] = [b[1] for b in panel.gui.buttons]
+            self.button_columns[panel.panel_name] = [b[0] for b in panel.gui.buttons]
+            self.side_bars[panel.panel_name] = [b[1] for b in panel.gui.buttons]
             
-            for button, side_bar in zip(self.button_columns[panel.name], self.side_bars[panel.name]):
+            for button, side_bar in zip(self.button_columns[panel.panel_name], self.side_bars[panel.panel_name]):
                 self.gui.register_new_extension(button, side_bar)
 
             panel.gui_panel.visible = False
 
-            panel.figure.button.on_click(functools.partial(self.button_change_to_frame, frame_name=panel.name))
+            panel.figure.button.on_click(functools.partial(self.button_change_to_frame, frame_name=panel.panel_name))
         else:
             raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
         
@@ -411,3 +411,14 @@ class GenericLayout:
         self.gui.active_extension = self.gui.buttons[0]
 
         self.set_to_frame(frame_name)
+
+    def __panel__(self,):
+        """Returns the panel to display
+        """
+        return self.main_frame
+    
+    def show(self, *args, **kwargs):
+        return self.main_frame.show(*args, **kwargs)
+
+    def servable(self, *args, **kwargs):
+        return self.main_frame.servable(*args, **kwargs)

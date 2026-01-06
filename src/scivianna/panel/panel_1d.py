@@ -46,7 +46,7 @@ class Panel1D(VisualizationPanel):
         
         super().__init__(slave, name, extensions.copy())
 
-        self.copy_index = 0
+        self.copy_index = 1
         
         self.fields = slave.get_labels()
 
@@ -163,24 +163,11 @@ class Panel1D(VisualizationPanel):
         VisualizationPanel
             Copy of the visualisation panel
         """
-
-        new_index = self.copy_index = 1
-
-        if keep_name:
-            new_name = self.name
-        else:
-            if new_index == 1:
-                new_name = f"{self.name} - 2"
-            else:
-                new_name = self.name.replace(
-                    f" - {new_index + 1}", f" - {new_index + 2}"
-                )
-
         new_visualiser = Panel1D(
-            new_name,
+            self.panel_name,
             extensions=[e for e in self.extension_classes]
         )
-        new_visualiser.copy_index = new_index
+        new_visualiser.copy_index = self.copy_index
 
         return new_visualiser
 

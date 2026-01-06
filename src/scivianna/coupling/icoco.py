@@ -136,7 +136,7 @@ class GridStackProblem(Problem):
         #             slave.reset()
         #             slave.read_file(file_path, key)
 
-        #             new_panel = VisualizationPanel(slave, name=panel.name)
+        #             new_panel = VisualizationPanel(slave, name=panel.panel_name)
         #             self.gridstack.set_panel(panel_name, new_panel)
         #             new_panel.field_color_selector.options = list(set(slave.get_labels()))
         #             new_panel.field_color_selector.value = [new_panel.field_color_selector.options[-1]]

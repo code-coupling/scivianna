@@ -469,7 +469,8 @@ class Bokeh2DPolygonPlotter(Plotter2D):
     def send_event(self, callback):
         # If the mouse is hovered while a range update triggered update is done, the self.source_polygons.data length is updated faster than the data coming from the mouse.
         #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
-        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[CELL_NAMES]):
+        if "index" in self.source_mouse.data and CELL_NAMES in self.source_polygons.data and \
+            int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[CELL_NAMES]):
             callback(
                 screen_location=(
                     self.source_mouse.data["sx"][0],

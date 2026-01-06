@@ -12,25 +12,6 @@ from scivianna.constants import GEOMETRY
     Generic functions for every codes
 """
 
-
-def _get_panel(panel: VisualizationPanel, title="") -> pn.viewable.Viewable:
-    """Generic function to return a displayable panel
-
-    Parameters
-    ----------
-    panel : VisualizationPanel
-        Visualisation panel to display
-    title : str, optional
-        Panel main frame title, by default ""
-
-    Returns
-    -------
-    pn.viewable.Viewable
-        Displayable panel
-    """
-
-    return panel
-
 def _show_panel(panel: VisualizationPanel, title: str = ""):
     """Display the holoviz panel associated to this compute slave.
 
@@ -95,7 +76,7 @@ def _serve_panel(
 """
 
 
-def get_med_panel(geo: str, title="") -> VisualizationPanel:
+def get_med_panel(geo: str, title="MED") -> VisualizationPanel:
     """Get the visualisation panel for a MEDCoupling .med file path
 
     Parameters
@@ -127,6 +108,16 @@ def get_med_panel(geo: str, title="") -> VisualizationPanel:
 
     return Panel2D(slave, name=title)
 
+def get_med_layout(geo, title: str = "MED Field visualizer"):
+    """Opens a server on localhost to open in a browser
+
+    Parameters
+    ----------
+    geo : str
+        Geometry to display
+    """
+    from scivianna.layout.split import SplitLayout
+    return SplitLayout(get_med_panel(geo, title))
 
 def show_med_geometry(geo, title: str = "MED Field visualizer"):
     """Opens a server on localhost to open in a browser
@@ -136,7 +127,7 @@ def show_med_geometry(geo, title: str = "MED Field visualizer"):
     geo : str
         Geometry to display
     """
-    _show_panel(get_med_panel(geo), title=title)
+    _show_panel(get_med_layout(geo), title=title)
 
 
 def serve_med_geometry(geo, title: str = "MED Field visualizer"):
@@ -147,7 +138,7 @@ def serve_med_geometry(geo, title: str = "MED Field visualizer"):
     geo : str
         Geometry to display
     """
-    _serve_panel(get_panel_function=get_med_panel, slave_input=geo, title=title)
+    _serve_panel(get_panel_function=get_med_layout, slave_input=geo, title=title)
 
 
 def get_med_visualizer(geo, title="") -> pn.viewable.Viewable:
@@ -158,5 +149,5 @@ def get_med_visualizer(geo, title="") -> pn.viewable.Viewable:
     geo : str
         Geometry to display
     """
-    return _get_panel(get_med_panel(geo, title=title))
+    return get_med_panel(geo, title=title)
 

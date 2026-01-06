@@ -147,7 +147,7 @@ class Panel2D(VisualizationPanel):
         try:
             pn.state.on_session_created(self.recompute)
         except:
-            print("Could not create a session creation event")
+            pass
 
     @pn.io.hold()
     def async_update_data(
@@ -249,7 +249,7 @@ class Panel2D(VisualizationPanel):
 
         if computed_data is None:
             print(
-                f"\n\n Got None from computed data on {self.name}, returning the past values.\n\n"
+                f"\n\n Got None from computed data on {self.panel_name}, returning the past values.\n\n"
             )
             return None
 
@@ -329,7 +329,7 @@ class Panel2D(VisualizationPanel):
         u, v = self.get_uv()
 
         print(
-            f"{self.name} - Recomputing for axes {u}, {v}, at range : {self.u}, {self.v}, ({self.w_value}), with field {self.displayed_field}"
+            f"{self.panel_name} - Recomputing for axes {u}, {v}, at range : {self.u}, {self.v}, ({self.w_value}), with field {self.displayed_field}"
         )
 
         data = self.compute_fn(
@@ -381,26 +381,21 @@ class Panel2D(VisualizationPanel):
         VisualizationPanel
             Copy of the visualisation panel
         """
-
-        new_index = self.copy_index = 1
-
-        if keep_name:
-            new_name = self.name
-        else:
-            if new_index == 1:
-                new_name = f"{self.name} - 2"
-            else:
-                new_name = self.name.replace(
-                    f" - {new_index + 1}", f" - {new_index + 2}"
-                )
-
         new_visualiser = Panel2D(
-            slave=self.slave, 
-            name=new_name, 
+            slave=self.slave.duplicate(), 
+            name=self.panel_name, 
             display_polygons=self.display_polygons, 
             extensions=[e for e in self.extension_classes]
         )
-        new_visualiser.copy_index = new_index
+        new_visualiser.copy_index = self.copy_index
+
+        if isinstance(self.update_event, list):
+            new_visualiser.update_event = self.update_event.copy()
+        else:
+            new_visualiser.update_event = self.update_event
+
+        new_visualiser.set_field(self.displayed_field)
+        new_visualiser.set_colormap(self.colormap)
 
         return new_visualiser
 
@@ -468,7 +463,7 @@ class Panel2D(VisualizationPanel):
             extension.on_range_change(self.u_range, self.v_range, w_val)
 
         if w_val != self.w_value:
-            pn.state.notifications.info(f"w updating to {w_val} in {self.name}", 1000)
+            pn.state.notifications.info(f"w updating to {w_val} in {self.panel_name}", 1000)
             self.w_value = w_val
             self.plotter.set_axes(self.u, self.v, self.w_value)
 

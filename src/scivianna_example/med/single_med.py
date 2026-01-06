@@ -1,5 +1,6 @@
 
 from scivianna.enums import UpdateEvent
+from scivianna.layout.split import SplitLayout
 from scivianna.panel.visualisation_panel import (
     VisualizationPanel
 )
@@ -13,10 +14,10 @@ def get_panel(*args, return_slaves = False, **kwargs) -> VisualizationPanel:
     med_1.update_event = UpdateEvent.CLIC
 
     if return_slaves:
-        return med_1, [med_1.get_slave()]
+        return SplitLayout(med_1), [med_1.get_slave()]
     else:   
-        return med_1
+        return SplitLayout(med_1)
     
 if __name__ == "__main__":
-    get_panel().show()
-    # _serve_panel(get_panel_function=get_panel)
+    # get_panel().show()
+    _serve_panel(get_panel_function=get_panel)

@@ -19,7 +19,7 @@ pn.config.inline = True
 class VisualizationPanel(pn.viewable.Viewer):
     """Visualisation panel associated to a code."""
 
-    name: str
+    panel_name: str
     """ Panel name
     """
     slave: ComputeSlave
@@ -34,6 +34,8 @@ class VisualizationPanel(pn.viewable.Viewer):
     extensions: List[Extension]
     """ List of extensions attached to the panel
     """
+    figure: Overlay
+    """Figure in its overlay"""
 
     current_data: DataContainer
     """ Displayed data and their properties.
@@ -57,17 +59,18 @@ class VisualizationPanel(pn.viewable.Viewer):
         ----------
         slave : ComputeSlave
             ComputeSlave object to which request the plots.
-        name : str
-            Name of the panel.
+         : str
+             of the panel.
         extensions : List[Extension]
             List of extensions loaded with the visualizer.
         """
         #         
         #   Initializing attributes
         #         
-        super().__init__(name=name)
+        super().__init__()
         
-        self.copy_index = 0
+        self.panel_name = name
+        self.copy_index = 1
         self.slave = slave
         self.update_polygons = False
         """Need to update the data at the next async call"""
@@ -86,11 +89,12 @@ class VisualizationPanel(pn.viewable.Viewer):
         # 
         #   Extensions creation
         #         
-        self.extension_classes = extensions
+        self.extension_classes = extensions.copy()
         for extension in code_interface.extensions:
             if not issubclass(extension, Extension):
                 raise TypeError(f"Extension {extension} declared in {code_interface.extensions} extensions is not a subclass of {Extension}")
-            self.extension_classes.append(extension)
+            if not extension in self.extension_classes:
+                self.extension_classes.append(extension)
 
         # 
         #   Building layout
@@ -110,7 +114,7 @@ class VisualizationPanel(pn.viewable.Viewer):
         self.gui_panel = self.gui.make_panel()
 
         self.button = pmui.IconButton(icon="settings_applications", icon_size = "1em", margin=0)
-        self.title_typo = pmui.Typography("## "+self.name, margin=0)
+        self.title_typo = pmui.Typography("## "+self.panel_name, margin=0)
 
         self.figure = Overlay(
             figure = self.plotter.make_panel(),
@@ -253,3 +257,33 @@ class VisualizationPanel(pn.viewable.Viewer):
 
     def __panel__(self,):
         return pn.Row(self.gui_panel, self.figure, margin=0, sizing_mode="stretch_both")
+
+    def rename(self, name: str):
+        """Rename current panel
+
+        Parameters
+        ----------
+        name : str
+            New name
+        """
+        self.panel_name = name
+        self.title_typo.object = f"## {name}"
+
+    def get_new_name(self) -> str:
+        """Returns an new name iterating on the current one
+
+        Returns
+        -------
+        str
+            Name different from current name
+        """
+        if self.panel_name.endswith(f" - {self.copy_index}"):
+            new_name = self.panel_name.replace(
+                f" - {self.copy_index}", f" - {self.copy_index + 1}"
+                )
+        else:
+            new_name = f"{self.panel_name} - {self.copy_index + 1}"
+
+        self.copy_index += 1
+
+        return new_name

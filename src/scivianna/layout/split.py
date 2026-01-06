@@ -144,7 +144,7 @@ class SplitLayout(GenericLayout):
                 return item_2, index_2
 
         elif isinstance(item, VisualizationPanel):
-            if item.name == panel_name:
+            if item.panel_name == panel_name:
                 return item, None
         else:
             raise TypeError(
@@ -155,7 +155,7 @@ class SplitLayout(GenericLayout):
 
 
     def build_split_item(
-        self, split_item: SplitItem
+        self, split_item: Union[SplitItem, VisualizationPanel],
     ) -> Union[SplitJSVertical, SplitJSHorizontal]:
         """Converts a SplitItem object in its Viewable counterpart
 
@@ -190,7 +190,7 @@ class SplitLayout(GenericLayout):
                     margin=0,
                 )
             
-        if isinstance(split_item, VisualizationPanel):
+        elif isinstance(split_item, VisualizationPanel):
             return split_item.figure
         
         else:
@@ -218,16 +218,16 @@ class SplitLayout(GenericLayout):
             provided split_item is neither a SplitItem or a VisualizationPanel
         """
         if isinstance(split_item, SplitItem):
-            if isinstance(split_item.panel_1, VisualizationPanel) and split_item.panel_1.name == panel_name:
+            if isinstance(split_item.panel_1, VisualizationPanel) and split_item.panel_1.panel_name == panel_name:
                 split_item.panel_1 = new_panel
-            elif isinstance(split_item.panel_2, VisualizationPanel) and split_item.panel_2.name == panel_name:
+            elif isinstance(split_item.panel_2, VisualizationPanel) and split_item.panel_2.panel_name == panel_name:
                 split_item.panel_2 = new_panel
             else:
                 self.update_interface_in_split_item(panel_name, new_panel, split_item.panel_1)
                 self.update_interface_in_split_item(panel_name, new_panel, split_item.panel_2)
 
         elif isinstance(split_item, VisualizationPanel):
-            if split_item.name == panel_name:
+            if split_item.panel_name == panel_name:
                 split_item = new_panel
         else:
             raise TypeError(
@@ -250,17 +250,17 @@ class SplitLayout(GenericLayout):
         visualisation_panels : Dict[str, VisualizationPanel] = {}
         
         if isinstance(split_item, VisualizationPanel):
-            visualisation_panels[split_item.name] = split_item
+            visualisation_panels[split_item.panel_name] = split_item
         
         elif isinstance(split_item, SplitItem):
             if isinstance(split_item.panel_1, SplitItem):
                 visualisation_panels = {**visualisation_panels, **self.get_panels_dict(split_item.panel_1)}
             else:
-                visualisation_panels[split_item.panel_1.name] = split_item.panel_1
+                visualisation_panels[split_item.panel_1.panel_name] = split_item.panel_1
             if isinstance(split_item.panel_2, SplitItem):
                 visualisation_panels = {**visualisation_panels, **self.get_panels_dict(split_item.panel_2)}
             else:
-                visualisation_panels[split_item.panel_2.name] = split_item.panel_2
+                visualisation_panels[split_item.panel_2.panel_name] = split_item.panel_2
                 
         return visualisation_panels
 
@@ -292,15 +292,16 @@ class SplitLayout(GenericLayout):
         current_frame = self.current_frame
 
         new_frame = self.visualisation_panels[current_frame].duplicate()
+        new_frame.figure.show_buttons()
 
-        while new_frame.name in self.visualisation_panels:
-            new_frame.copy_index += 1
-            new_frame.name = new_frame.name.replace(
-                f" - {new_frame.copy_index + 1}", f" - {new_frame.copy_index + 2}"
-            )
+        while new_frame.panel_name in self.visualisation_panels:
+            new_frame.rename(new_frame.get_new_name())
 
-        self.visualisation_panels[new_frame.name] = new_frame
+        self.visualisation_panels[new_frame.panel_name] = new_frame
         self.register_panel(new_frame)
+
+        for panel in self.visualisation_panels:
+            print(f"{panel} - {id(self.visualisation_panels[panel])} - {self.visualisation_panels[panel].panel_name} - {self.visualisation_panels[panel].copy_index}")
 
         parent_split, split_index = self.current_split_item(
             current_frame, self.split_item
@@ -309,14 +310,14 @@ class SplitLayout(GenericLayout):
         if horizontal:
             split_item = SplitItem(
                 self.visualisation_panels[current_frame],
-                self.visualisation_panels[new_frame.name],
+                self.visualisation_panels[new_frame.panel_name],
                 SplitDirection.HORIZONTAL,
             )
 
         else:
             split_item = SplitItem(
                 self.visualisation_panels[current_frame],
-                self.visualisation_panels[new_frame.name],
+                self.visualisation_panels[new_frame.panel_name],
                 SplitDirection.VERTICAL,
             )
 

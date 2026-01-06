@@ -175,7 +175,7 @@ class GridStackLayout(GenericLayout):
             #  As disgusting as it looks, sleeping here helps the python to sychronize with the Javascript while splitting and avoir throwing an error
 
             print(
-                f"Adding object {element} : {self.visualisation_panels[element].figure.name} - {id(self.visualisation_panels[element].figure)}"
+                f"Adding object {element} : {self.visualisation_panels[element].figure.panel_name} - {id(self.visualisation_panels[element].figure)}"
             )
             if len(self.bounds_x[element]) == 0 and len(self.bounds_y[element]) == 0:
                 self.get_grid()[:, :] = self.visualisation_panels[element].figure
@@ -262,26 +262,25 @@ class GridStackLayout(GenericLayout):
                 cut_coordinate = int(0.5 * (old_x_min + old_x_max))
 
             new_frame = self.visualisation_panels[current_frame].duplicate()
-            while new_frame.name in self.visualisation_panels:
-                new_frame.copy_index += 1
-                new_frame.name = new_frame.name.replace(
-                    f" - {new_frame.copy_index + 1}",
-                    f" - {new_frame.copy_index + 2}",
-                )
+            
+            new_frame.figure.show_buttons()
 
-            new_visualisation_panels[new_frame.name] = new_frame
+            while new_frame.panel_name in self.visualisation_panels:
+                new_frame.rename(new_frame.get_new_name())
+
+            new_visualisation_panels[new_frame.panel_name] = new_frame
             self.register_panel(new_frame)
 
             if horizontal:
-                self.bounds_x[new_frame.name] = (old_x_min, old_x_max)
+                self.bounds_x[new_frame.panel_name] = (old_x_min, old_x_max)
 
                 self.bounds_y[current_frame] = (old_y_min, cut_coordinate)
-                self.bounds_y[new_frame.name] = (cut_coordinate, old_y_max)
+                self.bounds_y[new_frame.panel_name] = (cut_coordinate, old_y_max)
             else:
                 self.bounds_x[current_frame] = (old_x_min, cut_coordinate)
-                self.bounds_x[new_frame.name] = (cut_coordinate, old_x_max)
+                self.bounds_x[new_frame.panel_name] = (cut_coordinate, old_x_max)
 
-                self.bounds_y[new_frame.name] = (old_y_min, old_y_max)
+                self.bounds_y[new_frame.panel_name] = (old_y_min, old_y_max)
 
             for panel_name in self.visualisation_panels:
                 new_visualisation_panels[panel_name] = self.visualisation_panels[
