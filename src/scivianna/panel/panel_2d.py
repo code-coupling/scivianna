@@ -597,7 +597,8 @@ class Panel2D(VisualizationPanel):
             self.displayed_field = field_name
 
             # Reseting indexes to prevent weird edges
-            pn.state.curdoc.add_next_tick_callback(self.polygon_sorter.reset_indexes)
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_next_tick_callback(self.polygon_sorter.reset_indexes)
             
             for extension in self.extensions:
                 extension.on_field_change(field_name)
