@@ -2,6 +2,7 @@ from typing import Callable, List, Tuple, Type, Union
 import panel as pn
 import panel_material_ui as pmui
 
+from scivianna.component.overlay_component import Overlay
 from scivianna.data.data_container import DataContainer
 from scivianna.extension.extension import Extension
 
@@ -108,9 +109,18 @@ class VisualizationPanel(pn.viewable.Viewer):
         )
         self.gui_panel = self.gui.make_panel()
 
-        self.figure = pn.Column(self.plotter.make_panel(),
+        self.button = pmui.IconButton(icon="settings_applications", icon_size = "1em", margin=0)
+        self.title_typo = pmui.Typography("## "+self.name, margin=0)
+
+        self.figure = Overlay(
+            figure = self.plotter.make_panel(),
+            button = self.button,
+            title = self.title_typo,
             sizing_mode="stretch_both",
-            styles={"border": "2px solid lightgray"})
+            styles={"border": "2px solid lightgray"}
+        )
+        self.figure.hide_buttons()
+        
         pn.io.push_notebook(self.figure)
 
 
@@ -236,7 +246,10 @@ class VisualizationPanel(pn.viewable.Viewer):
         color : str
             HTML color
         """
-        self.figure.styles = {"border": f"2px solid {color}"}
+        if color is None:
+            self.figure.styles = {"border": "0px solid lightgray"}
+        else:
+            self.figure.styles = {"border": f"2px solid {color}"}
 
     def __panel__(self,):
         return pn.Row(self.gui_panel, self.figure, margin=0, sizing_mode="stretch_both")

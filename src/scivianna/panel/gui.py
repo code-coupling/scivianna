@@ -57,7 +57,8 @@ class GUI:
             self.drawer_column, 
             size=300, 
             variant="persistent",
-            sizing_mode="stretch_height"
+            sizing_mode="stretch_height",
+            open=False
         )
 
         self.open_button.on_click(self.open_close_drawer)
@@ -79,9 +80,9 @@ class GUI:
         for b in self.buttons:
             b[0].color = "primary"
             b[1].visible = False
-            if b == self.active_extension and self.drawer.open:
-                b[0].color = "secondary"
-                b[1].visible = True
+        if self.drawer.open:
+            self.active_extension[0].color = "secondary"
+            self.active_extension[1].visible = True
 
     @pn.io.hold()
     def change_drawer(self, _, extension: Tuple[pmui.IconButton, pn.Column]):

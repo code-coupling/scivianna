@@ -1,7 +1,8 @@
+import functools 
+from typing import Callable, Dict, List, Tuple, Type, Union
 
 import panel as pn
 import panel_material_ui as pmui
-from typing import Callable, Dict, List, Tuple, Type, Union
 
 from scivianna.enums import UpdateEvent
 from scivianna.extension.layout import LayoutExtension
@@ -87,11 +88,13 @@ class GenericLayout:
         self.gui = GUI([self.layout_extension])
 
         self.gui.drawer.param.watch(self.outline_panels, "open")
+        self.gui.drawer.param.watch(self.toggle_outlines, "open")
         
         for panel in self.visualisation_panels.values():
             self.register_panel(panel)
 
         self.change_current_frame()
+        self.toggle_outlines()
 
         self.last_hover_id = None
         """Last hovered cell to trigger change if applicable"""
@@ -111,6 +114,8 @@ class GenericLayout:
                 self.gui.register_new_extension(button, side_bar)
 
             panel.gui_panel.visible = False
+
+            panel.figure.button.on_click(functools.partial(self.button_change_to_frame, frame_name=panel.name))
         else:
             raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
         
@@ -170,8 +175,6 @@ class GenericLayout:
         for key in self.side_bars:
             for b in self.button_columns[key]:
                 b.visible = key == self.current_frame
-            for s in self.side_bars[key]:
-                s.visible = key == self.current_frame
         
         self.gui.change_drawer(None, self.gui.active_extension)
         self.outline_panels()
@@ -208,10 +211,13 @@ class GenericLayout:
         """
         colorize = self.gui.drawer.open
         for frame in self.visualisation_panels:
-            self.visualisation_panels[frame].outline_color(
-                "var(--design-primary-color, var(--panel-primary-color))" 
-                if (colorize and frame == self.current_frame) 
-                else "lightgray")
+            if colorize:
+                self.visualisation_panels[frame].outline_color(
+                    "var(--design-primary-color, var(--panel-primary-color))" 
+                    if (frame == self.current_frame) 
+                    else "lightgray")
+            else:
+                self.visualisation_panels[frame].outline_color(None)
                 
 
     def duplicate(self, horizontal: bool):
@@ -378,3 +384,28 @@ class GenericLayout:
         self.time_widget = CouplingExtension(self, None, None, None)
 
         self.gui.add_extension(self.time_widget)
+
+    @pn.io.hold()
+    def toggle_outlines(self, *args, **kwargs):
+        """Function called when the sidebar is opened or closed, edits the frames visibility.
+        """
+        for panel in self.visualisation_panels.values():
+            if self.gui.drawer.open:
+                panel.figure.show_buttons()
+            else:
+                panel.figure.hide_buttons()
+
+    def button_change_to_frame(self, event, frame_name: str):
+        """Triggers a frame change from clicking on a button
+        
+        Parameters
+        ----------
+        event : Any
+            Bokeh triggering event
+        frame_name : str
+            Frame to change to
+        """
+        # Setting the active extension to the layout which is the first in buttons as added first
+        self.gui.active_extension = self.gui.buttons[0]
+
+        self.set_to_frame(frame_name)
