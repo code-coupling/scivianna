@@ -120,7 +120,7 @@ class GenericLayout:
             raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
         
     @pn.io.hold()
-    def change_code_interface(self, code_interface: str):
+    def change_code_interface(self, event):
         """Replaces the panel to one linked to the code interface
 
         Parameters
@@ -129,7 +129,9 @@ class GenericLayout:
             Event to make the function linkable to the gridstack
         """
         current_frame = self.current_frame
-        interface_enum = list(self.available_interfaces.keys())[
+        code_interface = self.layout_extension.interface_selector.value
+        
+        interface_key = list(self.available_interfaces.keys())[
             [
                 val.value if isinstance(val, GenericInterfaceEnum) else str(val)
                 for val in self.available_interfaces.keys()
@@ -138,19 +140,19 @@ class GenericLayout:
 
         if (
             self.code_interface_to_update
-            and self.available_interfaces[interface_enum] != self.visualisation_panels[current_frame].slave.code_interface
+            and self.available_interfaces[interface_key] != self.visualisation_panels[current_frame].slave.code_interface
         ):
             print(
                 f"Updating code interface of panel {current_frame} to {code_interface}"
             )
 
             default_panel = get_interface_default_panel(
-                interface_enum, title=current_frame
+                interface_key, title=current_frame
             )
 
             if default_panel is None:
                 # Means the panel is custom and was provided by the user
-                new_slave = ComputeSlave(self.available_interfaces[interface_enum])
+                new_slave = ComputeSlave(self.available_interfaces[interface_key])
 
                 self.visualisation_panels[current_frame] = VisualizationPanel(
                     slave=new_slave, name=current_frame
