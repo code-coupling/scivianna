@@ -300,9 +300,6 @@ class SplitLayout(GenericLayout):
         self.visualisation_panels[new_frame.panel_name] = new_frame
         self.register_panel(new_frame)
 
-        for panel in self.visualisation_panels:
-            print(f"{panel} - {id(self.visualisation_panels[panel])} - {self.visualisation_panels[panel].panel_name} - {self.visualisation_panels[panel].copy_index}")
-
         parent_split, split_index = self.current_split_item(
             current_frame, self.split_item
         )

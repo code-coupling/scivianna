@@ -198,17 +198,18 @@ If a color bar is used, you can decide to center it on zero.
         )
 
         self.field_color_selector.param.watch(self.trigger_field_change, "value")
+        self.panel.param.watch(self.receive_colormap_change, "colormap")
 
         self.color_map_selector = pn.widgets.ColorMap(
             options=beautiful_color_maps,
-            visible=slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE,
             swatch_width=60,
             width_policy='max'
         )
 
         self.color_map_selector.width = self.color_map_selector.height
         self.center_colormap_on_zero_tick = pn.widgets.Checkbox(
-            name="Center color map on zero.", value=False
+            name="Center color map on zero.", value=False,
+            visible=slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE,
         )
 
 
@@ -221,8 +222,14 @@ If a color bar is used, you can decide to center it on zero.
     def trigger_field_change(self, *args, **kwargs):
         """Trigger a field change in the visualization panel
         """
-        self.color_map_selector.visible=self.slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE
+        self.center_colormap_on_zero_tick.visible=self.slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE
         self.panel.set_field(self.field_color_selector.value)
+
+    def receive_colormap_change(self, *args, **kwargs):
+        """Receive a field change from the visualization panel
+        """
+        if self.panel.colormap != self.color_map_selector.value_name:
+            self.color_map_selector.value_name = self.panel.colormap
 
     def trigger_colormap_change(self, *args, **kwargs):
         """Trigger a field change in the visualization panel

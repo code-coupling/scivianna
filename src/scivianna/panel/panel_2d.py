@@ -1,6 +1,7 @@
 from typing import Callable, List, Tuple, Type, Union
 import numpy as np
 import panel as pn
+import param
 import os
 
 from scivianna.extension.extension import Extension
@@ -54,6 +55,7 @@ class Panel2D(VisualizationPanel):
     current_data: Data2D
     """ Displayed data and their properties.
     """
+    colormap = param.String()
 
     def __init__(
             self, 
@@ -593,12 +595,12 @@ class Panel2D(VisualizationPanel):
         """
         if self.displayed_field != field_name:
             self.displayed_field = field_name
+
+            # Reseting indexes to prevent weird edges
+            pn.state.curdoc.add_next_tick_callback(self.polygon_sorter.reset_indexes)
             
             for extension in self.extensions:
                 extension.on_field_change(field_name)
-
-            # Reseting indexes to prevent weird edges
-            self.polygon_sorter.reset_indexes()
 
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.recompute)

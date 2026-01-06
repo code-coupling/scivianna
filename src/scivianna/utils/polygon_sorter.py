@@ -63,7 +63,7 @@ class PolygonSorter:
         if data.data_type == DataType.POLYGONS:
             data.polygons = [data.polygons[i] for i in self.sort_indexes]
 
-    def reset_indexes(self,):
+    def reset_indexes(self, *args, **kwargs):
         """Clears the saved sort indexes.
         """
         self.sort_indexes = None

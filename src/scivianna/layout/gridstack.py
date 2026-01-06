@@ -173,10 +173,6 @@ class GridStackLayout(GenericLayout):
 
         for element in self.visualisation_panels:
             #  As disgusting as it looks, sleeping here helps the python to sychronize with the Javascript while splitting and avoir throwing an error
-
-            print(
-                f"Adding object {element} : {self.visualisation_panels[element].figure.panel_name} - {id(self.visualisation_panels[element].figure)}"
-            )
             if len(self.bounds_x[element]) == 0 and len(self.bounds_y[element]) == 0:
                 self.get_grid()[:, :] = self.visualisation_panels[element].figure
                 self.get_grid().add_object(
