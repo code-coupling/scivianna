@@ -40,9 +40,11 @@ setup(
         "scivianna_example": [
             "c3po_coupling/*",
             "europe_grid/*",
+            "image/*.png",
             "med/*",
             "mandelbrot/*",
             "*/README.md",
+            "*.md"
         ]
     },
     keywords="visualization",
