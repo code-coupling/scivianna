@@ -6,8 +6,7 @@ from scivianna.layout.split import (
     SplitDirection,
     SplitLayout,
 )
-from scivianna.notebook_tools import get_med_panel, _make_template
-
+from scivianna.notebook_tools import get_med_panel
 
 
 def get_panel() -> SplitLayout:
