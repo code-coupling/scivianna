@@ -17,6 +17,7 @@ import scivianna_example.mandelbrot.mandelbrot as mandelbrot
 
 from pathlib import Path
 
+import panel as pn
 import panel_material_ui as pmui
 
 
