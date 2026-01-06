@@ -53,7 +53,7 @@ setup(
         "panel",
         "rasterio",
         "matplotlib",
-        "numpy<2",
+        "numpy",
         "shapely",
         "jupyter_bokeh",
         "holoviews",

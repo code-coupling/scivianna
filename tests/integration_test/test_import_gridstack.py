@@ -1,7 +1,7 @@
 from typing import Dict
 import pytest
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.notebook_tools import get_med_panel, _make_template
+from scivianna.notebook_tools import get_med_panel
 from scivianna.panel.visualisation_panel import VisualizationPanel
 
 
@@ -39,7 +39,7 @@ def get_panel():
 
 def get_template():
     panel = get_panel()
-    return _make_template(panel)
+    return panel
 
 @pytest.mark.default
 def test_import_gridstack():
