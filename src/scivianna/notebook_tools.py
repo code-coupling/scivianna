@@ -29,37 +29,7 @@ def _get_panel(panel: VisualizationPanel, title="") -> pn.viewable.Viewable:
         Displayable panel
     """
 
-    return pn.Column(
-        panel.main_frame,
-        width_policy="max",
-        height_policy="max",
-    )
-
-
-def _make_template(panel: VisualizationPanel, title: str = ""):
-
-    return panel.main_frame
-    custom_css = """
-    #main {
-        padding: 0 !important;
-    }
-    #sidebar {
-        padding: 0 !important;
-    }
-    """
-
-    pn.extension("tabulator", 'codeeditor', raw_css=[custom_css])
-    return pn.template.BootstrapTemplate(
-        main=[
-            pn.Column(
-                panel.main_frame,
-                sizing_mode="stretch_both",
-                margin=0,
-            )
-        ],
-        title=title,
-    )
-
+    return panel
 
 def _show_panel(panel: VisualizationPanel, title: str = ""):
     """Display the holoviz panel associated to this compute slave.
@@ -69,7 +39,7 @@ def _show_panel(panel: VisualizationPanel, title: str = ""):
     panel : VisualizationPanel
         Visualisation panel to display
     """
-    _make_template(panel, title=title).show()
+    panel.show()
 
 
 def _serve_panel(
@@ -104,11 +74,11 @@ def _serve_panel(
 
 
     if panel is not None:
-        get_template = _make_template(panel, title=title)
+        get_template = panel
     else:
         assert get_panel_function is not None, "If panel is not provided, get_panel_function must be."
         def get_template():
-            return _make_template(get_panel_function(slave_input), title=title)
+            return get_panel_function(slave_input)
 
     pn.serve(
         get_template,
