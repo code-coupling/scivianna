@@ -26,7 +26,7 @@ class VisualizationPanel(pn.viewable.Viewer):
     """ Slave to which request the plots
     """
     plotter: Plotter2D
-    """ 2D plotter displaying and updating the graph : TODO generic plotter
+    """ 2D plotter displaying and updating the graph
     """
     main_frame: pmui.Container
     """ Main frame displaying the geometry.

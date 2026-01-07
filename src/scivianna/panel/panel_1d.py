@@ -17,7 +17,7 @@ class Panel1D(VisualizationPanel):
     """Visualisation panel associated to a code."""
 
     plotter: Plotter1D
-    """ 1D plotter displaying and updating the graph : TODO generic plotter
+    """ 1D plotter displaying and updating the graph
     """
     update_event: Union[UpdateEvent, List[UpdateEvent]] = UpdateEvent.RECOMPUTE
     """ On what event does the panel recompute itself

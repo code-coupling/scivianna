@@ -7,6 +7,7 @@ from scivianna.panel.panel_2d import Panel2D
 from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.slave import ComputeSlave
 from scivianna.constants import GEOMETRY
+from scivianna.enums import UpdateEvent
 
 """
     Generic functions for every codes
@@ -117,7 +118,9 @@ def get_med_layout(geo, title: str = "MED Field visualizer"):
         Geometry to display
     """
     from scivianna.layout.split import SplitLayout
-    return SplitLayout(get_med_panel(geo, title))
+    panel = get_med_panel(geo, title)
+    panel.update_event = [UpdateEvent.CLIC]
+    return SplitLayout(panel)
 
 def show_med_geometry(geo, title: str = "MED Field visualizer"):
     """Opens a server on localhost to open in a browser
