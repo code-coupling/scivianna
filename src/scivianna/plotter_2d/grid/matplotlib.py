@@ -1,6 +1,5 @@
 from typing import IO, Any, Dict, List, Tuple, Union
 from scivianna.data.data2d import Data2D
-from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
 import matplotlib
@@ -9,18 +8,15 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps
 from matplotlib import colors as plt_colors
 
-from scivianna.constants import GRID, POLYGONS, CELL_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
-from scivianna.utils.color_tools import get_edges_colors
-
-from shapely import Polygon
-import geopandas as gpd
 import numpy as np
-
 import panel as pn
 
 
 class Matplotlib2DGridPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
+
+    display_edges = False
+    """Display grid cells edges"""
 
     def __init__(
         self,
@@ -86,29 +82,63 @@ class Matplotlib2DGridPlotter(Plotter2D):
         """
         self.plot_2d_frame_in_axes(data, self.ax, {})
 
+
     def get_grids(
         self,
         data: Data2D,
     ):
         grid = data.get_grid()
+        flat_grid = grid.flatten()
+        vals, inv = np.unique(flat_grid, return_inverse=True)
 
-        color_map = dict(zip(data.cell_values, data.cell_colors))
-        color_array = np.array([color_map[val] for val in data.cell_values])
+        value_map = dict(zip(data.cell_ids, data.cell_values))
+        color_map = dict(zip(data.cell_ids, data.cell_colors))
+        
+        value_array = np.array([value_map[val] for val in vals])
+        color_array = np.array([color_map[val] for val in vals])
 
-        _, inv = np.unique(grid.flatten(), return_inverse = True)
+        colors = color_array[inv]  # shape (n, m, 4)
 
-        grid = inv.reshape(grid.shape)
+        if self.display_edges:
+            flat_data = grid.flatten()
+            roll_1_0 = np.where(flat_data == np.roll(flat_data, -1), 1, 0)
+            roll_1_1 = np.where(flat_data == np.roll(flat_data, 1), 1, 0)
+            contour_1_0 = roll_1_0.reshape(grid.shape)
+            contour_1_1 = roll_1_1.reshape(grid.shape)
 
-        colors = color_array[grid]  # shape (n, m, 4)
-        val_grid = np.array(data.cell_values)[grid]
+            flat_data_2 = grid.T.flatten()
+            roll_2_0 = np.where(flat_data_2 == np.roll(flat_data_2, -1), 1, 0)
+            roll_2_1 = np.where(flat_data_2 == np.roll(flat_data_2, 1), 1, 0)
 
+            contour_2_0 = roll_2_0.reshape(grid.T.shape).T
+            contour_2_1 = roll_2_1.reshape(grid.T.shape).T
+
+            borders = np.expand_dims(np.minimum(
+                    np.minimum(contour_1_0, contour_2_0),
+                    np.minimum(contour_1_1, contour_2_1),
+                ).flatten(), axis=-1)
+            
+            borders = np.concatenate([borders, borders, borders, borders], axis=1)
+
+            edge_color_array = np.array(data.cell_edge_colors)
+
+            edge_colors = edge_color_array[inv]  # shape (n, m, 4)
+
+            colors = np.where(borders == (1, 1, 1, 1), colors, edge_colors).reshape((*grid.shape, 4))
+        
+        else:
+            colors = colors.reshape((*grid.shape, 4))
+
+        val_grid = value_array[inv].reshape(grid.shape)
+        
         img = np.empty(grid.shape, dtype=np.uint32)
         view = img.view(dtype=np.uint8).reshape(colors.shape)
-        
         view[:, :, :] = colors[:, :, :]
+
+        print(img.shape, view.shape, colors.shape)
         
-        return img, grid, val_grid
-        
+        return view, grid, val_grid
+    
     def plot_2d_frame_in_axes(
         self,
         data: Data2D,

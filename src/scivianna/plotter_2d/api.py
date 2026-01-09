@@ -10,6 +10,7 @@ from scivianna.interface.generic_interface import Geometry2D
 from scivianna.slave import ComputeSlave
 from scivianna.extension.field_selector import set_colors_list
 from scivianna.plotter_2d.polygon.matplotlib import Matplotlib2DPolygonPlotter
+from scivianna.plotter_2d.grid.matplotlib import Matplotlib2DGridPlotter
 from scivianna.utils.color_tools import get_edges_colors
 from scivianna.utils.polygon_sorter import PolygonSorter
 from scivianna.enums import VisualizationMode
@@ -34,6 +35,7 @@ def plot_frame_in_axes(
     custom_colors: Dict[str, Dict[str, str]] = {},
     rename_values: Dict[str, Dict[str, str]] = {},
     legend_options: Dict[str, Any] = {},
+    polygonize: bool = True
 ):
     """Creates a figure and plots a geometry in it from an already initialized compute slave
 
@@ -81,6 +83,8 @@ def plot_frame_in_axes(
         where MATERIAL is a displayed field name, and iron/water are its values. This parameter is only used for string based field.
     legend_options : Dict[str, Any]
         Dictionnary of options provided when creating the legend
+    polygonize : bool
+        Plot the geometry as polygons
 
     Returns
     ----------
@@ -116,8 +120,12 @@ def plot_frame_in_axes(
         data
     )
 
-    plotter = Matplotlib2DPolygonPlotter()
-    plotter.line_width = edge_width
+    if polygonize:
+        plotter = Matplotlib2DPolygonPlotter()
+        plotter.line_width = edge_width
+    else:
+        plotter = Matplotlib2DGridPlotter()
+        plotter.line_width = edge_width
 
     # Replacing provided colors
     if (
@@ -148,6 +156,7 @@ def plot_frame_in_axes(
 
         data.cell_values = compo_list
         data.cell_colors = cell_color_list
+        data.cell_edge_colors = get_edges_colors(cell_color_list)
 
     if display_colorbar:
         compo_list = data.cell_values
@@ -167,7 +176,7 @@ def plot_frame_in_axes(
             compos = np.unique(compo_list)
             cell_color_list = np.array(cell_color_list).astype(float)
 
-            edge_color_list = np.array(data.cell_edge_colors)
+            edge_color_list = np.array(data.cell_edge_colors).astype(float)
 
             colors = []
             edge_colors = []
@@ -216,8 +225,6 @@ def plot_frame(
     u_max: float = 1.,
     v_min: float = 0.,
     v_max: float = 1.,
-    u_steps: int = 0,
-    v_steps: int = 0,
     w_value: float = 0.0,
     color_map: str = "BuRd",
     display_colorbar: bool = False,
@@ -226,6 +233,7 @@ def plot_frame(
     custom_colors: Dict[str, Dict[str, str]] = {},
     rename_values: Dict[str, Dict[str, str]] = {},
     legend_options: Dict[str, Any] = {},
+    polygonize: bool = True
 ) -> Tuple[plt.Figure, matplotlib.axes.Axes]:
     """Creates a figure and plots a geometry in it from an already initialized compute slave
 
@@ -247,10 +255,6 @@ def plot_frame(
         Lower bound value along the v axis, by default 0.
     v_max : float, optional
         Upper bound value along the v axis, by default 1.
-    u_steps : int, optional
-        Number of points along the u axis, by default "BuRd"
-    v_steps : int, optional
-        Number of points along the v axis, by default "BuRd"
     w_value : float, optional
         Value along the u ^ v axis, by default "BuRd"
     color_map : str, optional
@@ -275,6 +279,8 @@ def plot_frame(
         where MATERIAL is a displayed field name, and iron/water are its values. This parameter is only used for string based field.
     legend_options : Dict[str, Any]
         Dictionnary of options provided when creating the legend
+    polygonize : bool
+        Plot the geometry as polygons
 
     Returns
     ----------
@@ -294,8 +300,6 @@ def plot_frame(
         v_max=v_max,
         coloring_label=coloring_label,
         axes=axes,
-        u_steps=u_steps,
-        v_steps=v_steps,
         w_value=w_value,
         color_map=color_map,
         display_colorbar=display_colorbar,
@@ -304,5 +308,6 @@ def plot_frame(
         custom_colors=custom_colors,
         rename_values=rename_values,
         legend_options=legend_options,
+        polygonize=polygonize
     )
     return fig, axes
