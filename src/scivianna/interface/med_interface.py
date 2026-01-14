@@ -11,13 +11,12 @@ if TYPE_CHECKING:
     from scivianna.slave import ComputeSlave
     from scivianna.plotter_2d.generic_plotter import Plotter2D
 
+from scivianna.data.data3d import Data3D
 from scivianna.extension.extension import Extension
 import scivianna.icon
 from scivianna.data.data2d import Data2D
-from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
-from scivianna.interface.option_element import IntOption
-from scivianna.slave import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement, PolygonCoords
+from scivianna.interface.generic_interface import Geometry2DPolygon, Geometry3D, IcocoInterface
+from scivianna.utils.polygonize_tools import PolygonCell, PolygonElement, PolygonCoords
 from scivianna.enums import GeometryType, VisualizationMode
 
 import medcoupling
@@ -30,6 +29,7 @@ if profile_time:
 
 with open(Path(scivianna.icon.__file__).parent / "salome.svg", "r") as f:
     icon_svg = f.read()
+
 
 class MEDCouplingExtension(Extension):
     """Extension to load files and send them to the slave."""
@@ -271,7 +271,7 @@ This extension allows defining the medcoupling field display parameters.
         )
 
 
-class MEDInterface(Geometry2DPolygon, IcocoInterface):
+class MEDInterface(Geometry2DPolygon, Geometry3D, IcocoInterface):
 
     polygons: List[PolygonElement]
     """Polygons computed at the previous iteration"""
@@ -379,6 +379,125 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 print(f"File reading time {time.time() - start_time}")
         else:
             raise ValueError(f"File label '{file_label}' not implemented")
+
+    def compute_3D_data(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        z_min: float,
+        z_max: float,
+        q_tasks: mp.Queue,
+        options: Dict[str, Any],
+    ) -> Tuple[Data3D, bool]:
+        """Returns a list of polygons that defines the geometry in a given frame
+
+        Parameters
+        ----------
+        x_min : float
+            Lower bound value along the x axis
+        x_max : float
+            Upper bound value along the x axis
+        y_min : float
+            Lower bound value along the y axis
+        y_max : float
+            Upper bound value along the y axis
+        z_min : float
+            Lower bound value along the z axis
+        z_max : float
+            Upper bound value along the z axis
+        q_tasks : mp.Queue
+            Queue from which get orders from the master.
+        options : Dict[str, Any]
+            Additional options for frame computation.
+
+        Returns
+        -------
+        Data3D
+            Geometry to display
+        bool
+            Were the polygons updated compared to the past call
+
+        Raises
+        ------
+        NotImplementedError
+            Function to override in the code interfaces
+        """
+        if (self.data is not None) and (
+            self.last_computed_frame == [x_min, x_max, y_min, y_max, z_min, z_max]
+        ):
+            print("Skipping polygon computation.")
+            return self.data, False
+
+        if profile_time:
+            start_time = time.time()
+
+        nodes = self.mesh.getCoords().toNumPyArray()
+        self.mesh.convertAllToPoly()
+
+        print("Extracting cells")
+        connectivity = self.mesh.getNodalConnectivity().toNumPyArray()
+        indexes = self.mesh.getNodalConnectivityIndex().toNumPyArray()
+
+        shapes = []
+        for cell_id in range(self.mesh.getNumberOfCells()):
+            i = indexes[cell_id]
+            j = indexes[cell_id + 1]
+            shapes.append(connectivity[i + 1: j])
+
+        def split_list(lst, separator):
+            result = []
+            current = []
+            for item in lst:
+                if item == separator:
+                    if current:
+                        result.append(current)
+                        current = []
+                else:
+                    current.append(item)
+            if current:
+                result.append(current)
+            return result
+
+        polygons_list: List[PolygonCell] = []
+
+        cell_count = min(50000, len(shapes))
+
+        for c in range(cell_count):
+            tris = []
+            faces_med = np.array(split_list(shapes[c], -1))
+
+            for face in faces_med:
+                for arr in [
+                    # [0, 1, 3],
+                    # [1, 2, 3]
+                    [3, 1, 0],
+                    [3, 2, 1]
+                ]:
+                    tris.append(
+                        PolygonCoords(
+                            x_coords=nodes[face[arr]][:, 0],
+                            y_coords=nodes[face[arr]][:, 1],
+                            z_coords=nodes[face[arr]][:, 2]
+                        )
+                    )
+
+            polygons_list.append(PolygonCell(
+                tris=tris,
+                cell_id=c
+            ))
+
+        if profile_time:
+            print(
+                f"Gathering cells id time: {time.time() - start_time}."
+            )
+
+        self.last_computed_frame = [x_min, x_max, y_min, y_max, z_min, z_max]
+        self.data = Data3D.from_polygon_list(polygons_list)
+        self.cell_dict = dict(zip(list(range(cell_count)), list(range(cell_count))))
+
+        return self.data, True
 
     def compute_2D_data(
         self,

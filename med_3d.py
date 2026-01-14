@@ -18,7 +18,7 @@ def get_panel(**kwargs):
     med = MEDInterface()
 
     med.read_file(
-        str(Path(scivianna.__file__).parent / "default_jdd" / "power.med"), GEOMETRY
+        str(Path(scivianna.__file__).parent / "input_file" / "power.med"), GEOMETRY
     )
     mesh = med.mesh
 

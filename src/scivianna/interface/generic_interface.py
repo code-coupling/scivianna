@@ -1,11 +1,9 @@
 import multiprocessing as mp
-import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple, Dict, Union
 
 from scivianna.data.data2d import Data2D
-from scivianna.interface.option_element import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement
+from scivianna.data.data3d import Data3D
 from scivianna.enums import VisualizationMode, GeometryType, DataType
 
 from typing import TYPE_CHECKING
@@ -18,8 +16,7 @@ from scivianna.constants import MESH, MATERIAL
 
 
 class GenericInterface:
-    """ Generic interface class that implement basic functions. This class mutualises functions that are shared between its child classes.
-    """
+    """Generic interface class that implement basic functions. This class mutualises functions that are shared between its child classes."""
 
     extensions = []
     """Extensions associated to this interface."""
@@ -112,15 +109,12 @@ class GenericInterface:
 
 
 class Geometry2D(GenericInterface):
-    """ Interface parent class for classes that can compute geometry 2D slices.
-    """
-    geometry_type:GeometryType
+    """Interface parent class for classes that can compute geometry 2D slices."""
+
+    geometry_type: GeometryType
     """Enum telling if the geometry is 2D or 3D (Displays the axis card and the w coordinate in the GUI)."""
-    data_type:DataType
+    data_type: DataType
     """Enum saying if the data are returned in a 2D grid or a polygon list"""
-    rasterized:bool = False
-    """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
-    
 
     def compute_2D_data(
         self,
@@ -197,19 +191,97 @@ class Geometry2D(GenericInterface):
         """
         raise NotImplementedError()
 
+
 class Geometry2DPolygon(Geometry2D):
-    """ Interface parent class for classes that can compute geometry 2D slices and provide a list of polygons.
-    """
+    """Interface parent class for classes that can compute geometry 2D slices and provide a list of polygons."""
+
+
 class Geometry2DGrid(Geometry2D):
-    """ Interface parent class for classes that can compute geometry 2D slices and provide a numpy array.
-    """
-    rasterized:bool = True
-    """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
-    
+    """Interface parent class for classes that can compute geometry 2D slices and provide a numpy array."""
+
+
+class Geometry3D(GenericInterface):
+    """Interface parent class for classes that can compute 3D geometries."""
+
+    data_type: DataType
+    """Enum saying if the data are returned in a 3D grid or a polygon list"""
+
+    def compute_3D_data(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        z_min: float,
+        z_max: float,
+        q_tasks: mp.Queue,
+        options: Dict[str, Any],
+    ) -> Tuple[Data3D, bool]:
+        """Returns a list of polygons that defines the geometry in a given frame
+
+        Parameters
+        ----------
+        x_min : float
+            Lower bound value along the x axis
+        x_max : float
+            Upper bound value along the x axis
+        y_min : float
+            Lower bound value along the y axis
+        y_max : float
+            Upper bound value along the y axis
+        z_min : float
+            Lower bound value along the z axis
+        z_max : float
+            Upper bound value along the z axis
+        q_tasks : mp.Queue
+            Queue from which get orders from the master.
+        options : Dict[str, Any]
+            Additional options for frame computation.
+
+        Returns
+        -------
+        Data3D
+            Geometry to display
+        bool
+            Were the polygons updated compared to the past call
+
+        Raises
+        ------
+        NotImplementedError
+            Function to override in the code interfaces
+        """
+        raise NotImplementedError()
+
+    def get_value_dict(
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
+    ) -> Dict[Union[int, str], str]:
+        """Returns a cell name - field value map for a given field name
+
+        Parameters
+        ----------
+        value_label : str
+            Field name to get values from
+        cells : List[Union[int,str]]
+            List of cells names
+        options : Dict[str, Any]
+            Additional options for frame computation.
+
+        Returns
+        -------
+        Dict[Union[int,str], str]
+            Field value for each requested cell names
+
+        Raises
+        ------
+        NotImplementedError
+            Function to override in the code interfaces
+        """
+        raise NotImplementedError()
+
 
 class ValueAtLocation(GenericInterface):
-    """ Interface parent class to implement a function to get values at a specific location.
-    """
+    """Interface parent class to implement a function to get values at a specific location."""
+
     def get_value(
         self,
         position: Tuple[float, float, float],
@@ -264,9 +336,10 @@ class ValueAtLocation(GenericInterface):
         """
         raise NotImplementedError()
 
+
 class Value1DAtLocation(GenericInterface):
-    """ Interface parent class to implement a function to get 1D data at a specific location.
-    """
+    """Interface parent class to implement a function to get 1D data at a specific location."""
+
     def get_1D_value(
         self,
         position: Tuple[float, float, float],
@@ -296,8 +369,8 @@ class Value1DAtLocation(GenericInterface):
 
 
 class OverLine(GenericInterface):
-    """ Interface parent class to implement a function to compute a field value along a 1D line.
-    """
+    """Interface parent class to implement a function to compute a field value along a 1D line."""
+
     def compute_1D_line_data(
         self,
         pos: Tuple[float, float, float],
@@ -335,9 +408,11 @@ class OverLine(GenericInterface):
 
 
 class IcocoInterface(GenericInterface):
-    """ Interface parent class to implement the C3PO functions required for a code coupling visualization.
-    """
-    def getInputMEDDoubleFieldTemplate(self, field_name: str) -> "medcoupling.MEDCouplingFieldDouble":
+    """Interface parent class to implement the C3PO functions required for a code coupling visualization."""
+
+    def getInputMEDDoubleFieldTemplate(
+        self, field_name: str
+    ) -> "medcoupling.MEDCouplingFieldDouble":
         """(Optional) Retrieve an empty shell for an input field. This shell can be filled by the
         caller and then be given to the code via setInputField(). The field has the MEDDoubleField
         format.
@@ -404,7 +479,7 @@ class IcocoInterface(GenericInterface):
         """
         raise NotImplementedError
 
-    def setTime(self, time:float):
+    def setTime(self, time: float):
         """This non-Icoco function allows setting the current time in an interface to associate to the received value.
 
         Parameters

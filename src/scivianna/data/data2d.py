@@ -4,37 +4,37 @@ from scivianna.utils.polygonize_tools import PolygonElement, numpy_2D_array_to_p
 from scivianna.enums import DataType
 from scivianna.data.data_container import DataContainer
 
+
 class Data2D(DataContainer):
     """Data class containing the 2D geometry data"""
 
-    data_type:DataType
+    data_type: DataType
     """Whether the data are provided from a polygon list or a grid"""
 
-    polygons:List[PolygonElement]
+    polygons: List[PolygonElement]
     """List of polygons defining the geometry"""
 
-    grid:np.ndarray
+    grid: np.ndarray
     """2D grid defining the geometry"""
-    u_values:np.ndarray
+    u_values: np.ndarray
     """Coordinates of the grid points on the horizontal axis"""
-    v_values:np.ndarray
+    v_values: np.ndarray
     """Coordinates of the grid points on the vertical axis"""
 
-    cell_ids:List[Union[int, str]]
+    cell_ids: List[Union[int, str]]
     """List of contained cell ids"""
-    cell_values:List[Union[float, str]]
+    cell_values: List[Union[float, str]]
     """List of contained cell values"""
-    cell_colors:List[Tuple[int, int, int]]
+    cell_colors: List[Tuple[int, int, int]]
     """List of contained cell colors"""
-    cell_edge_colors:List[Tuple[int, int, int]]
+    cell_edge_colors: List[Tuple[int, int, int]]
     """List of contained cell edge colors"""
-    
-    simplify:bool
+
+    simplify: bool
     """Simplify the polygons when converting from grid to polygon list"""
 
     def __init__(self):
-        """ Empty constructor of the Data2D class.
-        """
+        """Empty constructor of the Data2D class."""
         self.data_type = None
         self.polygons = []
         self.grid = np.array([])
@@ -47,7 +47,7 @@ class Data2D(DataContainer):
         self.simplify = None
 
     @classmethod
-    def from_polygon_list(cls, polygon_list:List[PolygonElement]):
+    def from_polygon_list(cls, polygon_list: List[PolygonElement]):
         """Build a Data2D object from a list of PolygonElement
 
         Parameters
@@ -64,17 +64,23 @@ class Data2D(DataContainer):
         data_.polygons = polygon_list
 
         data_.cell_ids = [p.cell_id for p in polygon_list]
-        data_.cell_values = [np.nan]*len(polygon_list)
+        data_.cell_values = [np.nan] * len(polygon_list)
 
         data_.cell_colors = np.zeros((len(polygon_list), 4)) + 255
         data_.cell_edge_colors = np.zeros((len(polygon_list), 4)) + 50
-        
+
         data_.data_type = DataType.POLYGONS
 
         return data_
 
     @classmethod
-    def from_grid(cls, grid:np.ndarray, u_values:np.ndarray, v_values:np.ndarray, simplify:bool = False):
+    def from_grid(
+        cls,
+        grid: np.ndarray,
+        u_values: np.ndarray,
+        v_values: np.ndarray,
+        simplify: bool = False,
+    ):
         """Build a Data2D object from a list of PolygonElement
 
         Parameters
@@ -93,30 +99,35 @@ class Data2D(DataContainer):
         Data2D
             Requested Data2D
         """
-        assert len(grid.shape) == 2, f"Provided grid must be of dimension 2, found shape {grid.shape}"
+        assert (
+            len(grid.shape) == 2
+        ), f"Provided grid must be of dimension 2, found shape {grid.shape}"
         data_ = Data2D()
         data_.grid = grid
         data_.u_values = u_values
         data_.v_values = v_values
 
         data_.cell_ids = np.unique(grid.flatten())
-        data_.cell_values = [np.nan]*len(data_.cell_ids)
+        data_.cell_values = [np.nan] * len(data_.cell_ids)
 
         data_.cell_colors = np.zeros((len(data_.cell_ids), 4)) + 1
         data_.cell_edge_colors = np.zeros((len(data_.cell_ids), 4)) + 1
-        
+
         data_.simplify = simplify
         data_.data_type = DataType.GRID
 
         return data_
-    
-    def convert_to_polygons(self,):
-        """Convert the geometry to polygons
-        """
+
+    def convert_to_polygons(
+        self,
+    ):
+        """Convert the geometry to polygons"""
         if self.data_type == DataType.POLYGONS:
             pass
         else:
-            self.polygons = numpy_2D_array_to_polygons(self.u_values, self.v_values, self.grid, self.simplify)
+            self.polygons = numpy_2D_array_to_polygons(
+                self.u_values, self.v_values, self.grid, self.simplify
+            )
 
             # The polygons count will become different than the number of cell values, so we update and change the data_type
             id_to_value = dict(zip(self.cell_ids, self.cell_values))
@@ -130,7 +141,9 @@ class Data2D(DataContainer):
 
             self.data_type = DataType.POLYGONS
 
-    def get_polygons(self,) -> List[PolygonElement]:
+    def get_polygons(
+        self,
+    ) -> List[PolygonElement]:
         """Returns the polygon list of the geometry. If defined as grid, the grid is rasterized and self is converted to polygon data.
 
         Returns
@@ -142,10 +155,12 @@ class Data2D(DataContainer):
             return self.polygons
         else:
             self.convert_to_polygons()
-            
+
             return self.polygons
 
-    def get_grid(self,) -> np.ndarray:
+    def get_grid(
+        self,
+    ) -> np.ndarray:
         """Returns the grid associated to the current geometry
 
         Returns
@@ -162,8 +177,10 @@ class Data2D(DataContainer):
             raise NotImplementedError()
         else:
             return self.grid
-        
-    def copy(self,) -> "Data2D":
+
+    def copy(
+        self,
+    ) -> "Data2D":
         """Returns a copy of self
 
         Returns
@@ -185,16 +202,25 @@ class Data2D(DataContainer):
 
         return data2D
 
-    def check_valid(self,):
-        """Checks if this Data2D is valid, raises an AssertionError otherwise
-        """
-        assert len(self.cell_ids) == len(self.cell_colors), "The Data2D object must have the same number of cell id and colors"
-        assert len(self.cell_values) == len(self.cell_colors), "The Data2D object must have the same number of cell values and colors"
-        assert len(self.cell_values) == len(self.cell_edge_colors), "The Data2D object must have the same number of cell values and edge colors"
+    def check_valid(
+        self,
+    ):
+        """Checks if this Data2D is valid, raises an AssertionError otherwise"""
+        assert len(self.cell_ids) == len(
+            self.cell_colors
+        ), "The Data2D object must have the same number of cell id and colors"
+        assert len(self.cell_values) == len(
+            self.cell_colors
+        ), "The Data2D object must have the same number of cell values and colors"
+        assert len(self.cell_values) == len(
+            self.cell_edge_colors
+        ), "The Data2D object must have the same number of cell values and edge colors"
         if self.data_type == DataType.POLYGONS:
-            assert len(self.cell_values) == len(self.polygons), "The Data2D object must have the same number of cell values and polygons"
+            assert len(self.cell_values) == len(
+                self.polygons
+            ), "The Data2D object must have the same number of cell values and polygons"
 
         if any(isinstance(item, str) for item in self.cell_values):
-            assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
-
-
+            assert all(
+                isinstance(item, str) for item in self.cell_values
+            ), "If any of the values is a string, they all must be"

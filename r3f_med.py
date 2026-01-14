@@ -5,7 +5,7 @@ import pyvista as pv
 from pathlib import Path
 import numpy as np
 
-from scivianna.components.r3f_component.app import ReactThreeFiber, get_rd_bu
+from scivianna.component.r3f_component.app import ReactThreeFiber, get_rd_bu
 from scivianna.interface.med_interface import MEDInterface
 from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values
 
@@ -15,9 +15,11 @@ def get_panel(**kwargs):
     med = MEDInterface()
 
     med.read_file(
-        str(Path(scivianna.__file__).parent / "default_jdd" / "power.med"), GEOMETRY
+        str(Path(scivianna.__file__).parent / "input_file" / "power.med"), GEOMETRY
     )
     mesh = med.mesh
+
+    med.compute_3D_data(0., 0., 0., 0., 0., 0., None, {})
 
     cell_values = list(
         med.get_value_dict(
@@ -66,7 +68,7 @@ def get_panel(**kwargs):
         #           List of indexes
     ]
 
-    cell_count = min(500, len(shapes))
+    cell_count = min(50000, len(shapes))
 
     for c in range(cell_count):
         faces_med = np.array(split_list(shapes[c], -1))
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     import socket
     import subprocess
 
-    script_dir = Path(scivianna.components.r3f_component.__file__).parent
+    script_dir = Path(scivianna.component.r3f_component.__file__).parent
     p = subprocess.Popen(
         ["powershell", "-ExecutionPolicy", "Bypass", "-File", "./test.ps1"],
         cwd=script_dir,
