@@ -171,15 +171,6 @@ class StructuredMeshInterface(Geometry2DPolygon):
         """
         return []
 
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
-
-        Returns
-        -------
-        List[OptionElement]
-            List of option objects.
-        """
-        return []
 
 if __name__ == "__main__":
     from scivianna.slave import ComputeSlave

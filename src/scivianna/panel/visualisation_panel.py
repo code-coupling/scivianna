@@ -280,10 +280,14 @@ class VisualizationPanel(pn.viewable.Viewer):
         if self.panel_name.endswith(f" - {self.copy_index}"):
             new_name = self.panel_name.replace(
                 f" - {self.copy_index}", f" - {self.copy_index + 1}"
-                )
+            )
         else:
             new_name = f"{self.panel_name} - {self.copy_index + 1}"
 
         self.copy_index += 1
 
         return new_name
+    
+    def trigger_on_file_load(self, file_path: str, file_label: str):
+        for extension in self.extensions:
+            extension.on_file_load(file_path, file_label)

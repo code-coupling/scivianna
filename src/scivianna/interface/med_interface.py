@@ -65,26 +65,28 @@ This extension allows defining the medcoupling field display parameters.
 
         self.iconsize = "1.0em"
 
-        self.field_name = None
         self.field_iterations = None
 
+        self.field_iterations = self.slave.call_custom_function("get_iterations", {})
+        self.field_name = list(self.field_iterations.keys())[0]
+
         self.iteration_input = pmui.IntInput(
-            label = "Iteration",
-            value=-1,
+            label="Iteration",
+            value=self.field_iterations[self.field_name][0][0],
             description="Med field iteration.",
             width=280,
             color="primary",
             sx={}
         )
         self.order_input = pmui.IntInput(
-            label = "Order",
-            value=-1,
+            label="Order",
+            value=self.field_iterations[self.field_name][0][1],
             description="Med field order.",
             width=280
         )
         self.slider_w = pmui.FloatSlider(
-            label = "W coordinate", 
-            visible = False,
+            label="W coordinate",
+            visible=False,
             width=280
         )
 
@@ -113,8 +115,8 @@ This extension allows defining the medcoupling field display parameters.
             MED options
         """
         return {
-            "Iteration":self.iteration_input.value,
-            "Order":self.order_input.value,
+            "Iteration": self.iteration_input.value,
+            "Order": self.order_input.value,
         }
 
     def on_field_change(self, field_name: str):
@@ -126,13 +128,13 @@ This extension allows defining the medcoupling field display parameters.
             New displayed field
         """
         self.field_name = field_name
-        self.check_int_inputs()
-    
+        self.check_int_inputs(force_valid_values=True)
+
     def on_file_load(self, file_path, file_key):
         """Catches the file load event to update its data
         """
         self.field_iterations = self.slave.call_custom_function("get_iterations", {})
-        self.check_int_inputs()
+        self.check_int_inputs(force_valid_values=True)
         self.update_slider_range()
 
     def on_slider_change(self, event):
@@ -202,12 +204,17 @@ This extension allows defining the medcoupling field display parameters.
         self.update_slider_range()
 
     @pn.io.hold()
-    def check_int_inputs(self,):
+    def check_int_inputs(self, force_valid_values: bool = False):
         """Checks iteration and order intinputs values
+
+        Parameters
+        ----------
+        force_valid_values : bool
+            Sets values to valid values if not valid
         """
-        if self.field_name is None or (self.field_iterations is None or self.field_name not in self.field_iterations) :
+        if self.field_name is None or (self.field_iterations is None or self.field_name not in self.field_iterations):
             return
-        
+
         tup = (self.iteration_input.value, self.order_input.value)
 
         if tup in self.field_iterations[self.field_name]:
@@ -216,6 +223,10 @@ This extension allows defining the medcoupling field display parameters.
 
             self.iteration_input.sx = {}
             self.order_input.sx = {}
+
+        elif force_valid_values:
+            self.iteration_input.value, self.order_input.value = self.field_iterations[self.field_name][0]
+
         else:
             # https://panel-material-ui.holoviz.org/how_to/customize.html
             pn.state.notifications.error("Iteration/order couple not valid, see console for available values.")
@@ -242,7 +253,7 @@ This extension allows defining the medcoupling field display parameters.
         self.check_int_inputs()
         if self.valid:
             self.panel.recompute()
-    
+
     def make_gui(self,) -> pn.viewable.Viewable:
         """Returns a panel viewable to display in the extension tab.
 
@@ -258,7 +269,6 @@ This extension allows defining the medcoupling field display parameters.
             self.slider_w,
             margin=0
         )
-
 
 
 class MEDInterface(Geometry2DPolygon, IcocoInterface):
@@ -292,10 +302,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
     """ Support mesh
     """
-    
-    geometry_type=GeometryType._3D_INFINITE
-
-    extensions=[MEDCouplingExtension]
+    geometry_type: GeometryType = GeometryType._3D_INFINITE
+    extensions = [MEDCouplingExtension]
 
     def __init__(self):
         """MEDCoupling interface constructor."""
@@ -439,7 +447,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 print(f"w_value : {w_value}")
 
             origin = [u_min * u[i] + v_min * v[i] + w_value * vec[i] for i in range(3)]
-            
+
             try:
                 eps = 0.0
                 mesh: medcoupling.MEDCouplingUMesh = self.mesh.buildSlice3D(
@@ -449,13 +457,14 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 cells_ids = self.mesh.getCellIdsCrossingPlane(origin, vec, eps)
 
                 cell_ids = [int(c) for c in cells_ids]
-            except:
+
+            except Exception:
                 eps = 1e-7
 
                 mesh: medcoupling.MEDCouplingUMesh = self.mesh.buildSlice3D(
                     origin, vec, eps
                 )[0]
-                
+
                 cell_ids = [
                     int(c) for c in self.mesh.getCellIdsCrossingPlane(origin, vec, eps)
                 ]
@@ -530,7 +539,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         List[str]
             List of fields names
         """
-        labels = [MESH] + list(self.fields_iterations.keys())
+        labels = list(self.fields_iterations.keys()) + [MESH]
         return labels
 
     def get_value_dict(
@@ -557,10 +566,10 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         if value_label == MESH:
             return {str(v): np.nan for v in cells}
 
-        if not "Iteration" in options:
+        if "Iteration" not in options:
             print(f"Iteration not found in medcoupling option, setting {self.fields_iterations[value_label][0][0]}")
             options["Iteration"] = self.fields_iterations[value_label][0][0]
-        if not "Order" in options:
+        if "Order" not in options:
             print(f"Order not found in medcoupling option, setting {self.fields_iterations[value_label][0][1]}")
             options["Order"] = self.fields_iterations[value_label][0][1]
 
@@ -669,21 +678,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         self.field_doubles[field_name] = field
 
-    def setTime(self, time_:float):
+    def setTime(self, time_: float):
         pass
-    
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
-
-        Returns
-        -------
-        List[OptionElement]
-            List of option objects.
-        """
-        return [
-            IntOption("Iteration", -1, "Med field iteration."),
-            IntOption("Order", -1, "MED field order."),
-        ]
 
     def get_iterations(self,) -> Dict[str, List[Tuple[int, int]]]:
         """Returns the fields iterations
@@ -695,7 +691,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         """
         return self.fields_iterations
 
-    def get_bounding_box(self,)-> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
+    def get_bounding_box(self,) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
         """Returns the mesh bounding box
 
         Returns
@@ -705,9 +701,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         """
         return self.mesh.getBoundingBox()
 
+
 if __name__ == "__main__":
-    from scivianna.slave import ComputeSlave
-    from scivianna.panel.visualisation_panel import VisualizationPanel
     from scivianna.notebook_tools import _show_panel
 
     slave = ComputeSlave(MEDInterface)

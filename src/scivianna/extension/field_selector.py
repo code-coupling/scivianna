@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 profile_time = False
 
+
 def set_colors_list(
     data: Data2D,
     slave: ComputeSlave,
@@ -52,9 +53,9 @@ def set_colors_list(
         start_time = time.time()
 
     coloring_mode = slave.get_label_coloring_mode(coloring_label)
-    
+
     cell_values = data.cell_values
-    
+
     if profile_time:
         print(f"get color list prepare time {time.time() - start_time}")
         start_time = time.time()
@@ -64,7 +65,7 @@ def set_colors_list(
         A random color is given for each string value.
         """
         sorted_values = np.sort(np.unique(list(cell_values)))
-        map_to = np.array([hash(c)%255 for c in sorted_values]) / 255
+        map_to = np.array([hash(c) % 255 for c in sorted_values]) / 255
 
         value_list = np.array(cell_values)
 
@@ -73,7 +74,7 @@ def set_colors_list(
         cell_colors = interpolate_cmap_at_values(
             color_map, map_to[inv].astype(float)
         )
-        
+
         if OUTSIDE in data.cell_ids:
             for index_ in np.where(data.cell_ids == OUTSIDE):
                 cell_colors[index_] = (255, 255, 255, 0)
@@ -143,11 +144,11 @@ def set_colors_list(
         raise NotImplementedError(
             f"Visualization mode {coloring_mode} not implemented."
         )
-    
+
     data.cell_colors = cell_colors.tolist()
 
     edge_colors = get_edges_colors(cell_colors)
-    
+
     if not isinstance(cell_values[0], str):
         edge_colors[:, 3] = np.where(np.isnan(np.array(cell_values)), 255, edge_colors[:, 3])
 
@@ -182,7 +183,7 @@ class FieldSelector(Extension):
             plotter,
             panel,
         )
-        
+
         self.description = """
 The color map extension lets you decide which field is being displayed on the cells, and what colorbar is used.
 
@@ -194,7 +195,7 @@ If a color bar is used, you can decide to center it on zero.
             name="Color field",
             options=fields_list,
             value=fields_list[0],
-            width = 280
+            width=280
         )
 
         self.field_color_selector.param.watch(self.trigger_field_change, "value")
@@ -212,7 +213,6 @@ If a color bar is used, you can decide to center it on zero.
             visible=slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE,
         )
 
-
         self.color_map_selector.value_name = "BuRd"
         self.color_map_selector.value = beautiful_color_maps["BuRd"]
 
@@ -222,7 +222,7 @@ If a color bar is used, you can decide to center it on zero.
     def trigger_field_change(self, *args, **kwargs):
         """Trigger a field change in the visualization panel
         """
-        self.center_colormap_on_zero_tick.visible=self.slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE
+        self.center_colormap_on_zero_tick.visible = self.slave.get_label_coloring_mode(self.field_color_selector.value) == VisualizationMode.FROM_VALUE
         self.panel.set_field(self.field_color_selector.value)
 
     def receive_colormap_change(self, *args, **kwargs):
@@ -242,6 +242,7 @@ If a color bar is used, you can decide to center it on zero.
         """
         self.panel.recompute()
 
+    @pn.io.hold()
     def on_file_load(self, file_path: str, file_key: str):
         """Function called when the user requests a change of field on the GUI
 
@@ -253,10 +254,9 @@ If a color bar is used, you can decide to center it on zero.
             Key associated to the loaded file
         """
         self.field_color_selector.options = list(
-            set(
-                self.field_color_selector.options + self.slave.get_labels()
-            )
+            self.slave.get_labels()
         )
+        self.field_color_selector.value = self.field_color_selector.options[0]
 
     def on_updated_data(self, data: Data2D):
         """Function called when the displayed data is being updated. Extension can edit the data on its way to the plotter.
@@ -288,7 +288,7 @@ If a color bar is used, you can decide to center it on zero.
             self.color_map_selector,
             self.center_colormap_on_zero_tick,
         )
-    
+
     def on_field_change(self, field_name: str):
         """Function called when the user requests a displayed field change
 

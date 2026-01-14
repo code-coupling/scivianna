@@ -48,8 +48,6 @@ class SlaveCommand:
     """Returns the coloring mode of a field"""
     GET_FILE_INPUT_LIST = "get_file_input_list"
     """Returns the list of read input files"""
-    GET_OPTIONS_LIST = "get_options_list"
-    """Returns the list of options to display in the app"""
 
     #   Geometry2D functions
     COMPUTE_2D_DATA = "compute_2d_data"
@@ -127,10 +125,6 @@ def worker(
 
                 elif task == SlaveCommand.GET_FILE_INPUT_LIST:
                     input_list = code_.get_file_input_list()
-                    q_returns.put(input_list)
-
-                elif task == SlaveCommand.GET_OPTIONS_LIST:
-                    input_list = code_.get_options_list()
                     q_returns.put(input_list)
 
                 #   Geometry2D functions
@@ -419,16 +413,6 @@ class ComputeSlave:
             List of (file label, description)
         """
         return self.__get_function([SlaveCommand.GET_FILE_INPUT_LIST, None])
-
-    def get_options_list(self) -> List[OptionElement]:
-        """Get from the interface the list of options to add to the bounds ribbon.
-
-        Returns
-        -------
-        List[OptionElement]
-            List of options
-        """
-        return self.__get_function([SlaveCommand.GET_OPTIONS_LIST, None])
 
     #   Geometry2D functions
     def compute_2D_data(

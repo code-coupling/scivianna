@@ -40,21 +40,27 @@ class ServerFileBrowser(Viewer):
 
         self.select = pmui.Select(
             groups={
-                "Directories": [".", ".."]
+                "Directories": ["-- Cancel --", ".", ".."]
                 + [e for e in os.listdir(self.current_folder) if os.path.isdir(e)],
                 "Files": [
                     e for e in os.listdir(self.current_folder) if os.path.isfile(e)
                 ],
             },
+            value=".",
             size="small",
             margin=(0, 0, 0, 0),
             width=width
         )
         self.select.param.watch(self.on_value_change, "dropdown_open")
 
-        # Saving values required to be able to close the dropdown menu without selection
-        self._past_value = None
-        self._past_path = None
+        folder_list, file_list = self._get_folder_sorted_content(
+            self.current_folder
+        )
+        self.select.disabled_options = []
+        self.select.groups = {
+            "Directories": ["-- Cancel --", ".", ".."] + folder_list,
+            "Files": file_list,
+        }
 
     def on_value_change(self, event: param.Event):
         """Event triggered by a dropdown open change, it updates the content of the select if a value was selected:
@@ -71,13 +77,11 @@ class ServerFileBrowser(Viewer):
         #       -   either the value changed, or the folder changed (if .. is selected)
         #   -   the panel was closed
         #       -   neither the value not the folder was changed
-        if not self.select.dropdown_open and (
-            self._past_value != self.select.value
-            or self._past_path != self.current_folder
-        ):
-            self._past_value = self.select.value
-            self._past_path = self.current_folder
+        if self.select.value == "-- Cancel --":
+            self.selected_file = ""
+            return
 
+        if not self.select.dropdown_open:
             if self.select.value is None:
                 pass
 
@@ -95,7 +99,7 @@ class ServerFileBrowser(Viewer):
                     )
                     self.select.disabled_options = []
                     self.select.groups = {
-                        "Directories": [".", ".."] + folder_list,
+                        "Directories": ["-- Cancel --", ".", ".."] + folder_list,
                         "Files": file_list,
                     }
                 except PermissionError:

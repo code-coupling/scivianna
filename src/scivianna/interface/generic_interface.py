@@ -86,16 +86,6 @@ class GenericInterface:
         """
         raise NotImplementedError()
 
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
-
-        Returns
-        -------
-        List[OptionElement]
-            List of option objects.
-        """
-        return []
-    
     @classmethod
     def serialize(self, obj: Any, key: str) -> Any:
         """This function receives an object that is about to be transmitted at the given key.

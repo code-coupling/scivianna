@@ -146,7 +146,6 @@ class ColorTestInterface(Geometry2DPolygon):
         else:
             raise ValueError(f"Label {label} not implemented. Keys available : MESH, str, and float.")
 
-
     def get_file_input_list(self) -> List[Tuple[str, str]]:
         """Returns a list of file label and its description for the GUI
 
@@ -157,16 +156,6 @@ class ColorTestInterface(Geometry2DPolygon):
         """
         return []
 
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
-
-        Returns
-        -------
-        List[OptionElement]
-            List of option objects.
-        """
-        return []
-    
 
 def test_interpolate_cmap_gray():
     colors = interpolate_cmap_at_values("gray", [0, 0.5, 1.])

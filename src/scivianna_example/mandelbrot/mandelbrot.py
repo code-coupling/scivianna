@@ -311,11 +311,6 @@ class MandelBrotInterface(Geometry2DGrid):
         """
         return []
 
-    def get_options_list(self) -> List[OptionElement]:
-        return [
-            IntOption("Max iter", 30, "Maximum iteration in the mendebrot calculation")
-        ]
-
 
 def make_panel(_, return_slaves=False):
     slave = ComputeSlave(MandelBrotInterface)

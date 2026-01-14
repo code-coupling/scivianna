@@ -13,7 +13,6 @@ import panel as pn
 def get_panel():
     visualisation_panels: Dict[str, VisualizationPanel] = {}
 
-
     med_1 = get_med_panel(geo=None, title="MEDCoupling visualizer XY")
     med_2 = get_med_panel(geo=None, title="MEDCoupling visualizer XZ")
     med_3 = get_med_panel(geo=None, title="MEDCoupling visualizer YZ")
@@ -32,7 +31,7 @@ def get_panel():
 
     for m in [med_1, med_2, med_3]:
         visualisation_panels[m.panel_name] = m
-        
+
     bounds_x = {
         "MEDCoupling visualizer XY": (0, 5),
         "MEDCoupling visualizer YZ": (0, 5),
@@ -51,6 +50,7 @@ def get_panel():
 def get_template():
     panel = get_panel()
     return panel.main_frame
+
 
 if __name__ == "__main__":
     #   Serving panel as main, file executed with a command : "python my_file.py"

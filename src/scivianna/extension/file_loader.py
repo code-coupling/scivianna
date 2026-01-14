@@ -1,4 +1,6 @@
 import functools
+import os
+from pathlib import Path
 from typing import Dict, TYPE_CHECKING
 import panel as pn
 from scivianna.component.server_file_browser import ServerFileBrowser
@@ -64,12 +66,19 @@ The file loader extension lets you browse files on the server file system to pro
 
                 self.slave.read_file(file_path, browser_name)
 
-                self.panel.recompute()
+                self.panel.trigger_on_file_load(file_path, browser_name)
 
         file_input_list = self.slave.get_file_input_list()
 
+        folder_path = None
+        loaded_files = self.slave.file_read
+        for path, _ in loaded_files:
+            if os.path.isfile(str(path)):
+                folder_path = Path(path).parent
+
         for name, _ in file_input_list:
             self.file_browsers[name] = ServerFileBrowser(
+                folder_path=folder_path,
                 name=str(name),
                 width=280
             )
@@ -95,6 +104,6 @@ The file loader extension lets you browse files on the server file system to pro
             Viewable to display in the extension tab
         """
         return pn.Column(
-                *self.file_loader_list,
-                margin=(0, 0, 10, 10),
-            )
+            *self.file_loader_list,
+            margin=(0, 0, 10, 10),
+        )

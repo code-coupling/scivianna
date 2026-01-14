@@ -1,4 +1,5 @@
-from typing import Callable, List, Tuple, Type, Union
+from logging import warning
+from typing import Callable, List, Tuple, Type
 import numpy as np
 import panel as pn
 import param
@@ -46,6 +47,7 @@ default_extensions = [FileLoader, FieldSelector, Axes]
 if has_agent:
     default_extensions.append(AIAssistant)
 
+
 class Panel2D(VisualizationPanel):
     """2D Visualisation panel associated to a code."""
 
@@ -58,12 +60,12 @@ class Panel2D(VisualizationPanel):
     colormap = param.String()
 
     def __init__(
-            self, 
-            slave: ComputeSlave, 
-            name="", 
-            display_polygons: bool = True,
-            extensions: List[Extension] = default_extensions
-        ):
+        self,
+        slave: ComputeSlave,
+        name="",
+        display_polygons: bool = True,
+        extensions: List[Extension] = default_extensions
+    ):
         """Visualization panel constructor
 
         Parameters
@@ -75,15 +77,14 @@ class Panel2D(VisualizationPanel):
         display_polygons : bool
             Display as polygons or as a 2D grid.
         """
-        
         code_interface: Type[Geometry2D] = slave.code_interface
         assert issubclass(
             code_interface, Geometry2D
         ), f"A VisualizationPanel can only be given a Geometry2D interface slave, received {code_interface}."
 
-        #         
+        #
         #   Initializing attributes
-        #         
+        #
         self.update_polygons = False
         """Need to update the data at the next async call"""
         self.display_polygons = display_polygons
@@ -93,9 +94,9 @@ class Panel2D(VisualizationPanel):
         self.field_change_callback: Callable = None
         """Function to call when the field is changed"""
 
-        # 
+        #
         #   Plotter creation
-        #         
+        #
         if self.display_polygons:
             self.plotter = Bokeh2DPolygonPlotter()
         else:
@@ -110,10 +111,10 @@ class Panel2D(VisualizationPanel):
         self.v_range = (0., 1.)
         self.w_value = 0.5
 
-        # 
+        #
         #   First plot on XY basic range
         #
-        self.displayed_field = MESH         
+        self.displayed_field = MESH
         for extension in self.extensions:
             extension.on_field_change(MESH)
 
@@ -127,8 +128,7 @@ class Panel2D(VisualizationPanel):
         self.current_data = data_
 
         if (
-            slave.get_label_coloring_mode(self.displayed_field)
-            == VisualizationMode.FROM_VALUE
+            slave.get_label_coloring_mode(self.displayed_field) == VisualizationMode.FROM_VALUE
         ):
             self.plotter.update_colorbar(
                 True,
@@ -139,16 +139,16 @@ class Panel2D(VisualizationPanel):
             )
         else:
             self.plotter.update_colorbar(False, (None, None))
-            
+
         # Attach the range update callback to the event
         self.plotter._set_callback_on_range_update(self.ranges_callback)
-        
+
         self.__data_to_update: bool = False
         self.__new_data = {}
 
         try:
             pn.state.on_session_created(self.recompute)
-        except:
+        except Exception:
             pass
 
     @pn.io.hold()
@@ -159,7 +159,7 @@ class Panel2D(VisualizationPanel):
         if self.__data_to_update:
             if profile_time:
                 st = time.time()
-                
+
             if "color_mapper" in self.__new_data:
                 self.plotter.update_colorbar(
                     True,
@@ -232,7 +232,7 @@ class Panel2D(VisualizationPanel):
         Data2D
             Geometry data.
         """
-        options = {key:value for options in [
+        options = {key: value for options in [
             e.provide_options() for e in self.extensions
         ] for key, value in options.items()}
 
@@ -300,8 +300,7 @@ class Panel2D(VisualizationPanel):
             extension.on_range_change((x0, x1), (y0, y1), self.w_value)
 
         if self.update_event == UpdateEvent.RANGE_CHANGE or (
-            isinstance(self.update_event, list)
-            and UpdateEvent.RANGE_CHANGE in self.update_event
+            isinstance(self.update_event, list) and UpdateEvent.RANGE_CHANGE in self.update_event
         ):
             self.marked_to_recompute = True
 
@@ -350,8 +349,7 @@ class Panel2D(VisualizationPanel):
             if (
                 self.slave.get_label_coloring_mode(
                     self.displayed_field
-                )
-                == VisualizationMode.FROM_VALUE
+                ) == VisualizationMode.FROM_VALUE
             ):
                 self.__new_data["color_mapper"] = {
                     "new_low": np.nanmin(np.array(data.cell_values).astype(float)),
@@ -369,7 +367,6 @@ class Panel2D(VisualizationPanel):
             if pn.state.curdoc is not None:
                 pn.state.curdoc.add_next_tick_callback(self.async_update_data)
 
-
     def duplicate(self, keep_name: bool = False) -> "VisualizationPanel":
         """Get a copy of the panel. A panel of the same type is generated, the current display too, but a new slave process is created.
 
@@ -384,9 +381,9 @@ class Panel2D(VisualizationPanel):
             Copy of the visualisation panel
         """
         new_visualiser = Panel2D(
-            slave=self.slave.duplicate(), 
-            name=self.panel_name, 
-            display_polygons=self.display_polygons, 
+            slave=self.slave.duplicate(),
+            name=self.panel_name,
+            display_polygons=self.display_polygons,
             extensions=[e for e in self.extension_classes]
         )
         new_visualiser.copy_index = self.copy_index
@@ -530,7 +527,7 @@ class Panel2D(VisualizationPanel):
         if update_axes:
             for extension in self.extensions:
                 extension.on_frame_change(self.u, self.v)
-        
+
         update_range = False
         if u_min is not None:
             if not type(u_min) in [float, int]:
@@ -564,7 +561,6 @@ class Panel2D(VisualizationPanel):
         else:
             v_max = self.v_range[1]
 
-
         if w is not None:
             if not type(w) in [float, int]:
                 raise TypeError(f"w must be a number, found type {type(w)}")
@@ -596,18 +592,22 @@ class Panel2D(VisualizationPanel):
         if self.displayed_field != field_name:
             self.displayed_field = field_name
 
-            # Reseting indexes to prevent weird edges
-            if pn.state.curdoc is not None:
-                pn.state.curdoc.add_next_tick_callback(self.polygon_sorter.reset_indexes)
-            
-            for extension in self.extensions:
-                extension.on_field_change(field_name)
+            if field_name not in self.slave.get_labels():
+                warning(f"\n\nRequested field {field_name} : field unavailable, available values : {self.slave.get_labels()}.\n\n")
 
-            if pn.state.curdoc is not None:
-                pn.state.curdoc.add_next_tick_callback(self.recompute)
+            else:
+                # Reseting indexes to prevent weird edges
+                if pn.state.curdoc is not None:
+                    pn.state.curdoc.add_next_tick_callback(self.polygon_sorter.reset_indexes)
 
-            if self.field_change_callback is not None:
-                self.field_change_callback(field_name)
+                for extension in self.extensions:
+                    extension.on_field_change(field_name)
+
+                if pn.state.curdoc is not None:
+                    pn.state.curdoc.add_next_tick_callback(self.recompute)
+
+                if self.field_change_callback is not None:
+                    self.field_change_callback(field_name)
 
     def set_colormap(self, colormap: str):
         """Sets the current color map
