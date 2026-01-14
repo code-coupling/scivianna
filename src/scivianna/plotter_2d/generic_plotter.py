@@ -1,7 +1,7 @@
 from typing import IO, Callable, List, Tuple
 import panel as pn
 
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 
 
@@ -12,6 +12,8 @@ class Plotter2D:
     """Function to call when the mouse is moved on the geometry"""
     on_clic_callback = None
     """Function to call when the mouse is clicked on the geometry"""
+    line_width = 1.
+    """Width of the line separating the different cells"""
 
 
     def display_borders(self, display: bool):
@@ -116,7 +118,7 @@ class Plotter2D:
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -127,7 +129,7 @@ class Plotter2D:
 
     def provide_on_clic_callback(self, callback:Callable):
         """Stores a function to call everytime the user clics on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -149,3 +151,13 @@ class Plotter2D:
             Normal vector coordinate
         """
         raise NotImplementedError()
+    
+    def enable_highlight(self, enable: bool = True):
+        """Enable hover highlight
+
+        Parameters
+        ----------
+        enable : bool, optional
+            Highlight enabled, by default True
+        """
+        pass

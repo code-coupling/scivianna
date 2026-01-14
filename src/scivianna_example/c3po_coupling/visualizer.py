@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Union
 
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.panel_1d import Panel1D
 from scivianna.interface.time_dataframe import TimeDataFrame
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.slave import ComputeSlave
 from scivianna.notebook_tools import get_med_panel
 
-from scivianna.panel.icoco import GridStackProblem
+from scivianna.coupling.icoco import GridStackProblem
 
 from pydantic import BaseModel, ConfigDict, NonNegativeFloat, PositiveFloat, model_validator
 
@@ -129,7 +130,7 @@ class VisuProblem(GridStackProblem):
 
         self._meshes: Dict[str, mc.MEDCouplingMesh] = {}
 
-        visualisation_panels = {}
+        visualisation_panels: Dict[str, VisualizationPanel] = {}
         bounds_x = {}
         bounds_y = {}
         for ip_y, line in enumerate(data_to_view.grid):
@@ -144,17 +145,17 @@ class VisuProblem(GridStackProblem):
                     slave_result = ComputeSlave(TimeDataFrame)
                     
                     slave_result.setTime(-1.)
-                    slave_result.setInputDoubleValue(name, np.NaN)
+                    slave_result.setInputDoubleValue(name, np.nan)
 
-                    visualisation_panels[name] = LineVisualisationPanel(slave_result, name)
+                    visualisation_panels[name] = Panel1D(slave_result, name)
 
                 elif isinstance(element, FieldValuePanel):
                     slave_result = ComputeSlave(TimeDataFrame)
                     
                     slave_result.setTime(-1.)
-                    slave_result.setInputDoubleValue(name, np.NaN)
+                    slave_result.setInputDoubleValue(name, np.nan)
 
-                    visualisation_panels[name] = LineVisualisationPanel(slave_result, name)
+                    visualisation_panels[name] = Panel1D(slave_result, name)
                     self._field_values[name] = element.reduction_type
                     mesh = mc.ReadMeshFromFile(str(element.mesh))
                     self._meshes[name] = mesh
@@ -169,7 +170,7 @@ class VisuProblem(GridStackProblem):
                     field_path = self._working_directory / f"field_{name.replace(' ', '_')}.med"
                     mc.WriteField(str(field_path), field, True)
                     visualisation_panels[name] = get_med_panel(str(field_path), title=name)
-                    visualisation_panels[name].field_color_selector.value = [name]
+                    visualisation_panels[name].set_field(name)
 
                 else:
                     raise
@@ -182,6 +183,8 @@ class VisuProblem(GridStackProblem):
         #   Adding the run button to be able to start the synchronisation to the coupling
         self.gridstack = GridStackLayout(
             visualisation_panels, bounds_x, bounds_y, add_run_button=True)
+        
+        self.gridstack.add_time_widget()
 
         return super().initialize()
 

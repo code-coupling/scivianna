@@ -1,16 +1,17 @@
 from typing import IO, Any, Dict, List, Tuple, Union
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
 import matplotlib
 import matplotlib.axes
 import matplotlib.pyplot as plt
-from matplotlib import cm, colormaps
+from matplotlib import cm
 from matplotlib import colors as plt_colors
+from matplotlib.colors import LinearSegmentedColormap
 
-from scivianna.constants import POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
-from scivianna.utils.color_tools import get_edges_colors
+from scivianna.constants import POLYGONS, CELL_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
+from scivianna.utils.color_tools import get_edges_colors, beautiful_color_maps
 
 from shapely import Polygon
 import geopandas as gpd
@@ -105,10 +106,10 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
         data.convert_to_polygons()
-        volume_list: List[Union[str, int]] = data.cell_ids
+        cell_list: List[Union[str, int]] = data.cell_ids
 
-        volume_colors: np.ndarray = np.array(data.cell_colors).astype(float)
-        volume_edge_colors: np.ndarray = get_edges_colors(volume_colors)
+        cell_colors: np.ndarray = np.array(data.cell_colors).astype(float)
+        cell_edge_colors: np.ndarray = np.array(data.cell_edge_colors).astype(float)
 
         polygons: List[Polygon] = [
             Polygon(
@@ -126,13 +127,14 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
 
         gdf = gpd.GeoDataFrame(geometry=polygons)
 
-        volume_colors /= 255.0
-        volume_edge_colors /= 255.0
+        cell_colors /= 255.0
+        cell_edge_colors /= 255.0
 
         gdf.normalize().plot(
-            facecolor=volume_colors.tolist(),
-            edgecolor=volume_edge_colors.tolist(),
+            facecolor=cell_colors.tolist(),
+            edgecolor=cell_edge_colors.tolist(),
             ax=axes,
+            linewidth = self.line_width,
             **plot_options
         )
 
@@ -142,17 +144,17 @@ class Matplotlib2DPolygonPlotter(Plotter2D):
                     norm=plt_colors.Normalize(
                         self.colorbar_range[0], self.colorbar_range[1]
                     ),
-                    cmap=colormaps[self.colormap_name],
+                    cmap=LinearSegmentedColormap.from_list(self.colormap_name, (np.array(beautiful_color_maps[self.colormap_name])/255).tolist(), N=len(beautiful_color_maps[self.colormap_name]))
                 ),
                 ax=axes,
             )
 
         self.last_plot = {
             POLYGONS: polygons,
-            VOLUME_NAMES: volume_list,
+            CELL_NAMES: cell_list,
             COMPO_NAMES: data.cell_values,
-            COLORS: volume_colors.tolist(),
-            EDGE_COLORS: volume_edge_colors.tolist(),
+            COLORS: cell_colors.tolist(),
+            EDGE_COLORS: cell_edge_colors.tolist(),
         }
 
     def update_2d_frame(

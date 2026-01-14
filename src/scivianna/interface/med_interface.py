@@ -1,9 +1,19 @@
 import os
-from typing import Any, Dict, List, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union, TYPE_CHECKING
 import numpy as np
 import multiprocessing as mp
+import panel as pn
+import panel_material_ui as pmui
 
-from scivianna.data import Data2D
+if TYPE_CHECKING:
+    from scivianna.panel.visualisation_panel import VisualizationPanel
+    from scivianna.slave import ComputeSlave
+    from scivianna.plotter_2d.generic_plotter import Plotter2D
+
+from scivianna.extension.extension import Extension
+import scivianna.icon
+from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
 from scivianna.interface.option_element import IntOption
 from scivianna.slave import OptionElement
@@ -17,6 +27,248 @@ from scivianna.constants import MESH, GEOMETRY, CSV
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
 if profile_time:
     import time
+
+with open(Path(scivianna.icon.__file__).parent / "salome.svg", "r") as f:
+    icon_svg = f.read()
+
+class MEDCouplingExtension(Extension):
+    """Extension to load files and send them to the slave."""
+
+    def __init__(
+        self,
+        slave: "ComputeSlave",
+        plotter: "Plotter2D",
+        panel: "VisualizationPanel"
+    ):
+        """Constructor of the extension, saves the slave and the panel
+
+        Parameters
+        ----------
+        slave : ComputeSlave
+            Slave computing the displayed data
+        plotter : Plotter2D
+            Figure plotter
+        panel : VisualizationPanel
+            Panel to which the extension is attached
+        """
+        super().__init__(
+            "MEDCoupling",
+            icon_svg,
+            slave,
+            plotter,
+            panel,
+        )
+
+        self.description = """
+This extension allows defining the medcoupling field display parameters.
+"""
+
+        self.iconsize = "1.0em"
+
+        self.field_iterations = None
+
+        self.field_iterations = self.slave.call_custom_function("get_iterations", {})
+        self.field_name = list(self.field_iterations.keys())[0]
+
+        self.iteration_input = pmui.IntInput(
+            label="Iteration",
+            value=self.field_iterations[self.field_name][0][0],
+            description="Med field iteration.",
+            width=280,
+            color="primary",
+            sx={}
+        )
+        self.order_input = pmui.IntInput(
+            label="Order",
+            value=self.field_iterations[self.field_name][0][1],
+            description="Med field order.",
+            width=280
+        )
+        self.slider_w = pmui.FloatSlider(
+            label="W coordinate",
+            visible=False,
+            width=280
+        )
+
+        self.valid = True
+
+        self.iteration_input.param.watch(self.recompute, "value")
+        self.order_input.param.watch(self.recompute, "value")
+        self.slider_w.param.watch(self.on_slider_change, "value")
+
+        self.u = (1, 0, 0)
+        self.v = (0, 1, 0)
+
+        self.u_bounds = (0., 1.)
+        self.v_bounds = (0., 1.)
+
+        self.w = 0.5
+
+        self.on_file_load(None, None)
+
+    def provide_options(self) -> Dict[str, float]:
+        """Provide the medcoupling interface options
+
+        Returns
+        -------
+        Dict[str, float]
+            MED options
+        """
+        return {
+            "Iteration": self.iteration_input.value,
+            "Order": self.order_input.value,
+        }
+
+    def on_field_change(self, field_name: str):
+        """Saves field name and checks order/iteration values
+
+        Parameters
+        ----------
+        field_name : str
+            New displayed field
+        """
+        self.field_name = field_name
+        self.check_int_inputs(force_valid_values=True)
+
+    def on_file_load(self, file_path, file_key):
+        """Catches the file load event to update its data
+        """
+        self.field_iterations = self.slave.call_custom_function("get_iterations", {})
+        self.check_int_inputs(force_valid_values=True)
+        self.update_slider_range()
+
+    def on_slider_change(self, event):
+        """Updates the panel w coordinate on slider change
+        """
+        if self.slider_w.value != self.w:
+            self.panel.set_coordinates(w=self.slider_w.value)
+
+    @pn.io.hold()
+    def update_slider_range(self,):
+        """Update slider bounds based on the mesh bounding box
+        """
+        x_range, y_range, z_range = self.slave.call_custom_function("get_bounding_box", {})
+
+        w = np.cross(self.u, self.v).astype(float)
+        w /= np.linalg.norm(w).astype(float)
+
+        min_vect = np.array([x_range[0], y_range[0], z_range[0]])
+        max_vect = np.array([x_range[1], y_range[1], z_range[1]])
+
+        min_w = np.dot(w, min_vect)
+        max_w = np.dot(w, max_vect)
+
+        if self.slider_w.start != min(min_w, max_w):
+            self.slider_w.start = min(min_w, max_w)
+
+        if self.slider_w.end != max(min_w, max_w):
+            self.slider_w.end = max(min_w, max_w)
+
+        if self.w != self.slider_w.value:
+            self.slider_w.value = self.w
+
+        if not self.slider_w.visible:
+            self.slider_w.visible = True
+
+    def on_range_change(self, u_bounds: Tuple[float, float], v_bounds: Tuple[float, float], w_value: float):
+        """Saves the frame bounds on both coordinates and the normal coordinate
+
+        Parameters
+        ----------
+        u_bounds : Tuple[float, float]
+            Bounds on the horizontal axis
+        v_bounds : Tuple[float, float]
+            Bounds on the vertical axis
+        w_value : float
+            Normal axis coordinate
+        """
+        self.u_bounds = u_bounds
+        self.v_bounds = v_bounds
+        self.w = w_value
+
+        self.update_slider_range()
+
+    def on_frame_change(self, u_vector, v_vector):
+        """Saves new u and v vectors
+
+        Parameters
+        ----------
+        u_vector : np.ndarray
+            Horizontal vector
+        v_vector : np.ndarray
+            Vertical vector
+        """
+        self.u = np.array(u_vector)
+        self.v = np.array(v_vector)
+
+        self.update_slider_range()
+
+    @pn.io.hold()
+    def check_int_inputs(self, force_valid_values: bool = False):
+        """Checks iteration and order intinputs values
+
+        Parameters
+        ----------
+        force_valid_values : bool
+            Sets values to valid values if not valid
+        """
+        if self.field_name is None or (self.field_iterations is None or self.field_name not in self.field_iterations):
+            return
+
+        tup = (self.iteration_input.value, self.order_input.value)
+
+        if tup in self.field_iterations[self.field_name]:
+            self.iteration_input.color = "primary"
+            self.order_input.color = "primary"
+
+            self.iteration_input.sx = {}
+            self.order_input.sx = {}
+
+        elif force_valid_values:
+            self.iteration_input.value, self.order_input.value = self.field_iterations[self.field_name][0]
+
+        else:
+            # https://panel-material-ui.holoviz.org/how_to/customize.html
+            pn.state.notifications.error("Iteration/order couple not valid, see console for available values.")
+            print(f"Available iteration/order values for field '{self.field_name}': {self.field_iterations[self.field_name]}")
+
+            self.iteration_input.color = "error"
+            self.order_input.color = "error"
+            self.iteration_input.sx = {
+                # Target the notched outline (border) of the MUI OutlinedInput
+                "& .MuiOutlinedInput-notchedOutline": {
+                    "borderColor": "red",
+                }
+            }
+            self.order_input.sx = {
+                # Target the notched outline (border) of the MUI OutlinedInput
+                "& .MuiOutlinedInput-notchedOutline": {
+                    "borderColor": "red",
+                }
+            }
+
+    def recompute(self, *args, **kwargs):
+        """Recompute event on intinput changes
+        """
+        self.check_int_inputs()
+        if self.valid:
+            self.panel.recompute()
+
+    def make_gui(self,) -> pn.viewable.Viewable:
+        """Returns a panel viewable to display in the extension tab.
+
+        Returns
+        -------
+        pn.viewable.Viewable
+            Viewable to display in the extension tab
+        """
+        return pmui.Column(
+            self.iteration_input,
+            self.order_input,
+            pmui.Typography("Coordinate along the normal axis"),
+            self.slider_w,
+            margin=0
+        )
 
 
 class MEDInterface(Geometry2DPolygon, IcocoInterface):
@@ -39,28 +291,42 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
     fields_iterations: Dict[str, List[Tuple[int, int]]]
     """List containing for tuples storing the field name, and the associated iteration."""
 
-    fields: Dict[str, List[float]]
+    fields: Dict[str, np.ndarray]
     """Dictionnary containing the list of per cell value for each read field."""
+
+    field_doubles: Dict[str, medcoupling.MEDCouplingFieldDouble]
+    """Dictionnary containing the received MEDCouplingFieldDouble."""
 
     cell_dict: Dict[int, int]
     """Dictionnary associating the 2D mesh cells to the 3D mesh cells"""
 
     """ Support mesh
     """
-    
-    geometry_type=GeometryType._3D
+    geometry_type: GeometryType = GeometryType._3D_INFINITE
+    extensions = [MEDCouplingExtension]
 
     def __init__(self):
         """MEDCoupling interface constructor."""
-        self.data: List[PolygonElement] = None
+        self.data: Data2D = None
+        """Past computed data"""
         self.file_path = None
+        """Read file path saved for lazy load"""
         self.meshnames = []
+        """List of mesh names in the file"""
         self.mesh = None
+        """Currently loaded mesh"""
         self.fieldnames = []
-        self.last_computed_frame = []
+        """List of fields in the current mesh"""
         self.fields = {}
+        """List of fields data"""
+        self.field_doubles = {}
+        """Dictionnary containing the received MEDCouplingFieldDouble."""
         self.fields_iterations = {}
+        """Dictionnary containing the med file available (iter, order) couples"""
         self.cell_dict = {}
+        """Dictionnary associating the 2D mesh cells to the 3D mesh cells"""
+        self.last_computed_frame = []
+        """Parameters of the last computed frame"""
 
     def read_file(self, file_path: str, file_label: str):
         """Read a file and store its content in the interface
@@ -76,6 +342,8 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             if profile_time:
                 start_time = time.time()
             print("File to read", file_path)
+
+            file_path = str(file_path)
             self.file_path = file_path
 
             if not os.path.isfile(file_path):
@@ -120,8 +388,6 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -142,10 +408,6 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -169,7 +431,6 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         if profile_time:
             start_time = time.time()
 
-        self.last_computed_frame = [*u, *v, w_value]
         mesh_dimension = self.mesh.getMeshDimension()
 
         use_cell_id = True
@@ -179,6 +440,12 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             cell_ids = list(range(mesh.getNumberOfCells()))
         elif mesh_dimension == 3:
             vec = [float(e) for e in np.cross(u, v)]
+
+            if any([u_min is None, v_min is None, w_value is None]):
+                print(f"u_min : {u_min}")
+                print(f"v_min : {v_min}")
+                print(f"w_value : {w_value}")
+
             origin = [u_min * u[i] + v_min * v[i] + w_value * vec[i] for i in range(3)]
 
             try:
@@ -190,11 +457,14 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 cells_ids = self.mesh.getCellIdsCrossingPlane(origin, vec, eps)
 
                 cell_ids = [int(c) for c in cells_ids]
-            except:
+
+            except Exception:
                 eps = 1e-7
+
                 mesh: medcoupling.MEDCouplingUMesh = self.mesh.buildSlice3D(
                     origin, vec, eps
                 )[0]
+
                 cell_ids = [
                     int(c) for c in self.mesh.getCellIdsCrossingPlane(origin, vec, eps)
                 ]
@@ -238,7 +508,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 PolygonElement(
                     exterior_polygon=PolygonCoords(x_coords=u_vals, y_coords=v_vals),
                     holes=[],
-                    volume_id=str(cell),
+                    cell_id=str(cell),
                 )
             )
 
@@ -255,6 +525,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
                 f"Gathering cells id time: {time.time() - start_time} using cell id {use_cell_id}"
             )
 
+        self.last_computed_frame = [*u, *v, w_value]
         self.data = Data2D.from_polygon_list(self.data)
         return self.data, True
 
@@ -268,47 +539,51 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         List[str]
             List of fields names
         """
-        labels = [MESH] + list(self.fields_iterations.keys())
+        labels = list(self.fields_iterations.keys()) + [MESH]
         return labels
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if profile_time:
             start_time = time.time()
         if value_label == MESH:
-            return {str(v): np.NaN for v in volumes}
+            return {str(v): np.nan for v in cells}
+
+        if "Iteration" not in options:
+            print(f"Iteration not found in medcoupling option, setting {self.fields_iterations[value_label][0][0]}")
+            options["Iteration"] = self.fields_iterations[value_label][0][0]
+        if "Order" not in options:
+            print(f"Order not found in medcoupling option, setting {self.fields_iterations[value_label][0][1]}")
+            options["Order"] = self.fields_iterations[value_label][0][1]
 
         field_np_array = None
 
         if value_label in self.fields:
             field_np_array = self.fields[value_label]
+        elif value_label in self.field_doubles:
+            field_np_array = self.field_doubles[value_label].getArray().toNumPyArray()
         else:
             print(f"Reading MEDCouplingFieldDouble in {self.file_path}")
             # print("Checking", value_label, "in", self.fields_iterations, field in self.fields_iterations.keys())
 
             if value_label in self.fields_iterations:
-                # print("Checking ", (options["Iteration"], options["Order"]), (options["Iteration"], options["Order"]) in self.fields_iterations[value_label])
-                options = {
-                    "Iteration": self.fields_iterations[value_label][0][0],
-                    "Order": self.fields_iterations[value_label][0][1],
-                }
                 # if "Iteration" in options and "Order" in options and (options["Iteration"], options["Order"]) in self.fields_iterations[value_label]:
                 if True:
                     field_name = value_label.split("@")[0]
@@ -337,10 +612,9 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
 
         if field_np_array is not None:
             indexes = np.array(list(self.cell_dict.values())).astype(int)
-            values = field_np_array[np.array(volumes).astype(int)]
-            # values = field_np_array[indexes[np.array(volumes).astype(int)]]
+            values = field_np_array[indexes[np.array(cells).astype(int)].tolist()]
 
-            value_dict = dict(zip(np.array(volumes).astype(str), values))
+            value_dict = dict(zip(np.array(cells).astype(str), values))
 
             if profile_time:
                 print(f"Get value dict time: {time.time() - start_time}")
@@ -387,46 +661,54 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         mcfield.setMesh(self.mesh)
         array = medcoupling.DataArrayDouble([0.0] * self.mesh.getNumberOfCells())
         mcfield.setArray(array)
-        if field_name in self.fields:
-            mcfield.setNature(self.fields[field_name].getNature())
+        if field_name in self.field_doubles:
+            mcfield.setNature(self.field_doubles[field_name].getNature())
         else:
             print(
                 field_name,
-                f"not found in self.fields, available keys: {list(self.fields.keys())}.",
+                f"not found in self.fields, available keys: {list(self.field_doubles.keys())}.",
             )
         return mcfield
 
     def setInputMEDDoubleField(
         self, field_name: str, field: medcoupling.MEDCouplingFieldDouble
     ):
-        self.fields[field_name] = field
+        if field_name in self.fields:
+            del self.fields[field_name]
 
-    def setTime(self, time_:float):
+        self.field_doubles[field_name] = field
+
+    def setTime(self, time_: float):
         pass
-    
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
+
+    def get_iterations(self,) -> Dict[str, List[Tuple[int, int]]]:
+        """Returns the fields iterations
 
         Returns
         -------
-        List[OptionElement]
-            List of option objects.
+        Dict[str, List[Tuple[int, int]]]
+            Iterations/orders per field
         """
-        return [
-            IntOption("Iteration", -1, "Med field iteration."),
-            IntOption("Order", -1, "MED field order."),
-        ]
+        return self.fields_iterations
+
+    def get_bounding_box(self,) -> Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]:
+        """Returns the mesh bounding box
+
+        Returns
+        -------
+        Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]]
+            Mesh bounding box : ((minx, maxx), (miny, maxy), (minz, maxz))
+        """
+        return self.mesh.getBoundingBox()
 
 
 if __name__ == "__main__":
-    from scivianna.slave import ComputeSlave
-    from scivianna.panel.plot_panel import VisualizationPanel
     from scivianna.notebook_tools import _show_panel
 
     slave = ComputeSlave(MEDInterface)
     # slave.read_file("/volatile/catA/tmoulignier/Workspace/some_holoviz/jdd/mesh_hexa_3d.med", GEOMETRY)
     slave.read_file(
-        "/volatile/catA/tmoulignier/Workspace/some_holoviz/src/scivianna/default_jdd/INTEGRATED_POWER.med",
+        "/volatile/catA/tmoulignier/Workspace/some_holoviz/src/scivianna/input_file/INTEGRATED_POWER.med",
         GEOMETRY,
     )
 

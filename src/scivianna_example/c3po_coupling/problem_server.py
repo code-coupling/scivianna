@@ -53,7 +53,19 @@ def _method(self, method_name, *args, **kwargs):
         # pylint: disable=protected-access
         return getattr(self._problem, method_name)(*args, **kwargs)
     except Exception as error:
-        raise RemoteException(f"RemoteException raised from:\n{error}") from error
+        import traceback
+        tb_str = traceback.format_exc()
+
+        # Construct a detailed error message
+        error_msg = (
+            f"RemoteException raised while calling method '{method_name}'\n"
+            f"Args: {args}\n"
+            f"Kwargs: {kwargs}\n"
+            f"Traceback:\n\n{tb_str}\n"
+        )
+
+        # Raise with original exception preserved (chaining)
+        raise RemoteException(error_msg) from error
 
 
 def redirect_icoco_to_server(cls):

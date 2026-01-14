@@ -27,8 +27,7 @@ class BokehPlotter1D(Plotter1D):
 
         self.fig = figure(
             name="plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
         )
 
         # Reset ranges when plots are hidden
@@ -45,8 +44,7 @@ class BokehPlotter1D(Plotter1D):
         self.fig_pane = pn.pane.Bokeh(
             self.fig,
             name="Plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             margin=0,
             styles={"border": "2px solid lightgray"},
         )
@@ -177,18 +175,18 @@ class BokehPlotter1D(Plotter1D):
         Tuple[float, float]
             Displayed data Y bounds
         """
-        min_val = np.NaN
-        max_val = np.NaN
+        min_val = np.nan
+        max_val = np.nan
 
         y_mins = [np.nanmin(self.source_data_dict[name].data["y"]) 
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["y"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["y"])) == 0
                         )]
         y_maxs = [np.nanmax(self.source_data_dict[name].data["y"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["y"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["y"])) == 0
                         )]
@@ -207,18 +205,18 @@ class BokehPlotter1D(Plotter1D):
         Tuple[float, float]
             Displayed data X bounds
         """
-        min_val = np.NaN
-        max_val = np.NaN
+        min_val = np.nan
+        max_val = np.nan
 
         x_mins = [np.nanmin(self.source_data_dict[name].data["x"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["x"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["x"])) == 0
                         )]
         x_maxs = [np.nanmax(self.source_data_dict[name].data["x"])
                     for name in self.visible 
-                    if not (
+                    if (name in self.source_data_dict) and not (
                             isinstance(self.source_data_dict[name].data["x"][0], str) 
                             or np.count_nonzero(~np.isnan(self.source_data_dict[name].data["x"])) == 0
                         )]

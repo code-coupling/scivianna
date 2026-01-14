@@ -30,9 +30,15 @@ class GeometryType(Enum):
     """Is the geometry 2D or 3D."""
 
     _2D = 0
+    """ 2D geometry : A selected window of the geometry is displayed 
+    """
+    _2D_INFINITE = 0
     """ 2D geometry : Everything is displayed 
     """
     _3D = 1
+    """ 3D geometry : U and V axis are required to slice the geometry, only a selected window is displayed
+    """
+    _3D_INFINITE = 1
     """ 3D geometry : U and V axis are required to slice the geometry
     """
 

@@ -1,11 +1,11 @@
 import functools
-from typing import IO, Callable, List, Tuple, Union
+from typing import IO, Callable, List, Tuple
 import bokeh.events
 import panel as pn
+from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
-from scivianna.panel.styles import customize_axis
 import bokeh
 from bokeh.colors import RGB
 from bokeh.plotting import figure as Figure
@@ -16,7 +16,6 @@ from bokeh.models import (
     CustomJSHover,
     LinearColorMapper,
     ColorBar,
-    TapTool,
 )
 # from bokeh.models import CustomJS
 from bokeh import events
@@ -24,7 +23,7 @@ from scivianna.utils.color_tools import get_edges_colors
 
 import numpy as np
 
-from scivianna.constants import XS, YS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS, GEOMETRY
+from scivianna.constants import XS, YS, GRID, CELL_NAMES, COMPO_NAMES, GEOMETRY
 from scivianna.utils.color_tools import beautiful_color_maps
 
 import os
@@ -33,17 +32,19 @@ import os
 class Bokeh2DGridPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
 
+    display_edges = True
+    """Display grid cells edges"""
+    dim_hovered_cell = True
+    """Sets the hovered cell opacity to 0.6"""
+
     def __init__(
         self,
     ):
         """Creates the bokeh Figure and ColumnDataSources"""
-        self.source_polygons = ColumnDataSource(
+        self.source_grid = ColumnDataSource(
             {
-                XS: [],
-                YS: [],
-                COLORS: [],
-                EDGE_COLORS: [],
-                VOLUME_NAMES: [],
+                GRID: [],
+                CELL_NAMES: [],
                 COMPO_NAMES: [],
             }
         )
@@ -104,10 +105,15 @@ class Bokeh2DGridPlotter(Plotter2D):
             const x = special_vars.x;
             const y = special_vars.y;
 
+            const i = special_vars.image_index.i;
+            const j = special_vars.image_index.j;
             const new_data = Object.assign({}, mouse.data)
 
             new_data["u"] = [x];
             new_data["v"] = [y];
+
+            new_data["i"] = [i];
+            new_data["j"] = [j];
 
             new_data["x"] = [x*u0 + y*v0 +w*w0];
             new_data["y"] = [x*u1 + y*v1 +w*w1];
@@ -125,20 +131,23 @@ class Bokeh2DGridPlotter(Plotter2D):
 
             mouse.change.emit();
 
+            console.log(value);
+            console.log(special_vars);
+
             return  "(" + (x*u0 + y*v0 +w*w0).toFixed(3) + ", " + (x*u1 + y*v1 +w*w1).toFixed(3)+", "+  (x*u2 + y*v2 +w*w2 ).toFixed(3) + ")"
         """
 
         # Manifestement, ca ne marche pas avec un nom a plusieurs caracteres pour x ???
         TOOLTIPS = [
-            ("Coordinates", "$x{custom}"),
-            ("Volume ID", "@volume_names"),
+            ("Coordinates", "$coords{custom}"),
+            ("Cell ID", "@cell_names"),
             ("Value", "@compo_names"),
         ]
 
         hover_tool = HoverTool(
             tooltips=TOOLTIPS,
             formatters={
-                "$x": CustomJSHover(
+                "$coords": CustomJSHover(
                     args=dict(
                         full_data=self.source_coordinates, mouse=self.source_mouse
                     ),
@@ -150,22 +159,20 @@ class Bokeh2DGridPlotter(Plotter2D):
 
         self.figure = Figure(
             name="plot",
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             match_aspect=True,
-            # aspect_ratio="auto",
-            # aspect_scale = 1.,
-            # title = self.name,
             toolbar_location=None,
         )
 
+        self.figure.xgrid.grid_line_color = None
+        self.figure.ygrid.grid_line_color = None
         self.figure.min_border_left = 0
         self.figure.min_border_right = 0
         self.figure.min_border_top = 0
         self.figure.min_border_bottom = 0
 
-        customize_axis(self.figure.xaxis)
-        customize_axis(self.figure.yaxis, vertical=True)
+        self.figure.xaxis.visible = False
+        self.figure.yaxis.visible = False
 
         self.figure.add_tools(hover_tool)
 
@@ -195,6 +202,19 @@ class Bokeh2DGridPlotter(Plotter2D):
         ][0]
         self.figure.toolbar.active_scroll = zoom_tool
         self.figure.toolbar.active_drag = pan_tool
+        
+        if self.dim_hovered_cell:
+            def on_mouse_enter(event):
+                self.active = True
+            self.figure.on_event(bokeh.events.MouseMove, 
+                                    self.on_mouse_move)
+            self.figure.on_event(bokeh.events.MouseEnter, 
+                                    on_mouse_enter)
+            self.figure.on_event(bokeh.events.MouseLeave, 
+                                    self.reset_hover)
+
+            self.last_update_cell = None
+            self.save_data = True
 
     def display_borders(self, display: bool):
         """Display or hides the figure borders and axis
@@ -245,97 +265,127 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_names : Dict[Union[int, str], str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        img, grid, val_grid = self.get_grids(data)
+        
+        self.source_grid = ColumnDataSource(
+            {
+                GRID: [img],
+                CELL_NAMES: [grid],
+                COMPO_NAMES: [val_grid],
+            }
+        )
 
-        self.source_polygons.data = {
-            XS: xs,
-            YS: ys,
-            VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
-            COLORS: colors,
-            EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
-        }
-
-        self.figure.multi_polygons(
-            xs=XS,
-            ys=YS,
-            line_width=2,
-            source=self.source_polygons,
-            color=COLORS,
-            # hover_line_alpha=1.,
-            # hover_line_color='light_blue',
-            hover_fill_alpha=0.6,
-            # hover_fill_color='light_blue',
-            line_color=EDGE_COLORS,
+        self.image = self.figure.image_rgba(
+            image = GRID,
+            x = data.u_values.min(),
+            y = data.v_values.min(),
+            dw = data.u_values.max() - data.u_values.min(),
+            dh = data.v_values.max() - data.v_values.min(),
+            source=self.source_grid
         )
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
-        xs, ys = self._polygons_to_coords(polygon_list)
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
-
-        self.source_polygons.update(
-            data={
-                XS: xs,
-                YS: ys,
-                VOLUME_NAMES: volume_list,
-                COMPO_NAMES: compo_list,
-                COLORS: colors,
-                EDGE_COLORS: get_edges_colors(np.array(colors)).tolist(),
+        img, grid, val_grid = self.get_grids(data)
+        self.source_grid.update(
+            data = {
+                GRID : [img],
+                CELL_NAMES : [grid],
+                COMPO_NAMES : [val_grid],
             }
         )
+        self.image.glyph.update(
+            x = data.u_values.min(),
+            y = data.v_values.min(),
+            dw = data.u_values.max() - data.u_values.min(),
+            dh = data.v_values.max() - data.v_values.min(),
+        )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def get_grids(
+        self,
+        data: Data2D,
+    ):
+        grid = data.get_grid()
+        flat_grid = grid.flatten()
+        vals, inv = np.unique(flat_grid, return_inverse=True)
+
+        value_map = dict(zip(data.cell_ids, data.cell_values))
+        color_map = dict(zip(data.cell_ids, data.cell_colors))
+        
+        value_array = np.array([value_map[val] for val in vals])
+        color_array = np.array([color_map[val] for val in vals])
+
+        colors = color_array[inv]  # shape (n, m, 4)
+
+        if self.display_edges:
+            flat_data = grid.flatten()
+            roll_1_0 = np.where(flat_data == np.roll(flat_data, -1), 1, 0)
+            roll_1_1 = np.where(flat_data == np.roll(flat_data, 1), 1, 0)
+            contour_1_0 = roll_1_0.reshape(grid.shape)
+            contour_1_1 = roll_1_1.reshape(grid.shape)
+
+            flat_data_2 = grid.T.flatten()
+            roll_2_0 = np.where(flat_data_2 == np.roll(flat_data_2, -1), 1, 0)
+            roll_2_1 = np.where(flat_data_2 == np.roll(flat_data_2, 1), 1, 0)
+
+            contour_2_0 = roll_2_0.reshape(grid.T.shape).T
+            contour_2_1 = roll_2_1.reshape(grid.T.shape).T
+
+            borders = np.expand_dims(np.minimum(
+                    np.minimum(contour_1_0, contour_2_0),
+                    np.minimum(contour_1_1, contour_2_1),
+                ).flatten(), axis=-1)
+            
+            borders = np.concatenate([borders, borders, borders, borders], axis=1)
+
+            edge_color_array = np.array(data.cell_edge_colors)
+
+            edge_colors = edge_color_array[inv]  # shape (n, m, 4)
+
+            colors = np.where(borders == (1, 1, 1, 1), colors, edge_colors).reshape((*grid.shape, 4))
+        
+        else:
+            colors = colors.reshape((*grid.shape, 4))
+
+        val_grid = value_array[inv].reshape(grid.shape)
+        
+        img = np.empty(grid.shape, dtype=np.uint32)
+        view = img.view(dtype=np.uint8).reshape(colors.shape)
+        view[:, :, :] = colors[:, :, :]
+        
+        if self.save_data:
+            self.data = data
+            self.cell_name_grid = np.array(grid)
+
+        return img, grid, val_grid
+        
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
-        cell_count = len(colors)
-        self.source_polygons.patch(
-            {
-                COMPO_NAMES: [(slice(0, cell_count), compo_list)],
-                COLORS: [(slice(0, cell_count), colors)],
-                EDGE_COLORS: [
-                    (slice(0, cell_count), get_edges_colors(np.array(colors)).tolist())
-                ],
-            }
-        )
+        self.update_2d_frame(data)
 
     def _set_callback_on_range_update(self, callback: IO):
         """Sets a callback to update the x and y ranges in the GUI.
@@ -362,8 +412,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         return pn.pane.Bokeh(
             self.figure,
             name=GEOMETRY,
-            width_policy="max",
-            height_policy="max",
+            sizing_mode="stretch_both",
             margin=0,
             styles={"border": "2px solid lightgray"},
         )
@@ -475,20 +524,86 @@ class Bokeh2DGridPlotter(Plotter2D):
         return xs, ys
 
     def send_event(self, callback):
-        # If the mouse is hovered while a range update triggered update is done, the self.source_polygons.data length is updated faster than the data coming from the mouse.
-        #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
-        if int(self.source_mouse.data["index"][0]) < len(self.source_polygons.data[VOLUME_NAMES]):
-            callback(position=(
-                                self.source_mouse.data["x"][0], 
-                                self.source_mouse.data["y"][0], 
-                                self.source_mouse.data["z"][0]
-                            ), 
-                    volume_id=self.source_polygons.data[VOLUME_NAMES][int(self.source_mouse.data["index"][0])])
+        """Calling the callback to update the position and current cell_id to the layout
 
+        Parameters
+        ----------
+        callback : function
+            Function to call
+        """
+        # If the mouse is hovered while a range update triggered update is done, the self.source_grid.data length is updated faster than the data coming from the mouse.
+        #   The value of self.source_mouse.data["index"][0] will be greater than the polygon length. In this case, the callback is not called.
+        hovered_cell = None
+        if "i" in self.source_mouse.data:
+            i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+            if self.cell_name_grid is not None:
+                hovered_cell = self.cell_name_grid[j, i]
+
+        callback(
+            screen_location=(
+                self.source_mouse.data["sx"][0],
+                self.source_mouse.data["sy"][0]
+            ),
+            space_location=(
+                self.source_mouse.data["x"][0], 
+                self.source_mouse.data["y"][0], 
+                self.source_mouse.data["z"][0]
+            ), 
+            cell_id=hovered_cell
+        )
+
+    def on_mouse_move(self, _):
+        """Callback called when the mouse is moved. The mouse location in the grid is saved, and an update is requested at the current location after a timeout.
+
+        Parameters
+        ----------
+        _ : Any
+            Calling event
+        """
+        if "i" in self.source_mouse.data:
+            i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+            if pn.state.curdoc is not None:
+                pn.state.curdoc.add_timeout_callback(functools.partial(self.update_plot_after_mouse_move, i = i, j = j), 250)
+
+    def update_plot_after_mouse_move(self, i:int, j:int):
+        """Updates the plot after changing the cell at location (i, j) to 0.6. The update is only done if the mouse is currently at (i, j)
+
+        Parameters
+        ----------
+        i : int
+            U coordinate
+        j : int
+            V coordinate
+        """
+        i_, j_ = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
+
+        if self.active and i == i_ and j == j_:
+            if self.cell_name_grid is not None:
+                hovered_cell = self.cell_name_grid[j, i]
+                
+                if hovered_cell != self.last_update_cell:
+                    self.save_data = False
+                    data = self.data.copy()
+
+                    data.cell_colors[data.cell_ids.index(hovered_cell)][3] = 0.6*255
+
+                    self.update_2d_frame(data)
+
+                    self.last_update_cell = hovered_cell
+                    self.save_data = True
+                
+    def reset_hover(self,):
+        self.active = False
+        self.save_data = False
+        self.update_2d_frame(self.data)
+        self.last_update_cell = None
+        self.save_data = True
 
     def provide_on_mouse_move_callback(self, callback:Callable):
         """Stores a function to call everytime the user moves the mouse on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------
@@ -501,7 +616,7 @@ class Bokeh2DGridPlotter(Plotter2D):
 
     def provide_on_clic_callback(self, callback:Callable):
         """Stores a function to call everytime the user clics on the plot. 
-        Functions arguments are location, volume_id.
+        Functions arguments are location, cell_id.
 
         Parameters
         ----------

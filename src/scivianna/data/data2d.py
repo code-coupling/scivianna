@@ -2,9 +2,9 @@ from typing import Callable, Dict, List, Any, Tuple, Union
 import numpy as np
 from scivianna.utils.polygonize_tools import PolygonElement, numpy_2D_array_to_polygons
 from scivianna.enums import DataType
+from scivianna.data.data_container import DataContainer
 
-
-class Data2D:
+class Data2D(DataContainer):
     """Data class containing the 2D geometry data"""
 
     data_type:DataType
@@ -26,9 +26,25 @@ class Data2D:
     """List of contained cell values"""
     cell_colors:List[Tuple[int, int, int]]
     """List of contained cell colors"""
+    cell_edge_colors:List[Tuple[int, int, int]]
+    """List of contained cell edge colors"""
     
     simplify:bool
     """Simplify the polygons when converting from grid to polygon list"""
+
+    def __init__(self):
+        """ Empty constructor of the Data2D class.
+        """
+        self.data_type = None
+        self.polygons = []
+        self.grid = np.array([])
+        self.u_values = np.array([])
+        self.v_values = np.array([])
+        self.cell_ids = []
+        self.cell_values = []
+        self.cell_colors = []
+        self.cell_edge_colors = []
+        self.simplify = None
 
     @classmethod
     def from_polygon_list(cls, polygon_list:List[PolygonElement]):
@@ -47,8 +63,11 @@ class Data2D:
         data_ = Data2D()
         data_.polygons = polygon_list
 
-        data_.cell_ids = [p.volume_id for p in polygon_list]
-        data_.cell_values = [np.NaN]*len(polygon_list)
+        data_.cell_ids = [p.cell_id for p in polygon_list]
+        data_.cell_values = [np.nan]*len(polygon_list)
+
+        data_.cell_colors = np.zeros((len(polygon_list), 4)) + 255
+        data_.cell_edge_colors = np.zeros((len(polygon_list), 4)) + 50
         
         data_.data_type = DataType.POLYGONS
 
@@ -74,15 +93,18 @@ class Data2D:
         Data2D
             Requested Data2D
         """
-        assert len(grid.shape) == 2, f"Provided grid mush be of dimension 2, found shape {grid.shape}"
+        assert len(grid.shape) == 2, f"Provided grid must be of dimension 2, found shape {grid.shape}"
         data_ = Data2D()
         data_.grid = grid
         data_.u_values = u_values
         data_.v_values = v_values
 
         data_.cell_ids = np.unique(grid.flatten())
-        data_.cell_values = [np.NaN]*len(data_.cell_ids)
+        data_.cell_values = [np.nan]*len(data_.cell_ids)
 
+        data_.cell_colors = np.zeros((len(data_.cell_ids), 4)) + 1
+        data_.cell_edge_colors = np.zeros((len(data_.cell_ids), 4)) + 1
+        
         data_.simplify = simplify
         data_.data_type = DataType.GRID
 
@@ -99,10 +121,12 @@ class Data2D:
             # The polygons count will become different than the number of cell values, so we update and change the data_type
             id_to_value = dict(zip(self.cell_ids, self.cell_values))
             id_to_color = dict(zip(self.cell_ids, self.cell_colors))
+            id_to_edge_color = dict(zip(self.cell_ids, self.cell_edge_colors))
 
-            self.cell_ids = [p.volume_id for p in self.polygons]
+            self.cell_ids = [p.cell_id for p in self.polygons]
             self.cell_values = [id_to_value[e] for e in self.cell_ids]
             self.cell_colors = [id_to_color[e] for e in self.cell_ids]
+            self.cell_edge_colors = [id_to_edge_color[e] for e in self.cell_ids]
 
             self.data_type = DataType.POLYGONS
 
@@ -138,3 +162,39 @@ class Data2D:
             raise NotImplementedError()
         else:
             return self.grid
+        
+    def copy(self,) -> "Data2D":
+        """Returns a copy of self
+
+        Returns
+        -------
+        Data2D
+            Identical copy of self
+        """
+        data2D = Data2D()
+        data2D.data_type = self.data_type
+        data2D.polygons = self.polygons.copy()
+        data2D.grid = self.grid.copy()
+        data2D.u_values = self.u_values.copy()
+        data2D.v_values = self.v_values.copy()
+        data2D.cell_ids = np.array(self.cell_ids).tolist()
+        data2D.cell_values = np.array(self.cell_values).tolist()
+        data2D.cell_colors = np.array(self.cell_colors).tolist()
+        data2D.cell_edge_colors = np.array(self.cell_edge_colors).tolist()
+        data2D.simplify = self.simplify
+
+        return data2D
+
+    def check_valid(self,):
+        """Checks if this Data2D is valid, raises an AssertionError otherwise
+        """
+        assert len(self.cell_ids) == len(self.cell_colors), "The Data2D object must have the same number of cell id and colors"
+        assert len(self.cell_values) == len(self.cell_colors), "The Data2D object must have the same number of cell values and colors"
+        assert len(self.cell_values) == len(self.cell_edge_colors), "The Data2D object must have the same number of cell values and edge colors"
+        if self.data_type == DataType.POLYGONS:
+            assert len(self.cell_values) == len(self.polygons), "The Data2D object must have the same number of cell values and polygons"
+
+        if any(isinstance(item, str) for item in self.cell_values):
+            assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
+
+

@@ -27,18 +27,18 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
     def get_1D_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ) -> Union[pd.Series, List[pd.Series]]:
-        """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the 1D value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str
@@ -68,7 +68,7 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
             self.df = pd.concat([
                 self.df,
                 pd.DataFrame({
-                    col:[np.NaN] for col in self.df.columns
+                    col:[np.nan] for col in self.df.columns
                 }, index = [self.time])
             ])
 
@@ -92,7 +92,7 @@ class TimeDataFrame(Value1DAtLocation, IcocoInterface):
             exception if called before initialize() or after terminate().
         """
         if not name in self.df.columns:
-            self.df.loc[:,name] = pd.Series([np.NaN]*len(self.df), index=self.df.index)
+            self.df.loc[:,name] = pd.Series([np.nan]*len(self.df), index=self.df.index)
 
         self.df.loc[self.time, name] = val
 

@@ -1,11 +1,13 @@
+from scivianna.panel.demo import Demonstrator
+import scivianna_example
 from scivianna_example.europe_grid.europe_grid import (
     make_europe_panel as europe_example,
 )
 import scivianna_example.europe_grid.europe_grid as europe_grid
-from scivianna_example.medcoupling.split_item_example import (
+from scivianna_example.med.split_item_example import (
     get_panel as medcoupling_example,
 )
-import scivianna_example.medcoupling.split_item_example as split_item_example
+import scivianna_example.med.split_item_example as split_item_example
 
 from scivianna_example.mandelbrot.mandelbrot import (
     make_panel as mandelbrot_example,
@@ -15,10 +17,11 @@ import scivianna_example.mandelbrot.mandelbrot as mandelbrot
 
 from pathlib import Path
 
+import panel as pn
 import panel_material_ui as pmui
 
 
-def make_demo(return_slaves = False) -> pmui.Page:
+def make_demo(return_slaves=False) -> pmui.Page:
     if return_slaves:
         europe_panel, slaves_europe = europe_example(None, return_slaves)
         medcoupling_panel, slaves_medcoupling = medcoupling_example(None, return_slaves)
@@ -30,55 +33,46 @@ def make_demo(return_slaves = False) -> pmui.Page:
 
     with open(Path(europe_grid.__file__).parent / "description.md", "r") as f:
         europe_with_description = pmui.Row(
-            europe_panel.main_frame, 
-            pmui.Typography(f.read(), width=300)
+            europe_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
     with open(Path(split_item_example.__file__).parent / "description.md", "r") as f:
         medcoupling_with_description = pmui.Row(
-            medcoupling_panel.main_frame, 
-            pmui.Typography(f.read(), width=300)
+            medcoupling_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
 
     with open(Path(mandelbrot.__file__).parent / "description.md", "r") as f:
         mandelbrot_with_description = pmui.Row(
-            mandelbrot_panel.main_frame, 
-            pmui.Typography(f.read(), width=300),
-            sizing_mode = "stretch_both"
+            mandelbrot_panel.main_frame, pmui.Typography(f.read(), width=300)
         )
-    sidebars = [
-            europe_panel.side_bar,
-            medcoupling_panel.side_bar,
-            mandelbrot_panel.side_bar,
-        ]
+
+    description_file = Path(scivianna_example.__file__).parent / "demo_description.md"
+
+    image = pn.pane.Image(Path(scivianna_example.__file__).parent / "image/tuto_visu_serma.png", sizing_mode = "stretch_both")
     
-    tabs = pmui.Tabs(
-        ("Europe example", europe_with_description),
-        ("Medcoupling example", medcoupling_with_description),
-        ("Mandelbrot example", mandelbrot_with_description),
-    )
+    with open(description_file, 'r') as f:
+        help = pn.Column(pmui.Typography(f.read()), image, sizing_mode = "stretch_both")
 
-    print(tabs.objects)
-    
-    def change_active(e):
-        for sidebar in sidebars:
-            sidebar.visible = (tabs.active == sidebars.index(sidebar))
+    guis = {
+        "Help": help,
+        "Europe example": europe_with_description,
+        "Medcoupling example": medcoupling_with_description,
+        "Mandelbrot example": mandelbrot_with_description,
+    }
 
-    tabs.param.watch(change_active, "active")
-    change_active(None)
+    icons = {
+        "Help": "question_mark",
+        "Europe example": "line_axis",
+        "Medcoupling example": "dashboard",
+        "Mandelbrot example": "grid_4x4",
+    }
 
-    page = pmui.Page(
-        main=[tabs],
-        sidebar=sidebars,
-        sidebar_variant="temporary",
-        sidebar_open=False,
-        title="Scivianna demonstrator"
-    )
+    demo = Demonstrator(guis, icons)
 
     if return_slaves:
-        return page, slaves_medcoupling+slaves_europe+slaves_mandelbrot
+        return demo, slaves_medcoupling + slaves_europe + slaves_mandelbrot
     else:
-        return page
+        return demo
 
 
 if __name__ == "__main__":

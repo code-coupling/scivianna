@@ -1,4 +1,3 @@
-
 from typing import List, Tuple, Union
 import param
 import os
@@ -8,18 +7,14 @@ from panel.viewable import Viewer
 
 
 class ServerFileBrowser(Viewer):
-    """ The ServerFileBrowser is a file explorer based on a Select widget that lets browse on the server side.
-    """
+    """The ServerFileBrowser is a file explorer based on a Select widget that lets browse on the server side."""
+
     current_folder: Path
     """Crrently browsing folder"""
     selected_file: param.String = param.String()
     """Full path of currently selected file"""
 
-    def __init__(
-        self,
-        folder_path: Union[str, Path] = None,
-        **kwargs
-    ):
+    def __init__(self, folder_path: Union[str, Path] = None, width: int = 300, *args, **kwargs):
         """File browser on the server side based on a pmui.Select widget
 
         Parameters
@@ -30,9 +25,9 @@ class ServerFileBrowser(Viewer):
         Raises
         ----------
         ValueError
-            Not None provided folder path does not exist 
+            Not None provided folder path does not exist
         """
-        super().__init__(**kwargs)
+        super().__init__(*args, **kwargs)
 
         if folder_path is None:
             self.current_folder = Path(__file__).parent
@@ -43,15 +38,29 @@ class ServerFileBrowser(Viewer):
 
         self.selected_file = ""
 
-        self.select = pmui.Select(groups={
-            "Directories": [".", ".."] + [e for e in os.listdir(self.current_folder) if os.path.isdir(e)],
-            "Files": [e for e in os.listdir(self.current_folder) if os.path.isfile(e)],
-        }, size="small", margin=(0, 0, 0, 0))
+        self.select = pmui.Select(
+            groups={
+                "Directories": ["-- Cancel --", ".", ".."]
+                + [e for e in os.listdir(self.current_folder) if os.path.isdir(e)],
+                "Files": [
+                    e for e in os.listdir(self.current_folder) if os.path.isfile(e)
+                ],
+            },
+            value=".",
+            size="small",
+            margin=(0, 0, 0, 0),
+            width=width
+        )
         self.select.param.watch(self.on_value_change, "dropdown_open")
 
-        # Saving values required to be able to close the dropdown menu without selection
-        self._past_value = None
-        self._past_path = None
+        folder_list, file_list = self._get_folder_sorted_content(
+            self.current_folder
+        )
+        self.select.disabled_options = []
+        self.select.groups = {
+            "Directories": ["-- Cancel --", ".", ".."] + folder_list,
+            "Files": file_list,
+        }
 
     def on_value_change(self, event: param.Event):
         """Event triggered by a dropdown open change, it updates the content of the select if a value was selected:
@@ -68,10 +77,11 @@ class ServerFileBrowser(Viewer):
         #       -   either the value changed, or the folder changed (if .. is selected)
         #   -   the panel was closed
         #       -   neither the value not the folder was changed
-        if not self.select.dropdown_open and (self._past_value != self.select.value or self._past_path != self.current_folder):
-            self._past_value = self.select.value
-            self._past_path = self.current_folder
+        if self.select.value == "-- Cancel --":
+            self.selected_file = ""
+            return
 
+        if not self.select.dropdown_open:
             if self.select.value is None:
                 pass
 
@@ -80,12 +90,16 @@ class ServerFileBrowser(Viewer):
                 self.selected_file = str(self.current_folder / self.select.value)
 
             elif os.path.isdir(self.current_folder / self.select.value):
-                self.current_folder = (self.current_folder / self.select.value).resolve()
+                self.current_folder = (
+                    self.current_folder / self.select.value
+                ).resolve()
                 try:
-                    folder_list, file_list = self._get_folder_sorted_content(self.current_folder)
+                    folder_list, file_list = self._get_folder_sorted_content(
+                        self.current_folder
+                    )
                     self.select.disabled_options = []
                     self.select.groups = {
-                        "Directories": [".", ".."] + folder_list,
+                        "Directories": ["-- Cancel --", ".", ".."] + folder_list,
                         "Files": file_list,
                     }
                 except PermissionError:
@@ -96,7 +110,7 @@ class ServerFileBrowser(Viewer):
                 self.selected_file = ""
                 self.select.dropdown_open = True
 
-    def _get_folder_sorted_content(self, path:Path) -> Tuple[List[str], List[str]]:
+    def _get_folder_sorted_content(self, path: Path) -> Tuple[List[str], List[str]]:
         """Returns the alphabetically sorded list of folders and files in the provided path, if access is allowed
 
         Parameters
@@ -126,7 +140,6 @@ class ServerFileBrowser(Viewer):
         except PermissionError:
             raise PermissionError
 
-
     def __panel__(self):
         """Redered panel
 
@@ -136,6 +149,7 @@ class ServerFileBrowser(Viewer):
             pmui.Select widget displayed
         """
         return self.select
+
 
 if __name__ == "__main__":
     ServerFileBrowser().show()

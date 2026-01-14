@@ -28,15 +28,10 @@ setup(
     packages=find_packages(where="src"),  # Required
     package_data={
         "scivianna": [
-            "components/*.py",
-            "default_jdd/*",
-            "interface/*.py",
-            "layout/*.py",
-            "panel/*.py",
-            "plotter_1d/*.py",
-            "plotter_2d/*.py",
-            "plotter_2d/grid/*.py",
-            "plotter_2d/polygon/*.py",
+            "agent/*.py",
+            "agent/*.md",
+            "input_file/*",
+            "icon/*.svg",
             "utils/*",
             "*.sh",
             "VERSION",
@@ -45,10 +40,11 @@ setup(
         "scivianna_example": [
             "c3po_coupling/*",
             "europe_grid/*",
-            "medcoupling/*",
+            "image/*.png",
+            "med/*",
             "mandelbrot/*",
             "*/README.md",
-            "*.py"
+            "*.md"
         ]
     },
     keywords="visualization",
@@ -57,17 +53,22 @@ setup(
         "panel",
         "rasterio",
         "matplotlib",
-        "numpy<2",
+        "numpy",
         "shapely",
         "jupyter_bokeh",
         "holoviews",
         "icoco~=2.0.0",
         "panel_material_ui",
-        "geopandas"
+        "geopandas",
+        "dill"
     ],
     extras_require={
-        # "example": [
-        #     "scivianna_example",
-        # ],
+        "default": [],
+        "agent": [
+            "smolagents[openai]",
+        ],
+        "pyvista": [
+            "pyvista",
+        ],
     },
 )

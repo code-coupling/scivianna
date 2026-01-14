@@ -46,7 +46,7 @@ The process threads structure of a coupling with the visualiser works as follow:
 
 from typing import List, Tuple
 
-from icoco.utils import medcoupling  # type: ignore
+import medcoupling  # type: ignore
 from icoco.exception import WrongContext, WrongArgument
 from icoco.problem import Problem, ValueType
 
@@ -55,7 +55,7 @@ import socket
 
 from scivianna.interface.generic_interface import IcocoInterface
 from scivianna.layout.gridstack import GridStackLayout
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
+from scivianna.panel.panel_1d import Panel1D
 
 
 class Value:
@@ -136,9 +136,9 @@ class GridStackProblem(Problem):
         #             slave.reset()
         #             slave.read_file(file_path, key)
 
-        #             new_panel = VisualizationPanel(slave, name=panel.name)
+        #             new_panel = VisualizationPanel(slave, name=panel.panel_name)
         #             self.gridstack.set_panel(panel_name, new_panel)
-        #             new_panel.field_color_selector.options = list(set(slave.get_label_list()))
+        #             new_panel.field_color_selector.options = list(set(slave.get_labels()))
         #             new_panel.field_color_selector.value = [new_panel.field_color_selector.options[-1]]
         #             new_panel.recompute()
 
@@ -155,19 +155,7 @@ class GridStackProblem(Problem):
         sock.close()
 
         pn.serve(
-            pn.template.BootstrapTemplate(
-                main=[
-                    pn.Column(
-                        self.gridstack.bounds_row,
-                        self.gridstack.main_frame,
-                        height_policy="max",
-                        width_policy="max",
-                        margin=0,
-                    )
-                ],
-                sidebar=[self.gridstack.side_bar],
-                title=self.title,
-            ),
+            self.gridstack.main_frame,
             address=ip_adress,
             websocket_origin=f"{ip_adress}:{port}",
             port=port,
@@ -461,9 +449,9 @@ class GridStackProblem(Problem):
 
         slave = self.gridstack.get_panel(visualization_panel).get_slave()
 
-        if field_name not in slave.get_label_list():
+        if field_name not in slave.get_labels():
             raise ValueError(
-                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_label_list())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
+                f"Unknown requested field '{field_name}' for panel {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
             )
 
         return slave.getInputMEDDoubleFieldTemplate(field_name)
@@ -504,9 +492,9 @@ class GridStackProblem(Problem):
         panel = self.gridstack.get_panel(visualization_panel)
         slave = panel.get_slave()
 
-        if field_name not in slave.get_label_list():
+        if field_name not in slave.get_labels():
             raise ValueError(
-                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_label_list())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
+                f"Unknown requested field {field_name} for panel  {visualization_panel}, available fields: {list(slave.get_labels())}. Make sure the key requested by the exchanger is defined as panel_name@field_name"
             )
 
         #   The time is set before the field

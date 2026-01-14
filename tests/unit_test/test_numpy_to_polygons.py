@@ -5,6 +5,7 @@ import numpy as np
 from scivianna.utils.polygonize_tools import numpy_2D_array_to_polygons, PolygonCoords, PolygonElement
 from scivianna.constants import OUTSIDE
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_basic():
     """Test basic functionality with a simple 2x2 grid."""
     x = np.array([0, 1])
@@ -14,9 +15,10 @@ def test_numpy_2D_array_to_polygons_basic():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((1, 2))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((1, 2))
 
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_with_holes():
     """Test with a 3x3 array where one cell is a hole."""
     x = np.array([0, 1, 2])
@@ -31,12 +33,13 @@ def test_numpy_2D_array_to_polygons_with_holes():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((1, 0))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((1, 0))
 
     # One of them has a hole
     assert len(result[0].holes) + len(result[1].holes) == 1
 
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_simplify():
     """Test that simplify=True reduces polygon complexity."""
     x = np.array([0, 1, 2])
@@ -46,8 +49,9 @@ def test_numpy_2D_array_to_polygons_simplify():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=True)
 
     assert len(result) == 1
-    assert result[0].volume_id == 1
+    assert result[0].cell_id == 1
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_with_outside():
     """Test with a single value across entire array."""
     x = np.array([0, 1])
@@ -57,9 +61,10 @@ def test_numpy_2D_array_to_polygons_with_outside():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert set((result[0].volume_id, result[1].volume_id)) == set((5, OUTSIDE))
+    assert set((result[0].cell_id, result[1].cell_id)) == set((5, OUTSIDE))
 
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_non_integer_values():
     """Test with non-integer values (strings or floats)."""
     x = np.array([0, 1])
@@ -69,9 +74,10 @@ def test_numpy_2D_array_to_polygons_non_integer_values():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert result[0].volume_id == 1.5
-    assert result[1].volume_id == 2.0
+    assert result[0].cell_id == 1.5
+    assert result[1].cell_id == 2.0
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_non_number_values():
     """Test with non-integer values (strings or floats)."""
     x = np.array([0, 1])
@@ -81,10 +87,11 @@ def test_numpy_2D_array_to_polygons_non_number_values():
     result = numpy_2D_array_to_polygons(x, y, arr, simplify=False)
 
     assert len(result) == 2
-    assert result[0].volume_id == "1.5"
-    assert result[1].volume_id == "2.0"
+    assert result[0].cell_id == "1.5"
+    assert result[1].cell_id == "2.0"
 
 
+@pytest.mark.default
 def test_numpy_2D_array_to_polygons_invalid_input():
     """Test invalid inputs."""
     x = np.array([0, 1])

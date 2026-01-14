@@ -1,6 +1,7 @@
 
 import matplotlib.pyplot as plt
 
+import pytest
 from scivianna.constants import MATERIAL, X, Y
 from scivianna.slave import ComputeSlave
 from scivianna.plotter_2d.api import plot_frame_in_axes
@@ -8,6 +9,7 @@ from scivianna.plotter_2d.api import plot_frame_in_axes
 from scivianna_example.mandelbrot.mandelbrot import MandelBrotInterface
 
 
+@pytest.mark.default
 def test_plot_grid():
     """Simple test to make sure things happen before more tests are actually implemented
     """
@@ -25,13 +27,15 @@ def test_plot_grid():
         u_max=1.0,
         v_min=-1.0,
         v_max=1.0,
-        u_steps=50,
-        v_steps=50,
         w_value=0.0,
         coloring_label=MATERIAL,
         color_map="viridis",
         axes=axes,
-        options = {"Max iter":20}
+        options = {
+            "Max iter":20,
+            "u_steps":50,
+            "v_steps":50
+        }
     )
 
     slave.terminate()

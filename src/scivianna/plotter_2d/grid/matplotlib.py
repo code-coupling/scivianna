@@ -1,5 +1,5 @@
 from typing import IO, Any, Dict, List, Tuple, Union
-from scivianna.utils.polygonize_tools import PolygonElement
+from scivianna.data.data2d import Data2D
 from scivianna.plotter_2d.generic_plotter import Plotter2D
 
 import matplotlib
@@ -8,18 +8,15 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, colormaps
 from matplotlib import colors as plt_colors
 
-from scivianna.constants import POLYGONS, VOLUME_NAMES, COMPO_NAMES, COLORS, EDGE_COLORS
-from scivianna.utils.color_tools import get_edges_colors
-
-from shapely import Polygon
-import geopandas as gpd
 import numpy as np
-
 import panel as pn
 
 
 class Matplotlib2DGridPlotter(Plotter2D):
     """2D geometry plotter based on the bokeh python module"""
+
+    display_edges = False
+    """Display grid cells edges"""
 
     def __init__(
         self,
@@ -30,7 +27,6 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
         # self.colorbar = self.figure.colorbar(None)
 
-        self.last_plot = {}
         plt.gca().set_aspect("equal")
 
         self.colormap_name = "BuRd"
@@ -75,28 +71,77 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
     def plot_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         """
-        self.plot_2d_frame_in_axes(polygon_list, compo_list, colors, self.ax, {})
+        self.plot_2d_frame_in_axes(data, self.ax, {})
 
+
+    def get_grids(
+        self,
+        data: Data2D,
+    ):
+        grid = data.get_grid()
+        flat_grid = grid.flatten()
+        vals, inv = np.unique(flat_grid, return_inverse=True)
+
+        value_map = dict(zip(data.cell_ids, data.cell_values))
+        color_map = dict(zip(data.cell_ids, data.cell_colors))
+        
+        value_array = np.array([value_map[val] for val in vals])
+        color_array = np.array([color_map[val] for val in vals])
+
+        colors = color_array[inv]  # shape (n, m, 4)
+
+        if self.display_edges:
+            flat_data = grid.flatten()
+            roll_1_0 = np.where(flat_data == np.roll(flat_data, -1), 1, 0)
+            roll_1_1 = np.where(flat_data == np.roll(flat_data, 1), 1, 0)
+            contour_1_0 = roll_1_0.reshape(grid.shape)
+            contour_1_1 = roll_1_1.reshape(grid.shape)
+
+            flat_data_2 = grid.T.flatten()
+            roll_2_0 = np.where(flat_data_2 == np.roll(flat_data_2, -1), 1, 0)
+            roll_2_1 = np.where(flat_data_2 == np.roll(flat_data_2, 1), 1, 0)
+
+            contour_2_0 = roll_2_0.reshape(grid.T.shape).T
+            contour_2_1 = roll_2_1.reshape(grid.T.shape).T
+
+            borders = np.expand_dims(np.minimum(
+                    np.minimum(contour_1_0, contour_2_0),
+                    np.minimum(contour_1_1, contour_2_1),
+                ).flatten(), axis=-1)
+            
+            borders = np.concatenate([borders, borders, borders, borders], axis=1)
+
+            edge_color_array = np.array(data.cell_edge_colors)
+
+            edge_colors = edge_color_array[inv]  # shape (n, m, 4)
+
+            colors = np.where(borders == (1, 1, 1, 1), colors, edge_colors).reshape((*grid.shape, 4))
+        
+        else:
+            colors = colors.reshape((*grid.shape, 4))
+
+        val_grid = value_array[inv].reshape(grid.shape)
+        
+        img = np.empty(grid.shape, dtype=np.uint32)
+        view = img.view(dtype=np.uint8).reshape(colors.shape)
+        view[:, :, :] = colors[:, :, :]
+
+        print(img.shape, view.shape, colors.shape)
+        
+        return view, grid, val_grid
+    
     def plot_2d_frame_in_axes(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
         axes: matplotlib.axes.Axes,
         plot_options: Dict[str, Any] = {},
     ):
@@ -104,48 +149,20 @@ class Matplotlib2DGridPlotter(Plotter2D):
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the geometry to plot
         axes : matplotlib.axes.Axes
             Axes in which plot the figure
         plot_options : Dict[str, Any])
             Color options to be passed on to the actual plot function, such as edgecolor, facecolor, linewidth, markersize, alpha.
         """
-        volume_list: List[Union[str, int]] = [p.volume_id for p in polygon_list]
+        x_values = data.u_values
+        y_values = data.v_values
 
-        volume_colors: np.ndarray = np.array(colors).astype(float)
-        volume_edge_colors: np.ndarray = get_edges_colors(volume_colors)
+        img, grid, val_grid = self.get_grids(data)
 
-        polygons: List[Polygon] = [
-            Polygon(
-                shell=[
-                    (p.exterior_polygon.x_coords[j], p.exterior_polygon.y_coords[j])
-                    for j in range(len(p.exterior_polygon.x_coords))
-                ],
-                holes=[
-                    [(h.x_coords[j], h.y_coords[j]) for j in range(len(h.x_coords))]
-                    for h in p.holes
-                ],
-            )
-            for p in polygon_list
-        ]
-
-        gdf = gpd.GeoDataFrame(geometry=polygons)
-
-        volume_colors /= 255.0
-        volume_edge_colors /= 255.0
-
-        gdf.normalize().plot(
-            facecolor=volume_colors.tolist(),
-            edgecolor=volume_edge_colors.tolist(),
-            ax=axes,
-            **plot_options
-        )
-
+        axes.pcolormesh(x_values, y_values, img)
+        
         if self.display_colorbar:
             plt.colorbar(
                 cm.ScalarMappable(
@@ -157,51 +174,32 @@ class Matplotlib2DGridPlotter(Plotter2D):
                 ax=axes,
             )
 
-        self.last_plot = {
-            POLYGONS: polygons,
-            VOLUME_NAMES: volume_list,
-            COMPO_NAMES: compo_list,
-            COLORS: volume_colors.tolist(),
-            EDGE_COLORS: volume_edge_colors.tolist(),
-        }
 
     def update_2d_frame(
         self,
-        polygon_list: List[PolygonElement],
-        compo_list: List[str],
-        colors: List[Tuple[float, float, float]],
+        data: Data2D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        polygon_list : List[PolygonElement]
-            Polygons vertices vertical coordinates
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[float, float, float]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            polygon_list,
-            compo_list,
-            colors,
+            data,
         )
 
-    def update_colors(self, compo_list: List[str], colors: List[Tuple[int, int, int]]):
+    def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        compo_list : List[str]
-            Composition associated to the polygons
-        colors : List[Tuple[int, int, int]]
-            Polygons colors
+        data : Data2D
+            Data2D object containing the data to update
         """
         self.plot_2d_frame(
-            self.last_plot[POLYGONS],
-            compo_list,
-            colors,
+            data,
         )
 
     def _set_callback_on_range_update(self, callback: IO):

@@ -1,21 +1,22 @@
 
 from typing import Any, Dict, List, Tuple, Union
 import geopandas as gp
+from scivianna.panel.panel_2d import Panel2D
 import shapely
 import multiprocessing as mp
 from pathlib import Path
 import numpy as np
 
-from scivianna.interface.generic_interface import Geometry2D, GenericInterface, Geometry2DPolygon
+from scivianna.interface.generic_interface import GenericInterface, Geometry2DPolygon
 from scivianna.constants import CSV, GEOMETRY, MATERIAL, MESH
 from scivianna.slave import ComputeSlave
-from scivianna.panel.plot_panel import VisualizationPanel
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.interface import csv_result
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.layout.split import SplitLayout, SplitItem, SplitDirection
-from scivianna.panel.line_plot_panel import LineVisualisationPanel
-from scivianna.data import Data2D
+from scivianna.panel.panel_1d import Panel1D
+from scivianna.data.data2d import Data2D
 
 from scivianna_example.europe_grid.country_time_series import CountryTimeSeriesInterface
 
@@ -29,26 +30,27 @@ country_cat = {
     "Other countries":["AR","AU","BR","CA","CN_X_HK","HK","IN","JP","MX","NG","NZ","RU","SG","ZA","KR","TW","UK","US",]	
 }
 
-def get_country_category(country_code:str):
+
+def get_country_category(country_code: str):
     for cat in country_cat:
         if country_code in country_cat[cat]:
             return cat
-    return np.NaN
+    return np.nan
+
 
 class EuropeGridInterface(Geometry2DPolygon):
-    geometry_type=GeometryType._2D
+    geometry_type: GeometryType = GeometryType._2D_INFINITE
 
     def __init__(
         self,
         geometry_path: str = str(Path(__file__).parent / 'europe.geojson'),
-        results:Dict[str, GenericInterface] = {},
+        results: Dict[str, GenericInterface] = {},
     ):
         """Antares interface constructor."""
         self.polygons = None
         self.results = results
         if geometry_path != "":
             self.read_file(geometry_path, GEOMETRY)
-
 
     def read_file(self, file_path: str, file_label: str):
         """Read a file and store its content in the interface
@@ -67,33 +69,33 @@ class EuropeGridInterface(Geometry2DPolygon):
             self.data = gp.read_file(file_path)
             self.country_id = self.data["CNTR_ID"]
 
-            self.polygons_per_country:Dict[str, List[shapely.Polygon]] = {}
+            self.polygons_per_country: Dict[str, List[shapely.Polygon]] = {}
 
             for country in range(len(self.data.count_geometries())):
                 self.polygons_per_country[country] = []
-                
+
                 for i in range(self.data.count_geometries()[country]):
                     self.polygons_per_country[country].append(self.data.get_geometry(i)[country])
 
             xs_dict = [
-                        [
-                            {
-                                "exterior": p.exterior.xy[0], 
-                                "holes": [h.xy[0] for h in p.interiors]
-                            } 
-                            for p in self.polygons_per_country[c]] 
-                        for c in self.polygons_per_country
-                    ]
+                [
+                    {
+                        "exterior": p.exterior.xy[0],
+                        "holes": [h.xy[0] for h in p.interiors]
+                    }
+                    for p in self.polygons_per_country[c]]
+                for c in self.polygons_per_country
+            ]
 
             ys_dict = [
-                        [
-                            {
-                                "exterior": p.exterior.xy[1], 
-                                "holes": [h.xy[1] for h in p.interiors]
-                            } 
-                            for p in self.polygons_per_country[c]] 
-                        for c in self.polygons_per_country
-                    ]
+                [
+                    {
+                        "exterior": p.exterior.xy[1],
+                        "holes": [h.xy[1] for h in p.interiors]
+                    }
+                    for p in self.polygons_per_country[c]]
+                for c in self.polygons_per_country
+            ]
 
             self.xs = [[[p["exterior"], *p["holes"]] for p in mp] for mp in xs_dict]
             self.ys = [[[p["exterior"], *p["holes"]] for p in mp] for mp in ys_dict]
@@ -124,8 +126,6 @@ class EuropeGridInterface(Geometry2DPolygon):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -146,10 +146,6 @@ class EuropeGridInterface(Geometry2DPolygon):
             Lower bound value along the v axis
         v_max : float
             Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -175,11 +171,10 @@ class EuropeGridInterface(Geometry2DPolygon):
                     np.array(p.exterior.xy[1])
                 ),
                 holes=[
-                    
-                        PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1])) 
-                        for h in p.interiors
-                    ],
-                volume_id=self.country_id[country],
+                    PolygonCoords(np.array(h.xy[0]), np.array(h.xy[1]))
+                    for h in p.interiors
+                ],
+                cell_id=self.country_id[country],
             )
             for country in self.polygons_per_country
             for p in self.polygons_per_country[country]
@@ -189,47 +184,47 @@ class EuropeGridInterface(Geometry2DPolygon):
         return self.polygons, True
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
         """
         if value_label == MATERIAL:
             dict_compo = {
-                vol: self.country_list[list(self.country_id.values).index(vol)] for vol in volumes
+                vol: self.country_list[list(self.country_id.values).index(vol)] for vol in cells
             }
             return dict_compo
 
         if value_label == MESH:
-            dict_compo = {str(v): np.NaN for v in volumes}
+            dict_compo = {str(v): np.nan for v in cells}
             if -1 in dict_compo:
-                dict_compo[-1] = np.NaN
+                dict_compo[-1] = np.nan
 
             return dict_compo
 
         if value_label == "Europe":
             dict_compo = {
-                vol: self.europe[list(self.country_id.values).index(vol)] for vol in volumes
+                vol: self.europe[list(self.country_id.values).index(vol)] for vol in cells
             }
             return dict_compo
 
         for res in self.results.values():
             if value_label in res.get_fields():
-                results = res.get_values([], volumes, [self.country_id[list(self.country_id.values).index(vol)] for vol in volumes], value_label)
-                return {volumes[i]: results[i] for i in range(len(volumes))}
+                results = res.get_values([], cells, [self.country_id[list(self.country_id.values).index(vol)] for vol in cells], value_label)
+                return {cells[i]: results[i] for i in range(len(cells))}
 
         raise NotImplementedError(
             f"The field {value_label} is not implemented, fields available : {self.get_labels()}"
@@ -265,7 +260,6 @@ class EuropeGridInterface(Geometry2DPolygon):
         VisualizationMode
             Coloring mode
         """
-        print("Requested : " + label)
         if label == MESH:
             return VisualizationMode.NONE
         if label in [MATERIAL, "Europe"]:
@@ -286,7 +280,8 @@ class EuropeGridInterface(Geometry2DPolygon):
             (CSV, "CSV result file."),
         ]
 
-def make_europe_panel(_, return_slaves = False):
+
+def make_europe_panel(_, return_slaves: bool = False) -> SplitLayout:
     slave = ComputeSlave(EuropeGridInterface)
     # Time serie CSV coming from a post processing of the data available at https://www.entsoe.eu/eraa/
     slave.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
@@ -294,22 +289,31 @@ def make_europe_panel(_, return_slaves = False):
     slave_result = ComputeSlave(CountryTimeSeriesInterface)
     slave_result.read_file(str(Path(__file__).parent / "time_series.csv"), "TimeSeries")
 
-    map_panel = VisualizationPanel(slave, name="Map")
-    line_panel = LineVisualisationPanel(slave_result, name="Plot")
+    map_panel = Panel2D(slave, name="Map")
+    map_panel.sync_field = True
+    map_panel.set_field("solar_pv")
+    line_panel = Panel1D(slave_result, name="Plot")
     line_panel.update_event = UpdateEvent.MOUSE_CELL_CHANGE
+    line_panel.sync_field = True
+    line_panel.set_field("solar_pv")
 
     split_panel = SplitLayout(
-                                            SplitItem(map_panel, line_panel, SplitDirection.VERTICAL),
-                                            additional_interfaces = {"EuropeGrid":EuropeGridInterface, "TimeSeries":CountryTimeSeriesInterface},
-                                        )
+        SplitItem(
+            map_panel,
+            line_panel,
+            SplitDirection.VERTICAL
+        ),
+        additional_interfaces={"EuropeGrid": EuropeGridInterface, "TimeSeries": CountryTimeSeriesInterface},
+    )
 
     if return_slaves:
         return split_panel, [slave, slave_result]
     else:
         return split_panel
 
-if __name__ == "__main__":
-    from scivianna.notebook_tools import _serve_panel
 
-    _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")
-    
+if __name__ == "__main__":
+    # from scivianna.notebook_tools import _serve_panel
+
+    make_europe_panel(None).main_frame.show()
+    # _serve_panel(get_panel_function=make_europe_panel, title="Europe grid")

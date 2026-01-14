@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import Any, List, Tuple, Dict, Union
 
-from scivianna.data import Data2D
+from scivianna.data.data2d import Data2D
 from scivianna.interface.option_element import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import VisualizationMode, GeometryType, DataType
@@ -20,6 +20,10 @@ from scivianna.constants import MESH, MATERIAL
 class GenericInterface:
     """ Generic interface class that implement basic functions. This class mutualises functions that are shared between its child classes.
     """
+
+    extensions = []
+    """Extensions associated to this interface."""
+
     def read_file(self, file_path: str, file_label: str) -> None:
         """Read a file and store its content in the interface
 
@@ -82,16 +86,29 @@ class GenericInterface:
         """
         raise NotImplementedError()
 
-    def get_options_list(self) -> List[OptionElement]:
-        """Returns a list of options required by a code interface to add to the coordinate ribbon.
+    @classmethod
+    def serialize(self, obj: Any, key: str) -> Any:
+        """This function receives an object that is about to be transmitted at the given key.
+        -   If the object can be passed through a python multiprocessing Queue, it can be returned.
+        -   If the object can't, it is serialized, and the code returns the file path.
+
+        The read function will then be able to expect the returned object at the given key.
+
+        By default, this class returns the obj, if the cobject can't be passed, overwrite this function.
+
+        Parameters
+        ----------
+        obj : Any
+            Object that is sent to the generic interface
+        key : str
+            Key associated to the object
 
         Returns
         -------
-        List[OptionElement]
-            List of option objects.
+        Any
+            Object transmissible through a multiprocessing Queue associated to the given object.
         """
-        return []
-    
+        return obj
 
 
 class Geometry2D(GenericInterface):
@@ -113,8 +130,6 @@ class Geometry2D(GenericInterface):
         u_max: float,
         v_min: float,
         v_max: float,
-        u_steps: int,
-        v_steps: int,
         w_value: float,
         q_tasks: mp.Queue,
         options: Dict[str, Any],
@@ -134,11 +149,7 @@ class Geometry2D(GenericInterface):
         v_min : float
             Lower bound value along the v axis
         v_max : float
-            Upper bound value along the v axis
-        u_steps : int
-            Number of points along the u axis
-        v_steps : int
-            Number of points along the v axis
+            Upper bound value along the v axis=
         w_value : float
             Value along the u ^ v axis
         q_tasks : mp.Queue
@@ -161,23 +172,23 @@ class Geometry2D(GenericInterface):
         raise NotImplementedError()
 
     def get_value_dict(
-        self, value_label: str, volumes: List[Union[int, str]], options: Dict[str, Any]
+        self, value_label: str, cells: List[Union[int, str]], options: Dict[str, Any]
     ) -> Dict[Union[int, str], str]:
-        """Returns a volume name - field value map for a given field name
+        """Returns a cell name - field value map for a given field name
 
         Parameters
         ----------
         value_label : str
             Field name to get values from
-        volumes : List[Union[int,str]]
-            List of volumes names
+        cells : List[Union[int,str]]
+            List of cells names
         options : Dict[str, Any]
             Additional options for frame computation.
 
         Returns
         -------
         Dict[Union[int,str], str]
-            Field value for each requested volume names
+            Field value for each requested cell names
 
         Raises
         ------
@@ -202,18 +213,18 @@ class ValueAtLocation(GenericInterface):
     def get_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ) -> Union[str, float]:
-        """Provides the result value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the result value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str
@@ -229,18 +240,18 @@ class ValueAtLocation(GenericInterface):
     def get_values(
         self,
         positions: List[Tuple[float, float, float]],
-        volume_indexes: List[str],
+        cell_indexes: List[str],
         material_names: List[str],
         field: str,
     ) -> List[Union[str, float]]:
-        """Provides the result values at different positions from either the (x, y, z) positions, the volume indexes, or the material names.
+        """Provides the result values at different positions from either the (x, y, z) positions, the cell indexes, or the material names.
 
         Parameters
         ----------
         positions : List[Tuple[float, float, float]]
             List of position at which the value is requested
-        volume_indexes : List[str]
-            Indexes of the requested volumes
+        cell_indexes : List[str]
+            Indexes of the requested cells
         material_names : List[str]
             Names of the requested materials
         field : str
@@ -259,18 +270,18 @@ class Value1DAtLocation(GenericInterface):
     def get_1D_value(
         self,
         position: Tuple[float, float, float],
-        volume_index: str,
+        cell_index: str,
         material_name: str,
         field: str,
     ) -> Union[pd.Series, List[pd.Series]]:
-        """Provides the 1D value of a field from either the (x, y, z) position, the volume index, or the material name.
+        """Provides the 1D value of a field from either the (x, y, z) position, the cell index, or the material name.
 
         Parameters
         ----------
         position : Tuple[float, float, float]
             Position at which the value is requested
-        volume_index : str
-            Index of the requested volume
+        cell_index : str
+            Index of the requested cell
         material_name : str
             Name of the requested material
         field : str

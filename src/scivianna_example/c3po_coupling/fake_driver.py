@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-from icoco.utils import medcoupling  # type: ignore
+import medcoupling  # type: ignore
 from icoco.exception import WrongContext, WrongArgument
 from icoco.problem import Problem, ValueType
 

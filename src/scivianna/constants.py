@@ -3,11 +3,14 @@ import numpy as np
 #   Plots elements names
 XS = "xs"
 YS = "ys"
-VOLUME_NAMES = "volume_names"
+CELL_NAMES = "cell_names"
 COMPO_NAMES = "compo_names"
 COLORS = "colors"
 EDGE_COLORS = "edge_colors"
-POLYGONS = "Polygons"
+POLYGONS = "polygons"
+GRID = "grid"
+FILL_ALPHA = "fill_alpha"
+EDGE_ALPHA = "edge_alpha"
 
 #   Default field names
 MESH = "Mesh"

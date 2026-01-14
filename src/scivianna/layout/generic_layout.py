@@ -1,28 +1,29 @@
-import functools
-import panel as pn
+import functools 
 from typing import Callable, Dict, List, Tuple, Type, Union
 
-from bokeh.plotting import curdoc
+import panel as pn
+import panel_material_ui as pmui
 
 from scivianna.enums import UpdateEvent
+from scivianna.extension.layout import LayoutExtension
+from scivianna.extension.coupling import CouplingExtension
 from scivianna.interface.generic_interface import GenericInterface
-from scivianna.panel.plot_panel import ComputeSlave, VisualizationPanel
+from scivianna.panel.gui import GUI
+from scivianna.slave import ComputeSlave
+from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
     get_interface_default_panel,
     load_available_interfaces,
 )
-from scivianna.panel.styles import card_style
+
+
+card_style = {}
+
 
 class GenericLayout:
     """Displayable that lets arranging several VisualizationPanel"""
 
-    side_bar: pn.Column
-    """ Side bar containing the options of the grid stack and of the active panel
-    """
-    bounds_row: pn.Row
-    """ Bounds row of the active panel
-    """
     main_frame: pn.Column
     """ Main frame : gridstack of different VisualizationPanel main_frame
     """
@@ -30,11 +31,11 @@ class GenericLayout:
     available_interfaces: Dict[Union[str, GenericInterfaceEnum], Type[GenericInterface]]
     """ Available interface classes to switch from one to another
     """
-    load_available_interfaces:Callable = None
+    load_available_interfaces: Callable = None
     """ Function loading available interfaces. Can be overwriten to add additional interfaces.
     """
 
-    visualisation_panels:Dict[str, VisualizationPanel]
+    visualisation_panels: Dict[str, VisualizationPanel]
     """ Dictionnary containing all visualisation panels.
     """
 
@@ -47,7 +48,7 @@ class GenericLayout:
         add_run_button: bool = False,
     ):
         self.visualisation_panels = visualisation_panels
-        
+
         if self.load_available_interfaces is None:
             self.available_interfaces = load_available_interfaces()
         else:
@@ -60,39 +61,7 @@ class GenericLayout:
                 )
             self.available_interfaces[interface] = additional_interfaces[interface]
 
-        self.interface_selector = pn.widgets.Select(
-            name="Code",
-            options=[
-                val.value if isinstance(val, GenericInterfaceEnum) else str(val)
-                for val in self.available_interfaces.keys()
-            ],
-        )
-
-        """
-            Current edited frame selector
-        """
-        self.frame_selector = pn.widgets.Select(
-            name="Visualizer selector",
-            options=list(self.visualisation_panels.keys()),
-            value=list(self.visualisation_panels.keys())[0],
-        )
-
         self.code_interface_to_update = True
-        self.interface_selector.param.watch(self.change_code_interface, "value")
-
-        self.frame_selector.param.watch(self.change_current_frame, "value")
-
-        """
-            Adding a button to the overlays to switch to the frame
-        """
-        for key in self.visualisation_panels:
-            self.visualisation_panels[key].fig_overlay.button_3 = self._make_button_icon()
-            self.visualisation_panels[key].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=key))
-
-            if hasattr(self.visualisation_panels[key].bounds_row[0], "value"):
-                self.visualisation_panels[key].bounds_row[0].param.watch(
-                    functools.partial(self.set_to_frame, frame_name=key), "value"
-                )
 
         """
             ButtonIcon to split the frames
@@ -104,139 +73,52 @@ class GenericLayout:
             layout-rows / row-insert-bottom
         """
 
-        self.duplicate_horizontally_button = pn.widgets.ButtonIcon(
-            icon="columns-2", description="Duplicate horizontally", height=30, width=30
-        )
-        self.duplicate_vertitally_button = pn.widgets.ButtonIcon(
-            icon="layout-rows", description="Duplicate vertically", height=30, width=30
-        )
-        self.split_new_horizontally_button = pn.widgets.ButtonIcon(
-            icon="column-insert-right",
-            description="Split horizontally",
-            height=30,
-            width=30,
-        )
-        self.split_new_vertically_button = pn.widgets.ButtonIcon(
-            icon="row-insert-bottom",
-            description="Split vertically",
-            height=30,
-            width=30,
-        )
-
-        def duplicate_vertically(event: bool):
-            """Split the panel vertically, the new panel is a copy of the first
-
-            Parameters
-            ----------
-            event : bool
-                If the call is from a button press or release
-            """
-            if event:
-                self.duplicate(True)
-
-        def duplicate_hozironally(event: bool):
-            """Split the panel hozironally, the new panel is a copy of the first
-
-            Parameters
-            ----------
-            event : bool
-                If the call is from a button press or release
-            """
-            if event:
-                self.duplicate(False)
-
-        self.duplicate_horizontally_button.on_click(duplicate_hozironally)
-        self.duplicate_vertitally_button.on_click(duplicate_vertically)
-
-
-        def request_recompute(event):
-            """Request a recompute task on all panels, which will trigger the addition of a periodict update on the panels
-
-            Parameters
-            ----------
-            event : bool
-                If the call is from a button press or release
-            """
-            if event:
-                # for panel in self.visualisation_panels:
-                #     self.visualisation_panels[panel].add_periodic_update()
-                if self.periodic_recompute_added:
-                    self.run_button.icon = "player-play"
-                    self.stop_periodic_update()
-                else:
-                    self.run_button.icon = "player-pause"
-                    self.add_periodic_update()
-
         #   Adding a play button at the beginning of the side bar
         #   It will trigger a periodic task to update the plot in case of code coupling simulation
         self.periodic_recompute_added = False
-        if add_run_button:
-            self.run_button = pn.widgets.ButtonIcon(
-                icon="player-play",
-                description="Start automatic update",
-                height=30,
-                width=30,
-                align="center",
-            )
-            self.run_button.on_click(request_recompute)
-
-            self.curdoc = curdoc()
-
-            # Apparently not necessary, and breaks the gridstack split, so bye bye...
-            # self.curdoc.add_root(self.fig)
-
-            pn.state.curdoc = self.curdoc
-        else:
-            self.run_button = None
-
-        self.layout_param_card = pn.Card(
-            self.frame_selector,
-            self.interface_selector,
-            pn.Row(
-                self.duplicate_horizontally_button, self.duplicate_vertitally_button
-            ),
-            width=350,
-            title="Arrangement parameters",
-            margin=0,
-            styles=card_style,
-        )
-
-        self.panel_param_cards = {
-            frame.name: pn.Card(
-                frame.side_bar,
-                width=350,
-                margin=0,
-                styles=card_style,
-                title=f"{frame.name} parameters",
-            )
-            for frame in self.visualisation_panels.values()
-        }
-
-        self.side_bar = pn.Column(
-            self.layout_param_card,
-            *self.panel_param_cards.values(),
-            margin=-10,
-            width=350,
-        )
-        self.bounds_row = pn.Row(
-            *[frame.bounds_row for frame in self.visualisation_panels.values()]
-        )
-
-        if self.run_button is not None:
-            self.bounds_row.insert(0, self.run_button)
-
-        self.change_current_frame(None)
+        self.current_frame = list(self.visualisation_panels.keys())[0]
 
         self.panels_to_recompute: List[str] = []
 
+        self.layout_extension = LayoutExtension(add_run_button, self, None, None, None)
+
+        self.button_columns: Dict[str, List[pmui.IconButton]] = {}
+        self.side_bars: Dict[str, pn.Column] = {}
+
+        self.gui = GUI([self.layout_extension])
+
+        self.gui.drawer.param.watch(self.outline_panels, "open")
+        self.gui.drawer.param.watch(self.toggle_outlines, "open")
+        
         for panel in self.visualisation_panels.values():
-            if isinstance(panel, VisualizationPanel):
-                panel.provide_on_clic_callback(self.on_clic_callback)
-                panel.provide_on_mouse_move_callback(self.mouse_move_callback)
+            self.register_panel(panel)
+
+        self.change_current_frame()
+        self.toggle_outlines()
 
         self.last_hover_id = None
         """Last hovered cell to trigger change if applicable"""
 
+    @pn.io.hold()
+    def register_panel(self, panel: VisualizationPanel):
+        if isinstance(panel, VisualizationPanel):
+            panel.provide_on_clic_callback(self.on_clic_callback)
+            panel.provide_on_mouse_move_callback(self.mouse_move_callback)
+            panel.provide_field_change_callback(self.field_change_callback)
+
+            # 2: assuming the two first are the button to open and close the tab
+            self.button_columns[panel.panel_name] = [b[0] for b in panel.gui.buttons]
+            self.side_bars[panel.panel_name] = [b[1] for b in panel.gui.buttons]
+            
+            for button, side_bar in zip(self.button_columns[panel.panel_name], self.side_bars[panel.panel_name]):
+                self.gui.register_new_extension(button, side_bar)
+
+            panel.gui_panel.visible = False
+
+            panel.figure.button.on_click(functools.partial(self.button_change_to_frame, frame_name=panel.panel_name))
+        else:
+            raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
+        
     @pn.io.hold()
     def change_code_interface(self, event):
         """Replaces the panel to one linked to the code interface
@@ -246,27 +128,31 @@ class GenericLayout:
         event : Any
             Event to make the function linkable to the gridstack
         """
-        current_interface = self.interface_selector.value
-        current_frame = self.frame_selector.value
-        interface_enum = list(self.available_interfaces.keys())[
-            self.interface_selector.values.index(self.interface_selector.value)
+        current_frame = self.current_frame
+        code_interface = self.layout_extension.interface_selector.value
+        
+        interface_key = list(self.available_interfaces.keys())[
+            [
+                val.value if isinstance(val, GenericInterfaceEnum) else str(val)
+                for val in self.available_interfaces.keys()
+            ].index(code_interface)
         ]
 
         if (
             self.code_interface_to_update
-            and self.available_interfaces[interface_enum] != self.visualisation_panels[current_frame].slave.code_interface
+            and self.available_interfaces[interface_key] != self.visualisation_panels[current_frame].slave.code_interface
         ):
             print(
-                f"Updating code interface of panel {current_frame} to {current_interface}"
+                f"Updating code interface of panel {current_frame} to {code_interface}"
             )
 
             default_panel = get_interface_default_panel(
-                interface_enum, title=current_frame
+                interface_key, title=current_frame
             )
 
             if default_panel is None:
                 # Means the panel is custom and was provided by the user
-                new_slave = ComputeSlave(self.available_interfaces[interface_enum])
+                new_slave = ComputeSlave(self.available_interfaces[interface_key])
 
                 self.visualisation_panels[current_frame] = VisualizationPanel(
                     slave=new_slave, name=current_frame
@@ -274,18 +160,10 @@ class GenericLayout:
             else:
                 self.visualisation_panels[current_frame] = default_panel
 
-            self.visualisation_panels[current_frame].fig_overlay.button_3 = self._make_button_icon()
-            self.visualisation_panels[current_frame].fig_overlay.button_3.on_click(functools.partial(self.set_to_frame, frame_name=current_frame))
+            self.register_panel(self.visualisation_panels[current_frame])
 
-            self.visualisation_panels[current_frame].provide_on_clic_callback(self.on_clic_callback)
-            self.visualisation_panels[current_frame].provide_on_mouse_move_callback(self.mouse_move_callback)
-            
-            self.visualisation_panels[current_frame].bounds_row[0].param.watch(
-                functools.partial(self.set_to_frame, frame_name=current_frame), "value"
-            )
-
-
-    def change_current_frame(self, event):
+    @pn.io.hold()
+    def change_current_frame(self, *args, **kwargs):
         """Swap the the active panel
 
         Parameters
@@ -293,24 +171,22 @@ class GenericLayout:
         event : Any
             Event to make the function linkable to the gridstack
         """
-        current_frame = self.frame_selector.value
+        print("Changing to ", self.current_frame)
+        self.layout_extension.change_to_frame(self.current_frame)
 
-        print("Changing to ", current_frame)
-
-        for frame in self.panel_param_cards:
-            self.panel_param_cards[frame].visible = frame == current_frame
-            self.visualisation_panels[frame].bounds_row.visible = (
-                frame == current_frame
-            )
+        for key in self.side_bars:
+            for b in self.button_columns[key]:
+                b.visible = key == self.current_frame
+        
+        self.gui.change_drawer(None, self.gui.active_extension)
+        self.outline_panels()
 
     @pn.io.hold()
-    def set_to_frame(self, event, frame_name: str):
+    def set_to_frame(self, frame_name: str):
         """Updates the Select widget to the active panel
 
         Parameters
         ----------
-        event : Any
-            Event to make the function linkable to the gridstack
         frame_name : str
             Name of the active panel
 
@@ -319,28 +195,32 @@ class GenericLayout:
         ValueError
             The provided name is not in the Select options
         """
-        if frame_name in self.frame_selector.options:
+        if frame_name in self.visualisation_panels:
+            self.current_frame = frame_name
             self.code_interface_to_update = False
 
-            frame_code_enum = list(self.available_interfaces.keys())[
-                list(self.available_interfaces.values()).index(
-                    self.visualisation_panels[frame_name].slave.code_interface
-                )
-            ]
+            self.layout_extension.change_to_frame(self.current_frame)
+            self.change_current_frame()
 
-            self.interface_selector.value = (
-                frame_code_enum.value
-                if isinstance(frame_code_enum, GenericInterfaceEnum)
-                else str(frame_code_enum)
-            )
-
-            self.frame_selector.value = frame_name
             self.code_interface_to_update = True
         else:
             raise ValueError(
-                f"Frame {frame_name} not in options, available keys : {self.frame_selector.options}"
+                f"Frame {frame_name} not in options, available keys : {list(self.visualisation_panels.keys())}"
             )
-
+        
+    def outline_panels(self, *args, **kwargs):
+        """Updates the figures outline colors
+        """
+        colorize = self.gui.drawer.open
+        for frame in self.visualisation_panels:
+            if colorize:
+                self.visualisation_panels[frame].outline_color(
+                    "var(--design-primary-color, var(--panel-primary-color))" 
+                    if (frame == self.current_frame) 
+                    else "lightgray")
+            else:
+                self.visualisation_panels[frame].outline_color(None)
+                
 
     def duplicate(self, horizontal: bool):
         """Split the panel, the new panel is a copy of the first, all panels are duplicated.
@@ -425,64 +305,120 @@ class GenericLayout:
     def mark_to_recompute(self, panels_to_recompute):
         self.panels_to_recompute = panels_to_recompute
 
-
     def _make_button_icon(self,) -> pn.widgets.ButtonIcon:
         """Makes a button icon to switch to current panel
 
         Returns
         -------
         pn.widgets.ButtonIcon
-            ButtonIcon 
-        """    
-        return pn.widgets.ButtonIcon(
-                                    size="2.5em",
-                                    icon="layout-sidebar",
-                                    visible=False,
-                                    description="Change side bar and coordinate bar to current plot."
-                                    )
-    
-    def get_bounds_row(self, ) -> pn.Row:
-        """Makes the layout bounds_row, if the run button exists, it will be added to the row.
-
-        Returns
-        -------
-        pn.Row
-            Widget row 
+            ButtonIcon
         """
-        
-        if self.run_button is not None:
-            return pn.Row(self.run_button, *[e.bounds_row for e in self.visualisation_panels.values()])
-        else:
-            return pn.Row(*[e.bounds_row for e in self.visualisation_panels.values()])
-        
-    def on_clic_callback(self, position:Tuple[float, float, float], volume_id:str):
-        """Function calling panels update on mouse clic in a 2D panel
+        return pn.widgets.ButtonIcon(
+            size="2.5em",
+            icon="layout-sidebar",
+            visible=False,
+            description="Change side bar and coordinate bar to current plot."
+        )
+
+    def on_clic_callback(self, 
+        screen_location: Tuple[float, float],
+        space_location: Tuple[float, float, float],
+        cell_id: Union[str, int],
+    ):
+        """Function called when the mouse moves on the plot
 
         Parameters
         ----------
-        position : Tuple[float, float, float]
-            Clic location
-        volume_id : str
-            Clic volume ID
+        screen_location : Tuple[float, float]
+            Mouse location on screen
+        space_location : Tuple[float, float, float]
+            Mouse targeted location in space
+        cell_id : Union[str, int]
+            Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.CLIC or (isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event):
-                panel.recompute_at(position, volume_id)
-        
-    def mouse_move_callback(self, position:Tuple[float, float, float], volume_id:str):
-        """Function calling panels update on mouse move in a 2D panel
+                panel.recompute_at(space_location, cell_id)
+
+    def mouse_move_callback(self, 
+        screen_location: Tuple[float, float],
+        space_location: Tuple[float, float, float],
+        cell_id: Union[str, int],
+    ):
+        """Function called when the mouse moves on the plot
 
         Parameters
         ----------
-        position : Tuple[float, float, float]
-            Mouse hovered location
-        volume_id : str
-            Move hovered volume id
+        screen_location : Tuple[float, float]
+            Mouse location on screen
+        space_location : Tuple[float, float, float]
+            Mouse targeted location in space
+        cell_id : Union[str, int]
+            Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
             if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
-                panel.recompute_at(position, volume_id)
+                panel.recompute_at(space_location, cell_id)
 
-            if volume_id != self.last_hover_id and (panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)) :
-                self.last_hover_id = volume_id
-                panel.recompute_at(position, volume_id)
+            if cell_id != self.last_hover_id and\
+                    (
+                        panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE
+                        or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)
+                    ):
+                self.last_hover_id = cell_id
+                panel.recompute_at(space_location, cell_id)
+
+    def field_change_callback(self, new_field: str):
+        """Function calling panels update a field change
+
+        Parameters
+        ----------
+        new_field : str
+            New field to set
+        """
+        for panel in self.visualisation_panels.values():
+            if panel.sync_field:
+                panel.set_field(new_field)
+
+    def add_time_widget(self,):
+        """Adds a time management widget to the layout
+        """
+        self.time_widget = CouplingExtension(self, None, None, None)
+
+        self.gui.add_extension(self.time_widget)
+
+    @pn.io.hold()
+    def toggle_outlines(self, *args, **kwargs):
+        """Function called when the sidebar is opened or closed, edits the frames visibility.
+        """
+        for panel in self.visualisation_panels.values():
+            if self.gui.drawer.open:
+                panel.figure.show_buttons()
+            else:
+                panel.figure.hide_buttons()
+
+    def button_change_to_frame(self, event, frame_name: str):
+        """Triggers a frame change from clicking on a button
+        
+        Parameters
+        ----------
+        event : Any
+            Bokeh triggering event
+        frame_name : str
+            Frame to change to
+        """
+        # Setting the active extension to the layout which is the first in buttons as added first
+        self.gui.active_extension = self.gui.buttons[0]
+
+        self.set_to_frame(frame_name)
+
+    def __panel__(self,):
+        """Returns the panel to display
+        """
+        return self.main_frame
+    
+    def show(self, *args, **kwargs):
+        return self.main_frame.show(*args, **kwargs)
+
+    def servable(self, *args, **kwargs):
+        return self.main_frame.servable(*args, **kwargs)

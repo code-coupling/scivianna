@@ -5,9 +5,9 @@ name: Python application
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "**" ]
 
 jobs:
   build:
@@ -15,6 +15,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-22.04, ubuntu-24.04]
         python-version: ["3.10", "3.11", "3.12"]
+        deps: ["default", "pyvista", "agent", "pyvista,agent"]
 
     runs-on: ${{ matrix.os }}
 
@@ -27,7 +28,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .
+        python -m pip install .[${{ matrix.deps }}]
         python -m pip install medcoupling
         python -m pip install flake8 coverage pytest-cov nbmake 
     - name: Lint with flake8
@@ -39,5 +40,21 @@ jobs:
 
     - name: Tests
       run: |
-        coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning
+        # Run default tests
+        coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m default
+
+        # Split deps string into array using PowerShell (works on Linux and Windows)
+        $deps = "${{ matrix.deps }}"
+        $tags = $deps -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
+
+        # Run pytest for each tag
+        foreach ($tag in $tags) {
+          Write-Host "Running tests for tag: $tag"
+          coverage run -a --source=scivianna -m pytest tests --tb=short -W ignore::DeprecationWarning -m $tag
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) { exit $exitCode }
+        }
+
+        # Generate coverage report
         coverage report
+      shell: pwsh
