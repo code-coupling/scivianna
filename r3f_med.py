@@ -5,12 +5,13 @@ import pyvista as pv
 from pathlib import Path
 import numpy as np
 
-from scivianna.components.r3f_component.app import ReactThreeFiber
+from scivianna.components.r3f_component.app import ReactThreeFiber, get_rd_bu
 from scivianna.interface.med_interface import MEDInterface
 from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values
 
 
 def get_panel(**kwargs):
+    print("Reading file")
     med = MEDInterface()
 
     med.read_file(
@@ -27,6 +28,7 @@ def get_panel(**kwargs):
     nodes = mesh.getCoords().toNumPyArray()
     mesh.convertAllToPoly()
 
+    print("Extracting cells")
     connectivity = mesh.getNodalConnectivity().toNumPyArray()
     indexes = mesh.getNodalConnectivityIndex().toNumPyArray()
 
@@ -52,37 +54,37 @@ def get_panel(**kwargs):
 
     faces = [split_list(shapes[c], -1) for c in range(len(shapes))]
 
-    per_cell_verts = []
-    per_cell_faces = []
+    print("Building polydata")
 
-    list_objects = []
+    polyhedron_connectivity = [
+        # len(shapes)
+        # Cell count,
+        # For each cell
+        #     Number of faces
+        #       For each face
+        #           Number of point per face
+        #           List of indexes
+    ]
 
-    for c in range(len(shapes)):
+    cell_count = min(500, len(shapes))
+
+    for c in range(cell_count):
         faces_med = np.array(split_list(shapes[c], -1))
-        #     print(faces_med)
-
-        node_indexes, inv = np.unique(faces_med.flatten(), return_inverse=True)
-
-        verts = nodes[node_indexes]
-        faces_arr = inv.reshape(faces_med.shape)
-
         faces = np.concatenate(
-            [[[faces_arr.shape[1]]] * faces_arr.shape[0], faces_arr], axis=1
+            [[[faces_med.shape[1]]] * faces_med.shape[0], faces_med], axis=1
         ).flatten()
 
-        cube = pv.PolyData(verts, faces)
-        cube.triangulate(pass_verts=True, inplace=True)
-        cube["cell_id"] = [c] * cube.n_points
+        polyhedron_connectivity += [len(faces) + 1, len(faces_med)] + faces.tolist()
 
-        faces = cube.faces
-        per_cell_verts.append(cube.points.tolist())
-        per_cell_faces.append(
-            [list(faces[1 + 4 * i: 4 + 4 * i]) for i in range(int(len(faces) / 4))]
-        )
+    grid = pv.UnstructuredGrid(
+        polyhedron_connectivity,
+        [pv.celltype.CellType.POLYHEDRON for _ in range(cell_count)],
+        nodes,
+    )
 
-        list_objects += [cube]
+    grid["cell_id"] = list(range(grid.GetNumberOfCells()))
 
-    multi_block = pv.MultiBlock(list_objects)
+    print("Building unstructured")
 
     def rgb_to_html(rgb):
         return [e / 255.0 for e in rgb]
@@ -92,29 +94,36 @@ def get_panel(**kwargs):
     )
     edge_colors = get_edges_colors(colors)
 
-    count = len(colors)
-    max_val = count
-    return ReactThreeFiber(
-        multi_block=multi_block[:max_val],
-        # vertices=per_cell_verts[0: int(count / 2)],
-        # objects=per_cell_faces[0: int(count / 2)],
-        colors=[rgb_to_html(list(c)) for c in colors][:max_val],
-        edge_colors=[rgb_to_html(list(c)) for c in edge_colors][:max_val],
-        values=cell_values[:max_val],
-        names=list(range(len(cell_values)))[:max_val],
+    rtf = ReactThreeFiber(
         sizing_mode="stretch_both",
+        display_color_map=True,
+        color_map_colors=get_rd_bu(np.linspace(0, 1, 11), html=True),
+        slice_tool_visible=True
     )
+
+    rtf.plot_unstructured_grid(
+        grid,
+        colors=[rgb_to_html(list(c)) for c in colors][:cell_count],
+        edge_colors=[rgb_to_html(list(c)) for c in edge_colors][:cell_count],
+        values=cell_values[:cell_count],
+        names=list(range(cell_count)),
+    )
+
+    return rtf
 
 
 # get_panel()
 if __name__ == "__main__":
+    get_panel().show()
+
+    exit()
     import socket
     import subprocess
 
     script_dir = Path(scivianna.components.r3f_component.__file__).parent
     p = subprocess.Popen(
         ["powershell", "-ExecutionPolicy", "Bypass", "-File", "./test.ps1"],
-        cwd=script_dir
+        cwd=script_dir,
     )
     p.wait()
 
