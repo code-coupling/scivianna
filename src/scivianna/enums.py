@@ -30,10 +30,10 @@ class GeometryType(Enum):
     """Is the geometry 2D or 3D."""
 
     _2D = 0
-    """ 2D geometry : A selected window of the geometry is displayed 
+    """ 2D geometry : A selected window of the geometry is displayed
     """
     _2D_INFINITE = 0
-    """ 2D geometry : Everything is displayed 
+    """ 2D geometry : Everything is displayed
     """
     _3D = 1
     """ 3D geometry : U and V axis are required to slice the geometry, only a selected window is displayed
@@ -42,12 +42,14 @@ class GeometryType(Enum):
     """ 3D geometry : U and V axis are required to slice the geometry
     """
 
+
 class DataType(Enum):
     """Are the data returned in a grid or polygons"""
     GRID = 0
     """Data are contained in a numpy array"""
     POLYGONS = 1
     """Data are contained in a list of polygons"""
+
 
 class UpdateEvent(Enum):
     """What triggers a plot update"""
@@ -69,4 +71,7 @@ class UpdateEvent(Enum):
     """
     RANGE_CHANGE = 5
     """ The plot is updated when the (u, v) ranges change
+    """
+    AXES_CHANGE = 6
+    """ The plot is updated when an axes change was requested
     """

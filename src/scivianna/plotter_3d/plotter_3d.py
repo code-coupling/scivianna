@@ -167,7 +167,6 @@ class Plotter3D:
 
     def set_visible_edges(self, visible: bool):
         self.rtf.edges_visible = visible
-        print("New visible", visible)
 
     def set_axes_label_distance(self, distance: float):
         self.rtf.axes_label_distance = distance
@@ -177,4 +176,9 @@ class Plotter3D:
 
     def set_opacity(self, opacity: float):
         self.rtf.opacity = opacity
-        print("New opacity", opacity)
+
+    def display_tool(self, display: bool):
+        self.rtf.slice_tool_visible = display
+
+    def on_tool_move(self, funct: Callable):
+        self.rtf.param.watch(funct, "matrix")

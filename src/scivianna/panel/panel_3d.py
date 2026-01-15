@@ -9,6 +9,7 @@ from scivianna.extension.extension import Extension
 from scivianna.extension.axes_3d import Axes
 from scivianna.extension.field_selector_3d import FieldSelector
 from scivianna.extension.file_loader import FileLoader
+from scivianna.extension.tool_3d import SliceTool
 from scivianna.panel.visualisation_panel import VisualizationPanel
 
 from scivianna.data.data3d import Data3D
@@ -26,7 +27,7 @@ if profile_time:
 
 pn.config.inline = True
 
-default_extensions = [FileLoader, FieldSelector, Axes]
+default_extensions = [FileLoader, FieldSelector, Axes, SliceTool]
 
 
 class Panel3D(VisualizationPanel):

@@ -1,9 +1,10 @@
-import functools 
+import functools
 from typing import Callable, Dict, List, Tuple, Type, Union
 
 import panel as pn
 import panel_material_ui as pmui
 
+import numpy as np
 from scivianna.enums import UpdateEvent
 from scivianna.extension.layout import LayoutExtension
 from scivianna.extension.coupling import CouplingExtension
@@ -11,6 +12,7 @@ from scivianna.interface.generic_interface import GenericInterface
 from scivianna.panel.gui import GUI
 from scivianna.slave import ComputeSlave
 from scivianna.panel.visualisation_panel import VisualizationPanel
+from scivianna.panel.panel_2d import Panel2D
 from scivianna.utils.interface_tools import (
     GenericInterfaceEnum,
     get_interface_default_panel,
@@ -89,7 +91,7 @@ class GenericLayout:
 
         self.gui.drawer.param.watch(self.outline_panels, "open")
         self.gui.drawer.param.watch(self.toggle_outlines, "open")
-        
+
         for panel in self.visualisation_panels.values():
             self.register_panel(panel)
 
@@ -105,20 +107,29 @@ class GenericLayout:
             panel.provide_on_clic_callback(self.on_clic_callback)
             panel.provide_on_mouse_move_callback(self.mouse_move_callback)
             panel.provide_field_change_callback(self.field_change_callback)
+            panel.provide_on_axes_change_callback(self.axes_change_callback)
 
             # 2: assuming the two first are the button to open and close the tab
             self.button_columns[panel.panel_name] = [b[0] for b in panel.gui.buttons]
             self.side_bars[panel.panel_name] = [b[1] for b in panel.gui.buttons]
-            
-            for button, side_bar in zip(self.button_columns[panel.panel_name], self.side_bars[panel.panel_name]):
+
+            for button, side_bar in zip(
+                self.button_columns[panel.panel_name], self.side_bars[panel.panel_name]
+            ):
                 self.gui.register_new_extension(button, side_bar)
 
             panel.gui_panel.visible = False
 
-            panel.figure.button.on_click(functools.partial(self.button_change_to_frame, frame_name=panel.panel_name))
+            panel.figure.button.on_click(
+                functools.partial(
+                    self.button_change_to_frame, frame_name=panel.panel_name
+                )
+            )
         else:
-            raise ValueError(f"Tried registering {panel}, only VisualizationPanel instances are accepted.")
-        
+            raise ValueError(
+                f"Tried registering {panel}, only VisualizationPanel instances are accepted."
+            )
+
     @pn.io.hold()
     def change_code_interface(self, event):
         """Replaces the panel to one linked to the code interface
@@ -130,7 +141,7 @@ class GenericLayout:
         """
         current_frame = self.current_frame
         code_interface = self.layout_extension.interface_selector.value
-        
+
         interface_key = list(self.available_interfaces.keys())[
             [
                 val.value if isinstance(val, GenericInterfaceEnum) else str(val)
@@ -139,8 +150,7 @@ class GenericLayout:
         ]
 
         if (
-            self.code_interface_to_update
-            and self.available_interfaces[interface_key] != self.visualisation_panels[current_frame].slave.code_interface
+            self.code_interface_to_update and self.available_interfaces[interface_key] != self.visualisation_panels[current_frame].slave.code_interface
         ):
             print(
                 f"Updating code interface of panel {current_frame} to {code_interface}"
@@ -177,7 +187,7 @@ class GenericLayout:
         for key in self.side_bars:
             for b in self.button_columns[key]:
                 b.visible = key == self.current_frame
-        
+
         self.gui.change_drawer(None, self.gui.active_extension)
         self.outline_panels()
 
@@ -207,20 +217,19 @@ class GenericLayout:
             raise ValueError(
                 f"Frame {frame_name} not in options, available keys : {list(self.visualisation_panels.keys())}"
             )
-        
+
     def outline_panels(self, *args, **kwargs):
-        """Updates the figures outline colors
-        """
+        """Updates the figures outline colors"""
         colorize = self.gui.drawer.open
         for frame in self.visualisation_panels:
             if colorize:
                 self.visualisation_panels[frame].outline_color(
-                    "var(--design-primary-color, var(--panel-primary-color))" 
-                    if (frame == self.current_frame) 
-                    else "lightgray")
+                    "var(--design-primary-color, var(--panel-primary-color))"
+                    if (frame == self.current_frame)
+                    else "lightgray"
+                )
             else:
                 self.visualisation_panels[frame].outline_color(None)
-                
 
     def duplicate(self, horizontal: bool):
         """Split the panel, the new panel is a copy of the first, all panels are duplicated.
@@ -305,7 +314,9 @@ class GenericLayout:
     def mark_to_recompute(self, panels_to_recompute):
         self.panels_to_recompute = panels_to_recompute
 
-    def _make_button_icon(self,) -> pn.widgets.ButtonIcon:
+    def _make_button_icon(
+        self,
+    ) -> pn.widgets.ButtonIcon:
         """Makes a button icon to switch to current panel
 
         Returns
@@ -317,10 +328,11 @@ class GenericLayout:
             size="2.5em",
             icon="layout-sidebar",
             visible=False,
-            description="Change side bar and coordinate bar to current plot."
+            description="Change side bar and coordinate bar to current plot.",
         )
 
-    def on_clic_callback(self, 
+    def on_clic_callback(
+        self,
         screen_location: Tuple[float, float],
         space_location: Tuple[float, float, float],
         cell_id: Union[str, int],
@@ -337,10 +349,13 @@ class GenericLayout:
             Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
-            if panel.update_event == UpdateEvent.CLIC or (isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event):
+            if panel.update_event == UpdateEvent.CLIC or (
+                isinstance(panel.update_event, list) and UpdateEvent.CLIC in panel.update_event
+            ):
                 panel.recompute_at(space_location, cell_id)
 
-    def mouse_move_callback(self, 
+    def mouse_move_callback(
+        self,
         screen_location: Tuple[float, float],
         space_location: Tuple[float, float, float],
         cell_id: Union[str, int],
@@ -357,16 +372,47 @@ class GenericLayout:
             Currently hovered cell
         """
         for panel in self.visualisation_panels.values():
-            if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event):
+            if panel.update_event == UpdateEvent.MOUSE_POSITION_CHANGE or (
+                isinstance(panel.update_event, list) and UpdateEvent.MOUSE_POSITION_CHANGE in panel.update_event
+            ):
                 panel.recompute_at(space_location, cell_id)
 
-            if cell_id != self.last_hover_id and\
-                    (
-                        panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE
-                        or (isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event)
-                    ):
+            if cell_id != self.last_hover_id and (
+                panel.update_event == UpdateEvent.MOUSE_CELL_CHANGE or (
+                    isinstance(panel.update_event, list) and UpdateEvent.MOUSE_CELL_CHANGE in panel.update_event
+                )
+            ):
                 self.last_hover_id = cell_id
                 panel.recompute_at(space_location, cell_id)
+
+    def axes_change_callback(
+        self,
+        new_u: Tuple[float, float, float],
+        new_v: Tuple[float, float, float],
+        location: Tuple[float, float, float],
+    ):
+        """Function called when the axes changed
+
+        Parameters
+        ----------
+        new_u : Tuple[float, float, float]
+            New u vector
+        new_v : Tuple[float, float, float]
+            New v vector
+        location : Tuple[float, float, float]
+            New frame location
+        """
+        u = np.array(new_u) / np.linalg.norm(new_u)
+        v = np.array(new_v) / np.linalg.norm(new_v)
+        w = np.cross(u, v)
+        w_value = float(np.dot(w, location))
+
+        for panel in self.visualisation_panels.values():
+            if panel.update_event == UpdateEvent.AXES_CHANGE or (
+                isinstance(panel.update_event, list) and UpdateEvent.AXES_CHANGE in panel.update_event
+            ):
+                if isinstance(panel, Panel2D):
+                    panel.set_coordinates(u=u, v=v, w=w_value)
 
     def field_change_callback(self, new_field: str):
         """Function calling panels update a field change
@@ -380,17 +426,17 @@ class GenericLayout:
             if panel.sync_field:
                 panel.set_field(new_field)
 
-    def add_time_widget(self,):
-        """Adds a time management widget to the layout
-        """
+    def add_time_widget(
+        self,
+    ):
+        """Adds a time management widget to the layout"""
         self.time_widget = CouplingExtension(self, None, None, None)
 
         self.gui.add_extension(self.time_widget)
 
     @pn.io.hold()
     def toggle_outlines(self, *args, **kwargs):
-        """Function called when the sidebar is opened or closed, edits the frames visibility.
-        """
+        """Function called when the sidebar is opened or closed, edits the frames visibility."""
         for panel in self.visualisation_panels.values():
             if self.gui.drawer.open:
                 panel.figure.show_buttons()
@@ -399,7 +445,7 @@ class GenericLayout:
 
     def button_change_to_frame(self, event, frame_name: str):
         """Triggers a frame change from clicking on a button
-        
+
         Parameters
         ----------
         event : Any
@@ -412,11 +458,12 @@ class GenericLayout:
 
         self.set_to_frame(frame_name)
 
-    def __panel__(self,):
-        """Returns the panel to display
-        """
+    def __panel__(
+        self,
+    ):
+        """Returns the panel to display"""
         return self.main_frame
-    
+
     def show(self, *args, **kwargs):
         return self.main_frame.show(*args, **kwargs)
 
