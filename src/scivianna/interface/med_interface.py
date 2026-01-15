@@ -462,7 +462,7 @@ class MEDInterface(Geometry2DPolygon, Geometry3D, IcocoInterface):
 
         polygons_list: List[PolygonCell] = []
 
-        cell_count = min(50000, len(shapes))
+        cell_count = min(5000000, len(shapes))
 
         for c in range(cell_count):
             tris = []

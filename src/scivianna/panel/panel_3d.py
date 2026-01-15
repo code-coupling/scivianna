@@ -6,23 +6,10 @@ import param
 import os
 
 from scivianna.extension.extension import Extension
-from scivianna.extension.field_selector import FieldSelector
+from scivianna.extension.axes_3d import Axes
+from scivianna.extension.field_selector_3d import FieldSelector
 from scivianna.extension.file_loader import FileLoader
 from scivianna.panel.visualisation_panel import VisualizationPanel
-
-try:
-    from scivianna.extension.ai_assistant import AIAssistant
-    has_agent = True
-
-except ImportError as e:
-    has_agent = False
-
-    print(f"Warning : Agent not loaded, received error : {e}")
-
-except ValueError as e:
-    has_agent = False
-    print(f"Warning : Agent not loaded, received error : {e}")
-
 
 from scivianna.data.data3d import Data3D
 from scivianna.interface.generic_interface import Geometry3D
@@ -30,8 +17,7 @@ from scivianna.interface.generic_interface import Geometry3D
 from scivianna.enums import UpdateEvent, VisualizationMode
 from scivianna.slave import ComputeSlave
 
-from scivianna.plotter_3d.r3f_plotter import ReactThreeFiber3D
-from scivianna.plotter_3d.generic_plotter import Plotter3D
+from scivianna.plotter_3d.plotter_3d import Plotter3D
 from scivianna.constants import MESH
 
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
@@ -40,9 +26,7 @@ if profile_time:
 
 pn.config.inline = True
 
-default_extensions = [FileLoader, FieldSelector]
-if has_agent:
-    default_extensions.append(AIAssistant)
+default_extensions = [FileLoader, FieldSelector, Axes]
 
 
 class Panel3D(VisualizationPanel):
@@ -90,7 +74,7 @@ class Panel3D(VisualizationPanel):
         #
         #   Plotter creation
         #
-        self.plotter = ReactThreeFiber3D()
+        self.plotter = Plotter3D()
 
         super().__init__(slave, name, extensions.copy())
 

@@ -68,7 +68,7 @@ class Data3D(DataContainer):
         data_.cell_ids = [p.cell_id for p in cells]
         data_.cell_values = [np.nan] * len(cells)
 
-        data_.cell_colors = np.zeros((len(cells), 4)) + 355
+        data_.cell_colors = np.zeros((len(cells), 4)) + 255
         data_.cell_edge_colors = np.zeros((len(cells), 4)) + 50
 
         data_.data_type = DataType.POLYGONS
