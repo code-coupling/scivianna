@@ -1,4 +1,5 @@
 
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 import panel as pn
@@ -62,6 +63,15 @@ This extension lets you move around a plane to update 2D plot planes.
 
         self.plotter.on_tool_move(self.on_tool_move)
 
+        self.xplus = pmui.Button(name="X", button_type="success", width=50)
+        self.xplus.on_click(partial(self.move_matrix_to_axis, axis_name="X"))
+
+        self.yplus = pmui.Button(name="Y", button_type="success", width=50)
+        self.yplus.on_click(partial(self.move_matrix_to_axis, axis_name="Y"))
+
+        self.zplus = pmui.Button(name="Z", button_type="success", width=50)
+        self.zplus.on_click(partial(self.move_matrix_to_axis, axis_name="Z"))
+
     def trigger_display(self, *args, **kwargs):
         """Trigger a field change in the visualization panel
         """
@@ -77,9 +87,12 @@ This extension lets you move around a plane to update 2D plot planes.
         """
         return pn.Column(
             self.display,
+            pn.Row(self.xplus, self.yplus, self.zplus)
         )
 
     def on_tool_move(self, event: param.parameterized.Event):
+        print(event.new)
+
         location = event.new[12:15]
         x_vector = event.new[:3]
         # y_vector = event.new[4:7]
@@ -88,3 +101,32 @@ This extension lets you move around a plane to update 2D plot planes.
         print(f"Calling recompute at {location} with axes {x_vector} and {z_vector}")
 
         self.panel.axes_change_callback(x_vector, z_vector, location)
+
+    def move_matrix_to_axis(self, event, axis_name: str):
+        location = self.plotter.get_tool_matrix()[12:]
+
+        if location == []:
+            location = [0, 0, 0, 1]
+
+        if axis_name == "X":
+            new_matrix = [
+                0, 1, 0, 0,
+                1, 0, 0, 0,
+                0, 0, 1, 0,
+            ] + location
+        elif axis_name == "Y":
+            new_matrix = [
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+            ] + location
+        elif axis_name == "Z":
+            new_matrix = [
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                1, 0, 0, 0,
+            ] + location
+        else:
+            raise ValueError(f"Axis {axis_name} unknown, use X Y or Z.")
+
+        self.plotter.set_tool_matrix(new_matrix)

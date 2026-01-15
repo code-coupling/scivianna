@@ -1,4 +1,4 @@
-from typing import IO, Callable, Tuple
+from typing import IO, Callable, List, Tuple
 import panel as pn
 
 from scivianna.component.r3f_component.app import Data3DData, ReactThreeFiber
@@ -28,7 +28,7 @@ class Plotter3D:
             New colormap range
         """
         self.rtf.display_color_map = display
-        if range[0] is None or range[1] is None: 
+        if range[0] is None or range[1] is None:
             return
         self.rtf.color_bar_bounds = tuple(range)
 
@@ -182,3 +182,9 @@ class Plotter3D:
 
     def on_tool_move(self, funct: Callable):
         self.rtf.param.watch(funct, "matrix")
+
+    def set_tool_matrix(self, mat: List[float]):
+        self.rtf.matrix = mat
+
+    def get_tool_matrix(self, ) -> List[float]:
+        return self.rtf.matrix

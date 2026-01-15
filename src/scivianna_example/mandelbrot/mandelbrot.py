@@ -14,12 +14,12 @@ from scivianna.slave import ComputeSlave
 from scivianna.panel.visualisation_panel import VisualizationPanel
 from scivianna.enums import GeometryType, UpdateEvent, VisualizationMode
 from scivianna.data.data2d import Data2D
-from scivianna.interface.option_element import IntOption, OptionElement
 from scivianna.layout.split import SplitDirection, SplitItem, SplitLayout
 
 
 with open(Path(__file__).parent / "mandelbrot.svg", "r") as f:
     icon_svg = f.read()
+
 
 class MandelbrotExtension(Extension):
     """Extension to load files and send them to the slave."""

@@ -12,21 +12,24 @@ from scivianna.notebook_tools import _serve_panel
 
 
 def get_3d_med_panel(*args, **kwargs):
+    loaded_file, field = str(Path(scivianna.__file__).parent / "input_file" / "power.med"), "INTEGRATED_POWER"
+    # loaded_file, field = str(Path(scivianna.__file__).parent / "input_file" / "PARAMETER_MODERATOR_DENSITY.med"), "DMOD"
+
     med = ComputeSlave(MEDInterface)
     med.read_file(
-        str(Path(scivianna.__file__).parent / "input_file" / "power.med"), GEOMETRY
+        loaded_file, GEOMETRY
     )
 
     panel = Panel3D(med, name="3D plot")
-    panel.set_field("INTEGRATED_POWER")
+    panel.set_field(field)
 
     med2 = ComputeSlave(MEDInterface)
     med2.read_file(
-        str(Path(scivianna.__file__).parent / "input_file" / "power.med"), GEOMETRY
+        loaded_file, GEOMETRY
     )
 
     panel2 = Panel2D(med2, name="2D plot")
-    panel2.set_field("INTEGRATED_POWER")
+    panel2.set_field(field)
     panel2.update_event = UpdateEvent.AXES_CHANGE
 
     layout = SplitLayout(SplitItem(panel, panel2, SplitDirection.VERTICAL))

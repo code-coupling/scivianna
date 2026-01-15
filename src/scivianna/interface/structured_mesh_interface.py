@@ -5,7 +5,6 @@ import multiprocessing as mp
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon
-from scivianna.slave import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, VisualizationMode
 from scivianna.utils.structured_mesh import CarthesianStructuredMesh, StructuredMesh

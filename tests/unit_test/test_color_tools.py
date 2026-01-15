@@ -4,7 +4,6 @@ import multiprocessing as mp
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon
-from scivianna.slave import OptionElement
 from scivianna.extension.field_selector import set_colors_list
 from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement
 from scivianna.enums import VisualizationMode
