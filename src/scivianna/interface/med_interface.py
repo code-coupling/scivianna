@@ -485,7 +485,7 @@ class MEDInterface(Geometry2DPolygon, Geometry3D, IcocoInterface):
 
             polygons_list.append(PolygonCell(
                 tris=tris,
-                cell_id=c
+                cell_id=str(c)
             ))
 
         if profile_time:

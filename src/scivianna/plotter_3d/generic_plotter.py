@@ -1,11 +1,11 @@
 from typing import IO, Callable, Tuple
 import panel as pn
 
-from scivianna.data.data2d import Data2D
+from scivianna.data.data3d import Data3D
 
 
-class Plotter2D:
-    """Generic 2D geometry plotter interface"""
+class Plotter3D:
+    """Generic 3D geometry plotter interface"""
 
     on_mouse_move_callback = None
     """Function to call when the mouse is moved on the geometry"""
@@ -13,16 +13,6 @@ class Plotter2D:
     """Function to call when the mouse is clicked on the geometry"""
     line_width = 1.
     """Width of the line separating the different cells"""
-
-    def display_borders(self, display: bool):
-        """Display or hides the figure borders and axis
-
-        Parameters
-        ----------
-        display : bool
-            Display if true, hides otherwise
-        """
-        raise NotImplementedError()
 
     def update_colorbar(self, display: bool, range: Tuple[float, float]):
         """Displays or hide the color bar, if display, updates its range
@@ -46,39 +36,39 @@ class Plotter2D:
         """
         raise NotImplementedError()
 
-    def plot_2d_frame(
+    def plot_3d_frame(
         self,
-        data: Data2D,
+        data: Data3D,
     ):
         """Adds a new plot to the figure from a set of polygons
 
         Parameters
         ----------
-        data : Data2D
-            Data2D object containing the geometry to plot
+        data : Data3D
+            Data3D object containing the geometry to plot
         """
         raise NotImplementedError()
 
-    def update_2d_frame(
+    def update_3d_frame(
         self,
-        data: Data2D,
+        data: Data3D,
     ):
         """Updates plot to the figure
 
         Parameters
         ----------
-        data : Data2D
-            Data2D object containing the data to update
+        data : Data3D
+            Data3D object containing the data to update
         """
         raise NotImplementedError()
 
-    def update_colors(self, data: Data2D,):
+    def update_colors(self, data: Data3D,):
         """Updates the colors of the displayed polygons
 
         Parameters
         ----------
-        data : Data2D
-            Data2D object containing the data to update
+        data : Data3D
+            Data3D object containing the data to update
         """
         raise NotImplementedError()
 
@@ -136,16 +126,26 @@ class Plotter2D:
         """
         self.on_clic_callback = callback
 
-    def set_axes(self, u:Tuple[float, float, float], v:Tuple[float, float, float], w:float):
-        """Stores the u v axes of the current plot
+    def set_axes(self, x_range:Tuple[float, float], y_range:Tuple[float, float], z_range:Tuple[float, float]):
+        """Stores the ranges axes of the current plot along X Y and Z axes
 
         Parameters
         ----------
-        u : Tuple[float, float, float]
-            Horizontal axis direction vector
-        v : Tuple[float, float, float]
-            Vertical axis direction vector
-        w : float
-            Normal vector coordinate
+        x_range : Tuple[float, float]
+            Range along the X axis
+        y_range : Tuple[float, float]
+            Range along the Y axis
+        z_range : Tuple[float, float]
+            Range along the Z axis
         """
         raise NotImplementedError()
+
+    def enable_highlight(self, enable: bool = True):
+        """Enable hover highlight
+
+        Parameters
+        ----------
+        enable : bool, optional
+            Highlight enabled, by default True
+        """
+        pass

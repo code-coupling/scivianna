@@ -5,9 +5,9 @@ import pyvista as pv
 from pathlib import Path
 import numpy as np
 
-from scivianna.component.r3f_component.app import ReactThreeFiber, get_rd_bu
+from scivianna.component.r3f_component.app import ReactThreeFiber
 from scivianna.interface.med_interface import MEDInterface
-from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values
+from scivianna.utils.color_tools import get_edges_colors, interpolate_cmap_at_values, color_maps
 
 
 def get_panel(**kwargs):
@@ -99,7 +99,7 @@ def get_panel(**kwargs):
     rtf = ReactThreeFiber(
         sizing_mode="stretch_both",
         display_color_map=True,
-        color_map_colors=get_rd_bu(np.linspace(0, 1, 11), html=True),
+        color_map_colors=color_maps["BuRd"],
         slice_tool_visible=True
     )
 

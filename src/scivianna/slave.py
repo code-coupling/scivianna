@@ -12,15 +12,16 @@ from typing import Any, List, Dict, Tuple, Type, Union
 
 from scivianna.data.data2d import Data2D
 
+from scivianna.data.data3d import Data3D
 from scivianna.interface.generic_interface import (
     GenericInterface,
-    Geometry2D, 
+    Geometry2D,
+    Geometry3D,
     IcocoInterface,
-    OverLine, 
-    ValueAtLocation, 
+    OverLine,
+    ValueAtLocation,
     Value1DAtLocation
 )
-from scivianna.interface.option_element import OptionElement
 from scivianna.enums import GeometryType, VisualizationMode
 
 from typing import TYPE_CHECKING
@@ -30,8 +31,6 @@ if TYPE_CHECKING:
     import medcoupling
 
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
-if profile_time:
-    import time
 
 pn.extension(notifications=True)
 
@@ -56,6 +55,10 @@ class SlaveCommand:
     """Returns the values of a field at cells"""
     GET_GEOMETRY_TYPE = "get_geometry_type"
     """Returns the geometry type"""
+
+    #   Geometry3D functions
+    COMPUTE_3D_DATA = "compute_3d_data"
+    """Compute a 3D geometry"""
 
     #   ValueAtLocation functions
     GET_VALUE = "get_value"
@@ -172,6 +175,48 @@ def worker(
                         ]
                     )
 
+                #   Geometry3D functions
+                elif task == SlaveCommand.COMPUTE_3D_DATA:
+                    (
+                        x_min,
+                        x_max,
+                        y_min,
+                        y_max,
+                        z_min,
+                        z_max,
+                        q_tasks_,
+                        coloring_label,
+                        options,
+                    ) = data
+
+                    if not isinstance(code_, Geometry3D):
+                        raise TypeError(
+                            f"The requested panel is not associated to an Geometry3D, found class {type(code_)}."
+                        )
+                    data: Data3D
+                    data, polygons_updated = code_.compute_3D_data(
+                        x_min,
+                        x_max,
+                        y_min,
+                        y_max,
+                        z_min,
+                        z_max,
+                        q_tasks_,
+                        options,
+                    )
+
+                    dict_value_per_cell = code_.get_value_dict(
+                        coloring_label, data.cell_ids, options
+                    )
+                    data.cell_values = [dict_value_per_cell[v] for v in data.cell_ids]
+
+                    q_returns.put(
+                        [
+                            data,
+                            polygons_updated,
+                        ]
+                    )
+
                 elif task == SlaveCommand.GET_VALUE_DICT:
                     if not isinstance(code_, Geometry2D):
                         raise TypeError(
@@ -200,7 +245,6 @@ def worker(
                     set_return = code_.get_values(*data)
                     q_returns.put(set_return)
 
-
                 #   Value1DAtLocation functions
                 elif task == SlaveCommand.GET_1D_VALUE:
                     if not isinstance(code_, Value1DAtLocation):
@@ -210,7 +254,6 @@ def worker(
                     input_list = code_.get_1D_value(*data)
                     q_returns.put(input_list)
 
-
                 #   OverLine functions
                 elif task == SlaveCommand.GET_1D_VALUE:
                     if not isinstance(code_, OverLine):
@@ -219,7 +262,6 @@ def worker(
                         )
                     input_list = code_.compute_1D_line_data(*data)
                     q_returns.put(input_list)
-
 
                 #   ICOCOInterface functions
                 elif task == SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE:
@@ -301,7 +343,6 @@ class ComputeSlave:
 
         self.running = False
         self.reset()
-        
 
     def reset(
         self,
@@ -315,7 +356,7 @@ class ComputeSlave:
         self.q_returns = mp.Queue()
         self.q_errors = mp.Queue()
         self.p = mp.Process(
-            target=worker, 
+            target=worker,
             args=(self.q_tasks, self.q_returns, self.q_errors, self.code_interface)
         )
         self.p.start()
@@ -326,7 +367,6 @@ class ComputeSlave:
             self.terminate()
 
         atexit.register(terminate_process)
-        
 
     #   GenericInterface functions
     def read_file(self, file_path: str, file_label: str):
@@ -343,7 +383,7 @@ class ComputeSlave:
             print(f"Reading file {file_path} as {file_label}")
         else:
             print(f"Reading object of type {type(file_path)} as {file_label}")
-            
+
         file_path = self.code_interface.serialize(file_path, file_label)
 
         unpicklables = dill.detect.baditems(file_path)
@@ -355,7 +395,7 @@ class ComputeSlave:
         self.file_read.append((file_path, file_label))
 
         return self.__get_function((SlaveCommand.READ_FILE, [file_path, file_label]))
-        
+
     def __get_function(self, argument: Tuple[SlaveCommand, Any]):
         """Sends a function call to the process, and forward its return
 
@@ -367,7 +407,7 @@ class ComputeSlave:
 
         while self.ongoing_request:
             time.sleep(0.1)
-        
+
         self.ongoing_request = True
         self.q_tasks.put(argument)
 
@@ -509,6 +549,71 @@ class ComputeSlave:
         """
         return self.__get_function([SlaveCommand.GET_GEOMETRY_TYPE, []])
 
+    #   Geometry3D functions
+    def compute_3D_data(
+        self,
+        x_min: float,
+        x_max: float,
+        y_min: float,
+        y_max: float,
+        z_min: float,
+        z_max: float,
+        q_tasks: mp.Queue,
+        coloring_label: str,
+        options: Dict[str, Any],
+    ) -> Tuple[Data3D, bool]:
+        """Returns a list of polygons that defines the geometry in a given frame
+
+        Parameters
+        ----------
+        x_min : float
+            Lower bound value along the x axis
+        x_max : float
+            Upper bound value along the x axis
+        y_min : float
+            Lower bound value along the y axis
+        y_max : float
+            Upper bound value along the y axis
+        z_min : float
+            Lower bound value along the z axis
+        z_max : float
+            Upper bound value along the z axis
+        q_tasks : mp.Queue
+            Queue from which get orders from the master.
+        coloring_label : str
+            Field label to display
+        options : Dict[str, Any]
+            Additional options for frame computation.
+
+        Returns
+        -------
+        Data3D
+            Geometry to display
+        bool
+            Were the polygons updated compared to the past call
+
+        Raises
+        ------
+        NotImplementedError
+            Function to override in the code interfaces
+        """
+        return self.__get_function(
+            [
+                SlaveCommand.COMPUTE_3D_DATA,
+                [
+                    x_min,
+                    x_max,
+                    y_min,
+                    y_max,
+                    z_min,
+                    z_max,
+                    q_tasks,
+                    coloring_label,
+                    options,
+                ],
+            ]
+        )
+
     #   ValueAtLocation functions
     def get_value(
         self,
@@ -583,7 +688,6 @@ class ComputeSlave:
                 ],
             ]
         )
-
 
     #   Value1DAtLocation functions
     def get_1D_value(
@@ -704,7 +808,7 @@ class ComputeSlave:
         """
         return self.__get_function([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
 
-    def setTime(self, time_:float):
+    def setTime(self, time_: float):
         """Set the current time in an interface to associate to the received value.
 
         Parameters
@@ -759,10 +863,10 @@ class ComputeSlave:
 
         if not self.running:
             return
-        
+
         self.ongoing_request = False
         if not self.q_errors.empty():
-            error:Exception = self.q_errors.get()
+            error: Exception = self.q_errors.get()
             pn.state.notifications.error(f"Error {error}, restoring data.")
 
             return None
@@ -790,6 +894,7 @@ class ComputeSlave:
             Function return
         """
         return self.__get_function([SlaveCommand.CUSTOM, [function_name, arguments]])
+
 
 if __name__ == "__main__":
     pass
