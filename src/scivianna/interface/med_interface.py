@@ -15,8 +15,6 @@ from scivianna.extension.extension import Extension
 import scivianna.icon
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon, IcocoInterface
-from scivianna.interface.option_element import IntOption
-from scivianna.slave import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement, PolygonCoords
 from scivianna.enums import GeometryType, VisualizationMode
 
@@ -30,6 +28,7 @@ if profile_time:
 
 with open(Path(scivianna.icon.__file__).parent / "salome.svg", "r") as f:
     icon_svg = f.read()
+
 
 class MEDCouplingExtension(Extension):
     """Extension to load files and send them to the slave."""

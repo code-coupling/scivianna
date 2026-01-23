@@ -14,13 +14,12 @@ from scivianna.data.data2d import Data2D
 
 from scivianna.interface.generic_interface import (
     GenericInterface,
-    Geometry2D, 
+    Geometry2D,
     IcocoInterface,
-    OverLine, 
-    ValueAtLocation, 
+    OverLine,
+    ValueAtLocation,
     Value1DAtLocation
 )
-from scivianna.interface.option_element import OptionElement
 from scivianna.enums import GeometryType, VisualizationMode
 
 from typing import TYPE_CHECKING
@@ -30,8 +29,6 @@ if TYPE_CHECKING:
     import medcoupling
 
 profile_time = bool(os.environ["VIZ_PROFILE"]) if "VIZ_PROFILE" in os.environ else 0
-if profile_time:
-    import time
 
 pn.extension(notifications=True)
 
@@ -48,6 +45,10 @@ class SlaveCommand:
     """Returns the coloring mode of a field"""
     GET_FILE_INPUT_LIST = "get_file_input_list"
     """Returns the list of read input files"""
+    SAVE = "save"
+    """Pickle saves the slave state to a file"""
+    LOAD = "load"
+    """Pickle loads the slave state from a file"""
 
     #   Geometry2D functions
     COMPUTE_2D_DATA = "compute_2d_data"
@@ -127,6 +128,15 @@ def worker(
                     input_list = code_.get_file_input_list()
                     q_returns.put(input_list)
 
+                elif task == SlaveCommand.SAVE:
+                    code_.save(*data)
+                    q_returns.put("OK")
+
+                elif task == SlaveCommand.LOAD:
+                    code_.load(*data)
+                    q_returns.put("OK")
+
+                #
                 #   Geometry2D functions
                 elif task == SlaveCommand.COMPUTE_2D_DATA:
                     (
@@ -200,7 +210,7 @@ def worker(
                     set_return = code_.get_values(*data)
                     q_returns.put(set_return)
 
-
+                #
                 #   Value1DAtLocation functions
                 elif task == SlaveCommand.GET_1D_VALUE:
                     if not isinstance(code_, Value1DAtLocation):
@@ -210,7 +220,7 @@ def worker(
                     input_list = code_.get_1D_value(*data)
                     q_returns.put(input_list)
 
-
+                #
                 #   OverLine functions
                 elif task == SlaveCommand.GET_1D_VALUE:
                     if not isinstance(code_, OverLine):
@@ -220,7 +230,7 @@ def worker(
                     input_list = code_.compute_1D_line_data(*data)
                     q_returns.put(input_list)
 
-
+                #
                 #   ICOCOInterface functions
                 elif task == SlaveCommand.GET_INPUT_MED_DOUBLEFIELD_TEMPLATE:
                     if not isinstance(code_, IcocoInterface):
@@ -301,7 +311,6 @@ class ComputeSlave:
 
         self.running = False
         self.reset()
-        
 
     def reset(
         self,
@@ -315,7 +324,7 @@ class ComputeSlave:
         self.q_returns = mp.Queue()
         self.q_errors = mp.Queue()
         self.p = mp.Process(
-            target=worker, 
+            target=worker,
             args=(self.q_tasks, self.q_returns, self.q_errors, self.code_interface)
         )
         self.p.start()
@@ -326,8 +335,8 @@ class ComputeSlave:
             self.terminate()
 
         atexit.register(terminate_process)
-        
 
+    #
     #   GenericInterface functions
     def read_file(self, file_path: str, file_label: str):
         """Forwards to the worker a file path to read and its associated label
@@ -343,7 +352,7 @@ class ComputeSlave:
             print(f"Reading file {file_path} as {file_label}")
         else:
             print(f"Reading object of type {type(file_path)} as {file_label}")
-            
+
         file_path = self.code_interface.serialize(file_path, file_label)
 
         unpicklables = dill.detect.baditems(file_path)
@@ -355,7 +364,7 @@ class ComputeSlave:
         self.file_read.append((file_path, file_label))
 
         return self.__get_function((SlaveCommand.READ_FILE, [file_path, file_label]))
-        
+
     def __get_function(self, argument: Tuple[SlaveCommand, Any]):
         """Sends a function call to the process, and forward its return
 
@@ -367,7 +376,7 @@ class ComputeSlave:
 
         while self.ongoing_request:
             time.sleep(0.1)
-        
+
         self.ongoing_request = True
         self.q_tasks.put(argument)
 
@@ -584,7 +593,7 @@ class ComputeSlave:
             ]
         )
 
-
+    #
     #   Value1DAtLocation functions
     def get_1D_value(
         self,
@@ -704,7 +713,7 @@ class ComputeSlave:
         """
         return self.__get_function([SlaveCommand.SET_INPUT_DOUBLE_VALUE, [name, val]])
 
-    def setTime(self, time_:float):
+    def setTime(self, time_: float):
         """Set the current time in an interface to associate to the received value.
 
         Parameters
@@ -759,10 +768,10 @@ class ComputeSlave:
 
         if not self.running:
             return
-        
+
         self.ongoing_request = False
         if not self.q_errors.empty():
-            error:Exception = self.q_errors.get()
+            error: Exception = self.q_errors.get()
             pn.state.notifications.error(f"Error {error}, restoring data.")
 
             return None
@@ -790,6 +799,27 @@ class ComputeSlave:
             Function return
         """
         return self.__get_function([SlaveCommand.CUSTOM, [function_name, arguments]])
+
+    def save(self, file_path: Path):
+        """Pickle saves the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File in which save the slave
+        """
+        return self.__get_function([SlaveCommand.SAVE, [file_path]])
+
+    def load(self, file_path: Path):
+        """Pickle loads the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File from which load the slave
+        """
+        return self.__get_function([SlaveCommand.LOAD, [file_path]])
+
 
 if __name__ == "__main__":
     pass

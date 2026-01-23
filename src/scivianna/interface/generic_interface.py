@@ -1,11 +1,9 @@
 import multiprocessing as mp
-import numpy as np
+from pathlib import Path
 import pandas as pd
 from typing import Any, List, Tuple, Dict, Union
 
 from scivianna.data.data2d import Data2D
-from scivianna.interface.option_element import OptionElement
-from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import VisualizationMode, GeometryType, DataType
 
 from typing import TYPE_CHECKING
@@ -110,17 +108,36 @@ class GenericInterface:
         """
         return obj
 
+    def save(self, file_path: Path):
+        """Pickle saves the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File in which save the file
+        """
+        raise NotImplementedError()
+
+    def load(self, file_path: Path):
+        """Pickle loads the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File from which load the slave
+        """
+        raise NotImplementedError()
+
 
 class Geometry2D(GenericInterface):
     """ Interface parent class for classes that can compute geometry 2D slices.
     """
-    geometry_type:GeometryType
+    geometry_type: GeometryType
     """Enum telling if the geometry is 2D or 3D (Displays the axis card and the w coordinate in the GUI)."""
-    data_type:DataType
+    data_type: DataType
     """Enum saying if the data are returned in a 2D grid or a polygon list"""
-    rasterized:bool = False
+    rasterized: bool = False
     """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
-    
 
     def compute_2D_data(
         self,
@@ -197,15 +214,18 @@ class Geometry2D(GenericInterface):
         """
         raise NotImplementedError()
 
+
 class Geometry2DPolygon(Geometry2D):
     """ Interface parent class for classes that can compute geometry 2D slices and provide a list of polygons.
     """
+
+
 class Geometry2DGrid(Geometry2D):
     """ Interface parent class for classes that can compute geometry 2D slices and provide a numpy array.
     """
-    rasterized:bool = True
+    rasterized: bool = True
     """Boolean telling if the geometry is made by rasterizing a 2D grid (displays the line count in the GUI)."""
-    
+
 
 class ValueAtLocation(GenericInterface):
     """ Interface parent class to implement a function to get values at a specific location.
@@ -263,6 +283,7 @@ class ValueAtLocation(GenericInterface):
             Field values
         """
         raise NotImplementedError()
+
 
 class Value1DAtLocation(GenericInterface):
     """ Interface parent class to implement a function to get 1D data at a specific location.
@@ -404,7 +425,7 @@ class IcocoInterface(GenericInterface):
         """
         raise NotImplementedError
 
-    def setTime(self, time:float):
+    def setTime(self, time: float):
         """This non-Icoco function allows setting the current time in an interface to associate to the received value.
 
         Parameters
