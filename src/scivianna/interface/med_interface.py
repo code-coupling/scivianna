@@ -5,6 +5,7 @@ import numpy as np
 import multiprocessing as mp
 import panel as pn
 import panel_material_ui as pmui
+import pickle
 
 if TYPE_CHECKING:
     from scivianna.panel.visualisation_panel import VisualizationPanel
@@ -699,6 +700,42 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
             Mesh bounding box : ((minx, maxx), (miny, maxy), (minz, maxz))
         """
         return self.mesh.getBoundingBox()
+
+    def save(self, file_path: Path):
+        """Pickle saves the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File in which save the file
+        """
+        os.makedirs(Path(file_path).parent, exist_ok=True)
+
+        with open(file_path, "wb") as f:
+            data = self.file_path, self.last_computed_frame, self.data, self.field_doubles
+
+            pickle.dump(data, f)
+
+    def load(self, file_path: Path):
+        """Pickle loads the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File from which load the slave
+        """
+        if not os.path.isfile(file_path):
+            raise ValueError(f"Provided path {file_path} does not exist")
+
+        with open(file_path, "rb") as f:
+            data = pickle.load(f)
+
+            file_path, last_computed_frame, polygon_data, field_doubles = data
+
+            self.read_file(file_path=file_path, file_label=GEOMETRY)
+            self.last_computed_frame = last_computed_frame
+            self.polygon_data = polygon_data
+            self.field_doubles = field_doubles
 
 
 if __name__ == "__main__":
