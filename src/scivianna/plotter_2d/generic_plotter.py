@@ -1,20 +1,18 @@
-from typing import IO, Callable, List, Tuple
+from typing import IO, Callable, Tuple
 import panel as pn
 
 from scivianna.data.data2d import Data2D
-from scivianna.utils.polygonize_tools import PolygonElement
 
 
 class Plotter2D:
     """Generic 2D geometry plotter interface"""
-    
+
     on_mouse_move_callback = None
     """Function to call when the mouse is moved on the geometry"""
     on_clic_callback = None
     """Function to call when the mouse is clicked on the geometry"""
-    line_width = 1.
+    line_width = 1.0
     """Width of the line separating the different cells"""
-
 
     def display_borders(self, display: bool):
         """Display or hides the figure borders and axis
@@ -74,7 +72,10 @@ class Plotter2D:
         """
         raise NotImplementedError()
 
-    def update_colors(self, data: Data2D,):
+    def update_colors(
+        self,
+        data: Data2D,
+    ):
         """Updates the colors of the displayed polygons
 
         Parameters
@@ -116,8 +117,8 @@ class Plotter2D:
         """
         raise NotImplementedError
 
-    def provide_on_mouse_move_callback(self, callback:Callable):
-        """Stores a function to call everytime the user moves the mouse on the plot. 
+    def provide_on_mouse_move_callback(self, callback: Callable):
+        """Stores a function to call everytime the user moves the mouse on the plot.
         Functions arguments are location, cell_id.
 
         Parameters
@@ -127,8 +128,8 @@ class Plotter2D:
         """
         self.on_mouse_move_callback = callback
 
-    def provide_on_clic_callback(self, callback:Callable):
-        """Stores a function to call everytime the user clics on the plot. 
+    def provide_on_clic_callback(self, callback: Callable):
+        """Stores a function to call everytime the user clics on the plot.
         Functions arguments are location, cell_id.
 
         Parameters
@@ -138,7 +139,9 @@ class Plotter2D:
         """
         self.on_clic_callback = callback
 
-    def set_axes(self, u:Tuple[float, float, float], v:Tuple[float, float, float], w:float):
+    def set_axes(
+        self, u: Tuple[float, float, float], v: Tuple[float, float, float], w: float
+    ):
         """Stores the u v axes of the current plot
 
         Parameters
@@ -151,7 +154,7 @@ class Plotter2D:
             Normal vector coordinate
         """
         raise NotImplementedError()
-    
+
     def enable_highlight(self, enable: bool = True):
         """Enable hover highlight
 

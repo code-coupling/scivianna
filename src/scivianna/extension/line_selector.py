@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING
 import panel as pn
 import panel_material_ui as pmui
@@ -14,14 +13,10 @@ profile_time = False
 
 
 class LineSelector(Extension):
-    """ Extension used to select the displayed line in a Panel1D.
-    """
+    """Extension used to select the displayed line in a Panel1D."""
 
     def __init__(
-        self,
-        slave: ComputeSlave,
-        plotter: Plotter1D,
-        panel: "VisualizationPanel"
+        self, slave: ComputeSlave, plotter: Plotter1D, panel: "VisualizationPanel"
     ):
         """Constructor of the extension, saves the slave and the panel
 
@@ -34,7 +29,9 @@ class LineSelector(Extension):
         panel : VisualizationPanel
             Panel to which the extension is attached
         """
-        assert isinstance(plotter, Plotter1D), "LineSelector extension is only compatible with Plotter1D"
+        assert isinstance(
+            plotter, Plotter1D
+        ), "LineSelector extension is only compatible with Plotter1D"
         super().__init__(
             "Line selection",
             "line_axis",
@@ -42,7 +39,7 @@ class LineSelector(Extension):
             plotter,
             panel,
         )
-        
+
         self.description = """
 The color map extension lets you decide which field is being displayed on the cells, and what colorbar is used.
 
@@ -51,17 +48,13 @@ If a color bar is used, you can decide to center it on zero.
 
         fields_list = self.slave.get_labels()
         self.field_color_selector = pmui.Select(
-            name="Displayed plot",
-            options=fields_list,
-            value=fields_list[0],
-            width = 280
+            name="Displayed plot", options=fields_list, value=fields_list[0], width=280
         )
 
         self.field_color_selector.param.watch(self.trigger_field_change, "value")
 
     def trigger_field_change(self, *args, **kwargs):
-        """Trigger a field change in the visualization panel
-        """
+        """Trigger a field change in the visualization panel"""
         self.panel.set_field(self.field_color_selector.value)
 
     def on_file_load(self, file_path: str, file_key: str):
@@ -75,12 +68,12 @@ If a color bar is used, you can decide to center it on zero.
             Key associated to the loaded file
         """
         self.field_color_selector.options = list(
-            set(
-                self.field_color_selector.options + self.slave.get_labels()
-            )
+            set(self.field_color_selector.options + self.slave.get_labels())
         )
 
-    def make_gui(self,) -> pn.viewable.Viewable:
+    def make_gui(
+        self,
+    ) -> pn.viewable.Viewable:
         """Returns a panel viewable to display in the extension tab.
 
         Returns
@@ -91,4 +84,3 @@ If a color bar is used, you can decide to center it on zero.
         return pn.Column(
             self.field_color_selector,
         )
-    

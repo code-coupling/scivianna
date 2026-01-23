@@ -8,6 +8,8 @@ import panel as pn
 import panel_material_ui as pmui
 import pickle
 
+from scivianna.extension.save_load_extension import SaveLoadExtension
+
 if TYPE_CHECKING:
     from scivianna.panel.visualisation_panel import VisualizationPanel
     from scivianna.slave import ComputeSlave
@@ -305,7 +307,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
     """ Support mesh
     """
     geometry_type: GeometryType = GeometryType._3D_INFINITE
-    extensions = [MEDCouplingExtension]
+    extensions = [MEDCouplingExtension, SaveLoadExtension]
 
     def __init__(self):
         """MEDCoupling interface constructor."""
