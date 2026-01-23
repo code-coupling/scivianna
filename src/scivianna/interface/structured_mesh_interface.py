@@ -1,25 +1,27 @@
 
+import os
+from pathlib import Path
+import pickle
 from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 import multiprocessing as mp
 
 from scivianna.data.data2d import Data2D
 from scivianna.interface.generic_interface import Geometry2DPolygon
-from scivianna.slave import OptionElement
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.enums import GeometryType, VisualizationMode
 from scivianna.utils.structured_mesh import CarthesianStructuredMesh, StructuredMesh
 
-from scivianna.constants import MESH
+from scivianna.constants import GEOMETRY, MESH
 
 
 class StructuredMeshInterface(Geometry2DPolygon):
-    """ StructuredMesh generic interface. This interface is not usable as such as it can't load a file. 
+    """ StructuredMesh generic interface. This interface is not usable as such as it can't load a file.
     To use it, the developper must implement another interface inheriting from it implementing the read_file function.
     """
 
-    polygons: List[PolygonElement]
-    """Polygons computed at the previous iteration"""
+    data: Data2D
+    """Data computed at the previous iteration"""
 
     mesh: StructuredMesh
     """Mesh read from the .med file."""
@@ -27,11 +29,11 @@ class StructuredMeshInterface(Geometry2DPolygon):
     fields: Dict[str, np.ndarray]
     """Dictionnary containing the list of per cell value for each read field."""
 
-    geometry_type=GeometryType._3D_INFINITE
+    geometry_type = GeometryType._3D_INFINITE
 
     def __init__(self, ):
         """StructuredMesh interface constructor."""
-        self.data: List[PolygonElement] = []
+        self.data: Data2D = []
         self.last_computed_frame = []
 
     def read_file(self, file_path: str, file_label: str):
@@ -142,7 +144,6 @@ class StructuredMeshInterface(Geometry2DPolygon):
 
         return dict(zip(cells, self.mesh.get_cells_values(value_label, cells)))
 
-
     def get_label_coloring_mode(self, label: str) -> VisualizationMode:
         """Returns wheter the given field is colored based on a string value or a float.
 
@@ -171,6 +172,37 @@ class StructuredMeshInterface(Geometry2DPolygon):
         """
         return []
 
+    def save(self, file_path: Path):
+        """Pickle saves the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File in which save the file
+        """
+        os.makedirs(Path(file_path).parent, exist_ok=True)
+
+        with open(file_path, "wb") as f:
+            data = self.data, self.last_computed_frame, self.mesh, self.fields
+
+            pickle.dump(data, f)
+
+    def load(self, file_path: Path):
+        """Pickle loads the slave content to a file, allows slave state reload
+
+        Parameters
+        ----------
+        file_path : Path
+            File from which load the slave
+        """
+        if not os.path.isfile(file_path):
+            raise ValueError(f"Provided path {file_path} does not exist")
+
+        with open(file_path, "rb") as f:
+            data = pickle.load(f)
+
+            self.data, self.last_computed_frame, self.mesh, self.fields = data
+
 
 if __name__ == "__main__":
     from scivianna.slave import ComputeSlave
@@ -194,8 +226,8 @@ if __name__ == "__main__":
                 np.linspace(0, 4, size),
                 np.linspace(0, 4, size),
             )
-            self.mesh.set_values("id", np.arange(size*size*size).reshape(size, size, size))
-    
+            self.mesh.set_values("id", np.arange(size * size * size).reshape(size, size, size))
+
     slave = ComputeSlave(MyMeshInterface)
     slave.read_file(
         None,
