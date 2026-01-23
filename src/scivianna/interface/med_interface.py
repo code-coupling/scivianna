@@ -712,7 +712,7 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         os.makedirs(Path(file_path).parent, exist_ok=True)
 
         with open(file_path, "wb") as f:
-            data = self.file_path, self.last_computed_frame, self.data, self.field_doubles
+            data = self.file_path, self.last_computed_frame, self.data, self.field_doubles, self.cell_dict
 
             pickle.dump(data, f)
 
@@ -730,12 +730,14 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         with open(file_path, "rb") as f:
             data = pickle.load(f)
 
-            file_path, last_computed_frame, polygon_data, field_doubles = data
+            file_path, last_computed_frame, polygon_data, field_doubles, cell_dict = data
 
-            self.read_file(file_path=file_path, file_label=GEOMETRY)
+            if file_path != self.file_path:
+                self.read_file(file_path=file_path, file_label=GEOMETRY)
             self.last_computed_frame = last_computed_frame
             self.polygon_data = polygon_data
             self.field_doubles = field_doubles
+            self.cell_dict = cell_dict
 
 
 if __name__ == "__main__":

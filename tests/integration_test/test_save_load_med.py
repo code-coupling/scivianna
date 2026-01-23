@@ -13,23 +13,31 @@ from scivianna.utils.file_cleaner import mark_for_deletion
 def test_save_load_med():
     """Simple test to make sure things happen before more tests are actually implemented
     """
-
-    # Field example
+    #   First creation of a slave
     slave = ComputeSlave(MEDInterface)
     slave.read_file(
         Path(scivianna.__file__).parent / "input_file" / "power.med",
         GEOMETRY,
     )
 
-    _, computed = slave.compute_2D_data(X, Y, 0., 1., 0., 1., 0., None, "INTEGRATED_POWER", {})
+    data, computed = slave.compute_2D_data(X, Y, 0., 1., 0., 1., 0., None, "INTEGRATED_POWER", {})
     assert computed, "First compute_2d_data should have been computed"
+    dict1 = slave.get_value_dict("INTEGRATED_POWER", data.cell_ids, {})
+
+    #   Saving the current save state (loaded file, computed polygons, loaded files...)
     slave.save("med_test.pkl")
     mark_for_deletion("med_test.pkl")
 
+    #   Creating a new slave and loading the file
     slave2 = ComputeSlave(MEDInterface)
     slave2.load("med_test.pkl")
 
-    _, computed = slave.compute_2D_data(X, Y, 0., 1., 0., 1., 0., None, "INTEGRATED_POWER", {})
+    #   New compute_2D_data is now instant as the polygons were saved
+    data2, computed = slave.compute_2D_data(X, Y, 0., 1., 0., 1., 0., None, "INTEGRATED_POWER", {})
     assert not computed, "Loaded compute_2d_data should have been skipped"
+    dict2 = slave2.get_value_dict("INTEGRATED_POWER", data2.cell_ids, {})
+
+    assert dict1 == dict2, "Returned cell value dictionnary doesn't match the first"
 
     slave.terminate()
+    slave2.terminate()

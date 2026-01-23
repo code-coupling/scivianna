@@ -60,8 +60,7 @@ setup(
         "icoco~=2.0.0",
         "panel_material_ui",
         "geopandas",
-        "dill",
-        "pickle"
+        "dill"
     ],
     extras_require={
         "default": [],
