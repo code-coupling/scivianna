@@ -1,3 +1,4 @@
+from logging import warning
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union, TYPE_CHECKING
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from scivianna.slave import ComputeSlave
     from scivianna.plotter_2d.generic_plotter import Plotter2D
 
+import scivianna
 from scivianna.extension.extension import Extension
 import scivianna.icon
 from scivianna.data.data2d import Data2D
@@ -701,28 +703,63 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         """
         return self.mesh.getBoundingBox()
 
-    def save(self, file_path: Path):
-        """Pickle saves the slave content to a file, allows slave state reload
+    def save(self, file_path: Path, include_files: bool):
+        """Pickle saves the slave content to a file, allows slave state reload.
+
+        Two modes are available:
+            -   If **include_files** is at True, all loaded data are saved, the pickled file can be loaded on its own to recover last session.
+            -   If **include_files** is at False, only the computed data are loaded, enabling faster first computation allowing a smaller pickle file size.
 
         Parameters
         ----------
         file_path : Path
             File in which save the file
+        include_files : bool
+            Included loaded file
         """
         os.makedirs(Path(file_path).parent, exist_ok=True)
-
         with open(file_path, "wb") as f:
-            data = self.file_path, self.last_computed_frame, self.data, self.field_doubles, self.cell_dict
+            if include_files:
+                data = (
+                    scivianna.__version__,
+                    include_files,
+                    "MEDInterface",
+                    self.data,
+                    self.file_path,
+                    self.meshnames,
+                    self.mesh,
+                    self.fieldnames,
+                    self.fields,
+                    self.field_doubles,
+                    self.fields_iterations,
+                    self.cell_dict,
+                    self.last_computed_frame
+                )
+            else:
+                data = (
+                    scivianna.__version__,
+                    include_files,
+                    "MEDInterface",
+                    self.last_computed_frame,
+                    self.data,
+                    self.cell_dict
+                )
 
             pickle.dump(data, f)
 
-    def load(self, file_path: Path):
+    def load(self, file_path: Path, include_files: bool):
         """Pickle loads the slave content to a file, allows slave state reload
+
+        Two modes are available:
+            -   If **include_files** is at True, all loaded data are saved, the pickled file can be loaded on its own to recover last session.
+            -   If **include_files** is at False, only the computed data are loaded, enabling faster first computation allowing a smaller pickle file size.
 
         Parameters
         ----------
         file_path : Path
             File from which load the slave
+        include_files : bool
+            Included loaded file
         """
         if not os.path.isfile(file_path):
             raise ValueError(f"Provided path {file_path} does not exist")
@@ -730,14 +767,35 @@ class MEDInterface(Geometry2DPolygon, IcocoInterface):
         with open(file_path, "rb") as f:
             data = pickle.load(f)
 
-            file_path, last_computed_frame, polygon_data, field_doubles, cell_dict = data
+            assert len(data) > 3, "Loaded data is not meant for MEDInterface"
+            version, inc_files, interface_name = data[:3]
+            if version != scivianna.__version__:
+                warning(f"Loading file built with scivianna {version}, current version : {scivianna.__version__}.")
 
-            if file_path != self.file_path:
-                self.read_file(file_path=file_path, file_label=GEOMETRY)
-            self.last_computed_frame = last_computed_frame
-            self.polygon_data = polygon_data
-            self.field_doubles = field_doubles
-            self.cell_dict = cell_dict
+            assert inc_files == include_files, f"Loaded file has in include_files at {inc_files}, currently calling with include_files at {include_files}."
+
+            assert interface_name == "MEDInterface", f"Loaded file is built by interface {interface_name}, trying to load with MEDInterface."
+
+            if include_files:
+                (
+                    self.data,
+                    self.file_path,
+                    self.meshnames,
+                    self.mesh,
+                    self.fieldnames,
+                    self.fields,
+                    self.field_doubles,
+                    self.fields_iterations,
+                    self.cell_dict,
+                    self.last_computed_frame
+                ) = data[3:]
+
+            else:
+                (
+                    self.last_computed_frame,
+                    self.data,
+                    self.cell_dict
+                ) = data[3:]
 
 
 if __name__ == "__main__":

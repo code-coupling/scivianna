@@ -800,25 +800,37 @@ class ComputeSlave:
         """
         return self.__get_function([SlaveCommand.CUSTOM, [function_name, arguments]])
 
-    def save(self, file_path: Path):
-        """Pickle saves the slave content to a file, allows slave state reload
+    def save(self, file_path: Path, include_files: bool):
+        """Pickle saves the slave content to a file, allows slave state reload.
+
+        Two modes are available:
+            -   If **include_files** is at True, all loaded data are saved, the pickled file can be loaded on its own to recover last session.
+            -   If **include_files** is at False, only the computed data are loaded, enabling faster first computation allowing a smaller pickle file size.
 
         Parameters
         ----------
         file_path : Path
-            File in which save the slave
+            File in which save the file
+        include_files : bool
+            Included loaded file
         """
-        return self.__get_function([SlaveCommand.SAVE, [file_path]])
+        return self.__get_function([SlaveCommand.SAVE, [file_path, include_files]])
 
-    def load(self, file_path: Path):
+    def load(self, file_path: Path, include_files: bool):
         """Pickle loads the slave content to a file, allows slave state reload
+
+        Two modes are available:
+            -   If **include_files** is at True, all loaded data are saved, the pickled file can be loaded on its own to recover last session.
+            -   If **include_files** is at False, only the computed data are loaded, enabling faster first computation allowing a smaller pickle file size.
 
         Parameters
         ----------
         file_path : Path
             File from which load the slave
+        include_files : bool
+            Included loaded file
         """
-        return self.__get_function([SlaveCommand.LOAD, [file_path]])
+        return self.__get_function([SlaveCommand.LOAD, [file_path, include_files]])
 
 
 if __name__ == "__main__":
