@@ -71,13 +71,20 @@ This extension allows defining the medcoupling field display parameters.
         self.iconsize = "1.0em"
 
         self.field_iterations = None
-
         self.field_iterations = self.slave.call_custom_function("get_iterations", {})
-        self.field_name = list(self.field_iterations.keys())[0]
+
+        if self.field_iterations is not None and len(self.field_iterations) > 0:
+            self.field_name = list(self.field_iterations.keys())[0]
+            default_iteration = self.field_iterations[self.field_name][0][0]
+            default_order = self.field_iterations[self.field_name][0][1]
+        else:
+            self.field_name = MESH
+            default_iteration = 0
+            default_order = 0
 
         self.iteration_input = pmui.IntInput(
             label="Iteration",
-            value=self.field_iterations[self.field_name][0][0],
+            value=default_iteration,
             description="Med field iteration.",
             width=280,
             color="primary",
@@ -85,7 +92,7 @@ This extension allows defining the medcoupling field display parameters.
         )
         self.order_input = pmui.IntInput(
             label="Order",
-            value=self.field_iterations[self.field_name][0][1],
+            value=default_order,
             description="Med field order.",
             width=280
         )
@@ -152,7 +159,13 @@ This extension allows defining the medcoupling field display parameters.
     def update_slider_range(self,):
         """Update slider bounds based on the mesh bounding box
         """
-        x_range, y_range, z_range = self.slave.call_custom_function("get_bounding_box", {})
+        bounding_box = self.slave.call_custom_function("get_bounding_box", {})
+        if len(bounding_box) == 2:
+            # 2D geometry
+            x_range, y_range = bounding_box
+            z_range = 0, 0
+        else:
+            x_range, y_range, z_range = bounding_box
 
         w = np.cross(self.u, self.v).astype(float)
         w /= np.linalg.norm(w).astype(float)
