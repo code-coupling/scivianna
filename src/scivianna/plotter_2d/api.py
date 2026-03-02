@@ -169,7 +169,7 @@ def plot_frame_in_axes(
             values = np.array(compo_list).astype(float)
 
             plotter.set_color_map(color_map)
-            plotter.update_colorbar(True, (values.min(), values.max()))
+            plotter.update_colorbar(True, (np.nanmin(values), np.nanmin(values)))
         elif (
             slave.get_label_coloring_mode(coloring_label) == VisualizationMode.FROM_STRING
         ):
