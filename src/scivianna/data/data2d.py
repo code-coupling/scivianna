@@ -1,6 +1,6 @@
 from typing import Callable, Dict, List, Any, Tuple, Union
 import numpy as np
-from scivianna.utils.polygonize_tools import PolygonElement, numpy_2D_array_to_polygons
+from scivianna.utils.polygonize_tools import PolygonCoords, PolygonElement, numpy_2D_array_to_polygons
 from scivianna.enums import DataType
 from scivianna.data.data_container import DataContainer
 
@@ -197,4 +197,273 @@ class Data2D(DataContainer):
         if any(isinstance(item, str) for item in self.cell_values):
             assert all(isinstance(item, str) for item in self.cell_values), "If any of the values is a string, they all must be"
 
+    def __init_operation__(self, other:"Data2D") -> Tuple["Data2D", np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Initializes the operation between two Data2D objects, checking the validity of the operation and preparing the output Data2D and the indexes for the operation.
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   The order in the first Data2D is kept.
+        
+        Parameters
+        ----------
+        other : Data2D
+            The other Data2D to operate with self
+        
+        Returns
+        -------
+        Tuple["Data2D", np.ndarray, np.ndarray, np.ndarray]
+            The output Data2D, the result indexes, the mask and the stored values
+        """
+        assert self.data_type == other.data_type, "The two Data2D must have the same data type to be operated together"
+        if any(isinstance(item, str) for item in self.cell_values + other.cell_values):
+            raise ValueError("Cannot operate two Data2D with string values")
+        
+        output = self.copy()
+        
+        index = np.argsort(output.cell_ids)
+        
+        output.cell_ids = np.array(output.cell_ids)[index]
+        output.cell_colors = np.array(output.cell_colors)[index]
+        output.cell_values = np.array(output.cell_values)[index]
+        output.cell_edge_colors = np.array(output.cell_edge_colors)[index]
 
+        x = np.array(output.cell_ids)
+        sorted_index = np.searchsorted(x, other.cell_ids)
+
+        yindex = np.take(index, sorted_index, mode="clip")
+        mask = x[yindex] != other.cell_ids
+
+        result = np.ma.array(yindex, mask=mask, hard_mask=True).compressed()
+
+        stored_values = np.array(output.cell_values)[result]
+        output.cell_values.fill(np.nan)
+
+        return output, result, mask, stored_values
+
+    def __add__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Adds a Data2D or a float to a Data2D together: adds the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to add to self or a float to add to the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after addition
+        """
+        if isinstance(other, Data2D):
+            output, result, mask, stored_values = self.__init_operation__(other)
+            output.cell_values[result] = stored_values + np.array(other.cell_values)[~mask]
+        else:
+            if any(isinstance(item, str) for item in self.cell_values):
+                raise ValueError("Cannot add a float to a Data2D with string values")
+            output = self.copy()
+            output.cell_values = np.array(output.cell_values) + other
+
+        return output
+    
+    def __radd__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Adds a Data2D or a float to a Data2D together: adds the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to add to self or a float to add to the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after addition
+        """
+        return self.__add__(other)
+    
+    def __sub__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Subtracts a Data2D or a float from a Data2D together: subtracts the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to subtract from self or a float to subtract from the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after subtraction
+        """
+        if isinstance(other, Data2D):
+            output, result, mask, stored_values = self.__init_operation__(other)
+            output.cell_values[result] = stored_values - np.array(other.cell_values)[~mask]
+        else:
+            if any(isinstance(item, str) for item in self.cell_values):
+                raise ValueError("Cannot subtract a float from a Data2D with string values")
+            output = self.copy()
+            output.cell_values = np.array(output.cell_values) - other
+
+        return output
+    
+    def __rsub__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Subtracts a Data2D or a float from a Data2D together: subtracts the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to subtract from self or a float to subtract from the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after subtraction
+        """
+        return self.__sub__(other)
+    
+    def __mul__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Multiplies a Data2D or a float with a Data2D together: multiplies the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to multiply with self or a float to multiply with the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after multiplication
+        """
+        if isinstance(other, Data2D):
+            output, result, mask, stored_values = self.__init_operation__(other)
+            output.cell_values[result] = stored_values * np.array(other.cell_values)[~mask]
+        else:
+            if any(isinstance(item, str) for item in self.cell_values):
+                raise ValueError("Cannot multiply a float with a Data2D with string values")
+            output = self.copy()
+            output.cell_values = np.array(output.cell_values) * other
+
+        return output
+    
+    def __mul__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Multiplies a Data2D or a float with a Data2D together: multiplies the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to multiply with self or a float to multiply with the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after multiplication
+        """
+        if isinstance(other, Data2D):
+            output, result, mask, stored_values = self.__init_operation__(other)
+            output.cell_values[result] = stored_values * np.array(other.cell_values)[~mask]
+        else:
+            if any(isinstance(item, str) for item in self.cell_values):
+                raise ValueError("Cannot multiply a float with a Data2D with string values")
+            output = self.copy()
+            output.cell_values = np.array(output.cell_values) * other
+
+        return output
+    
+    def __rmul__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Multiplies a Data2D or a float with a Data2D together: multiplies the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to multiply with self or a float to multiply with the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after multiplication
+        """
+        return self.__mul__(other)
+    
+    def __truediv__(self, other: Union[float, "Data2D"]) -> "Data2D":
+        """Divides a Data2D or a float with a Data2D together: divides the cell values and resets the colors.
+
+        -   If the data types are different, an AssertionError is raised.
+        -   If the values are not numbers, a ValueError is raised.
+        -   If there is a mismatch in the cell ids, np.nan will be set as value for the missing cell ids in the resulting Data2D.
+        -   The order in the first Data2D is kept.
+
+        Parameters
+        ----------
+        other : Union[float, "Data2D"]
+            The other Data2D to divide with self or a float to divide with the cell values of self
+
+        Returns
+        -------
+        Data2D
+            The resulting Data2D after division
+        """
+        if isinstance(other, Data2D):
+            output, result, mask, stored_values = self.__init_operation__(other)
+            output.cell_values[result] = stored_values / np.array(other.cell_values)[~mask]
+        else:
+            if any(isinstance(item, str) for item in self.cell_values):
+                raise ValueError("Cannot divide a float with a Data2D with string values")
+            output = self.copy()
+            output.cell_values = np.array(output.cell_values) / other
+
+        return output
+    
+if __name__ == "__main__":
+    data_1 = Data2D.from_polygon_list(
+        [
+            PolygonElement(
+                cell_id=i, 
+                exterior_polygon=PolygonCoords(
+                    x_coords=[0, 1, 1, 0],
+                    y_coords=[0, 0, 1, 1]
+                ),
+                holes=[]
+            ) for i in range(5)
+        ]
+    )
+    data_1.cell_values = [i*1.0 for i in range(5)]
+
+    data_2 = data_1.copy()
+    data_2.cell_ids = [i*3 for i in range(-2, 5)]
+    data_2.cell_values = [i*3. for i in range(-2, 5)]
+
+    print((data_1 / data_2).cell_values)
+    
+    print((2*data_2).cell_values)
