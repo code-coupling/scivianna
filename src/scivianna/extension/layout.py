@@ -1,6 +1,4 @@
 
-from bokeh.plotting import curdoc
-
 import panel as pn
 from typing import TYPE_CHECKING
 

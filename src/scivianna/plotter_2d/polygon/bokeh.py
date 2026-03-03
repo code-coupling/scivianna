@@ -210,22 +210,25 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             self.figure.xaxis.visible = False
             self.figure.yaxis.visible = False
 
-    def update_colorbar(self, display: bool, range: Tuple[float, float]):
+    # @pn.io.hold()
+    def update_colorbar(self, display: bool, value_range: Tuple[float, float]):
         """Displays or hide the color bar, if display, updates its range
 
         Parameters
         ----------
         display : bool
             Display or hides the color bar
-        range : Tuple[float, float]
+        value_range : Tuple[float, float]
             New colormap range
         """
-        self.figure_color_bar.visible = display
-        if display:
-            self.figure_color_bar.color_mapper.low = range[0]
-            self.figure_color_bar.color_mapper.high = range[1]
+        if (value_range[0] is not None) and any(np.isnan(value_range)):
+            self.figure_color_bar.visible = False
+            return
 
-        self.figure_color_bar.color_mapper.update(low=range[0], high=range[1])
+        if display:
+            self.color_mapper.update(low=value_range[0], high=value_range[1])
+            self.figure_color_bar.color_mapper = self.color_mapper
+        self.figure_color_bar.visible = display
 
     def set_color_map(self, color_map_name: str):
         """Sets the colorbar color map name
@@ -236,6 +239,7 @@ class Bokeh2DPolygonPlotter(Plotter2D):
             Color map name
         """
         self.colormap = color_map_name
+        self.figure_color_bar.color_mapper = self.color_mapper
         self.figure_color_bar.color_mapper.update(
             palette=self.__get_color_mapper_from_string(color_map_name),
         )

@@ -26,6 +26,7 @@ class PolygonSorter:
         values_list:List[Union[int, str]] = data.cell_values
 
         assert len(data.cell_ids) == len(data.cell_colors), "The Data2D object must have the same number of cell id and colors"
+        assert len(data.cell_ids) == len(data.cell_edge_colors), "The Data2D object must have the same number of cell id and edge colors"
         assert len(data.cell_values) == len(data.cell_colors), "The Data2D object must have the same number of cell values and colors"
         if data.data_type == DataType.POLYGONS:
             assert len(data.cell_values) == len(data.polygons), "The Data2D object must have the same number of cell values and polygons"
@@ -53,6 +54,7 @@ class PolygonSorter:
 
         assert len(data.cell_values) == len(self.sort_indexes), f"Given cell values list has a different length from the sorted indexes, respectively found {len(data.cell_values)} and {len(self.sort_indexes)}."
         assert len(data.cell_colors) == len(self.sort_indexes), f"Given cell colors list has a different length from the sorted indexes, respectively found {len(data.cell_colors)} and {len(self.sort_indexes)}."
+        assert len(data.cell_edge_colors) == len(self.sort_indexes), f"Given cell edge colors list has a different length from the sorted indexes, respectively found {len(data.cell_edge_colors)} and {len(self.sort_indexes)}."
         assert len(data.cell_ids) == len(self.sort_indexes), f"Given cell ID list has a different length from the sorted indexes, respectively found {len(data.cell_ids)} and {len(self.sort_indexes)}."
         
         data.cell_ids = np.array(data.cell_ids)[self.sort_indexes].tolist()

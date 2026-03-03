@@ -5,6 +5,7 @@ import panel as pn
 from scivianna.data.data2d import Data2D
 from scivianna.utils.polygonize_tools import PolygonElement
 from scivianna.plotter_2d.generic_plotter import Plotter2D
+from scivianna.plotter_2d.grid.grid_tools import get_grids
 
 import bokeh
 from bokeh.colors import RGB
@@ -274,8 +275,12 @@ class Bokeh2DGridPlotter(Plotter2D):
         data : Data2D
             Data2D object containing the geometry to plot
         """
-        img, grid, val_grid = self.get_grids(data)
-        
+        img, view, grid, val_grid = get_grids(data, self.display_edges)
+
+        if self.save_data:
+            self.data = data
+            self.cell_name_grid = np.array(grid)
+
         self.source_grid = ColumnDataSource(
             {
                 GRID: [img],
@@ -304,7 +309,12 @@ class Bokeh2DGridPlotter(Plotter2D):
         data : Data2D
             Data2D object containing the data to update
         """
-        img, grid, val_grid = self.get_grids(data)
+        img, view, grid, val_grid = get_grids(data, self.display_edges)
+
+        if self.save_data:
+            self.data = data
+            self.cell_name_grid = np.array(grid)
+
         self.source_grid.update(
             data = {
                 GRID : [img],
@@ -312,6 +322,7 @@ class Bokeh2DGridPlotter(Plotter2D):
                 COMPO_NAMES : [val_grid],
             }
         )
+
         self.image.glyph.update(
             x = data.u_values.min(),
             y = data.v_values.min(),
@@ -319,64 +330,6 @@ class Bokeh2DGridPlotter(Plotter2D):
             dh = data.v_values.max() - data.v_values.min(),
         )
 
-    def get_grids(
-        self,
-        data: Data2D,
-    ):
-        grid = data.get_grid()
-        flat_grid = grid.flatten()
-        vals, inv = np.unique(flat_grid, return_inverse=True)
-
-        value_map = dict(zip(data.cell_ids, data.cell_values))
-        color_map = dict(zip(data.cell_ids, data.cell_colors))
-        
-        value_array = np.array([value_map[val] for val in vals])
-        color_array = np.array([color_map[val] for val in vals])
-
-        colors = color_array[inv]  # shape (n, m, 4)
-
-        if self.display_edges:
-            flat_data = grid.flatten()
-            roll_1_0 = np.where(flat_data == np.roll(flat_data, -1), 1, 0)
-            roll_1_1 = np.where(flat_data == np.roll(flat_data, 1), 1, 0)
-            contour_1_0 = roll_1_0.reshape(grid.shape)
-            contour_1_1 = roll_1_1.reshape(grid.shape)
-
-            flat_data_2 = grid.T.flatten()
-            roll_2_0 = np.where(flat_data_2 == np.roll(flat_data_2, -1), 1, 0)
-            roll_2_1 = np.where(flat_data_2 == np.roll(flat_data_2, 1), 1, 0)
-
-            contour_2_0 = roll_2_0.reshape(grid.T.shape).T
-            contour_2_1 = roll_2_1.reshape(grid.T.shape).T
-
-            borders = np.expand_dims(np.minimum(
-                    np.minimum(contour_1_0, contour_2_0),
-                    np.minimum(contour_1_1, contour_2_1),
-                ).flatten(), axis=-1)
-            
-            borders = np.concatenate([borders, borders, borders, borders], axis=1)
-
-            edge_color_array = np.array(data.cell_edge_colors)
-
-            edge_colors = edge_color_array[inv]  # shape (n, m, 4)
-
-            colors = np.where(borders == (1, 1, 1, 1), colors, edge_colors).reshape((*grid.shape, 4))
-        
-        else:
-            colors = colors.reshape((*grid.shape, 4))
-
-        val_grid = value_array[inv].reshape(grid.shape)
-        
-        img = np.empty(grid.shape, dtype=np.uint32)
-        view = img.view(dtype=np.uint8).reshape(colors.shape)
-        view[:, :, :] = colors[:, :, :]
-        
-        if self.save_data:
-            self.data = data
-            self.cell_name_grid = np.array(grid)
-
-        return img, grid, val_grid
-        
     def update_colors(self, data: Data2D,):
         """Updates the colors of the displayed polygons
 
@@ -537,7 +490,7 @@ class Bokeh2DGridPlotter(Plotter2D):
         if "i" in self.source_mouse.data:
             i, j = int(self.source_mouse.data["i"][0]), int(self.source_mouse.data["j"][0])
 
-            if self.cell_name_grid is not None:
+            if self.cell_name_grid is not None and j < len(self.cell_name_grid) and i < len(self.cell_name_grid[j]):
                 hovered_cell = self.cell_name_grid[j, i]
 
         callback(

@@ -30,7 +30,7 @@ class CSVInterface(ValueAtLocation):
 
         self.df = pd.read_csv(path)
 
-        if not ("material" in self.df.columns or "cell" in self.df.columns):
+        if not ("cell" in self.df.columns):
             raise ValueError(
                 f"Neither material nor cell was found in the csv columns. Found: {self.df.columns}."
             )
@@ -66,6 +66,7 @@ class CSVInterface(ValueAtLocation):
             )
 
         if "cell" in self.df.columns:
+            return self.df.set_index("cell").loc[field, cell_index]
             look_column = self.df["cell"]
             line_index = look_column[look_column == cell_index].index[0]
 
@@ -113,14 +114,14 @@ class CSVInterface(ValueAtLocation):
 
         if "cell" in self.df.columns:
             new_df = self.df.copy()
-            new_df["cell"] = new_df["cell"].astype(str)
+            new_df["cell"] = new_df["cell"]
             new_df = new_df.set_index("cell")
 
-            if "-1" in cell_indexes:
+            if np.inf in cell_indexes:
                 list_cells = list(cell_indexes.copy())
-                list_cells.remove("-1")
+                list_cells.remove(np.inf)
                 vals = new_df[field][list_cells].to_list()
-                vals.insert(list(cell_indexes.copy()).index("-1"), np.nan)
+                vals.insert(list(cell_indexes.copy()).index(np.inf), np.nan)
 
                 return vals
             else:

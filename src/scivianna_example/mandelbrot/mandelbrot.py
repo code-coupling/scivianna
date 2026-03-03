@@ -299,7 +299,7 @@ class MandelBrotInterface(Geometry2DGrid):
         if label == MESH:
             return VisualizationMode.NONE
         if label in [MATERIAL]:
-            return VisualizationMode.FROM_STRING
+            return VisualizationMode.FROM_VALUE
 
     def get_file_input_list(self) -> List[Tuple[str, str]]:
         """Returns a list of file label and its description for the GUI
